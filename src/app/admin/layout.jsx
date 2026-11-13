@@ -3,7 +3,7 @@ import { getDictionary } from '@/lib/i18n';
 import { getCurrentUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Users, Settings, ShieldAlert, LogOut, ArrowLeft } from 'lucide-react';
+import { Users, Settings, ShieldAlert, LogOut, ArrowLeft, CheckSquare } from 'lucide-react';
 
 export default async function AdminLayout({ children }) {
   const cookieStore = await cookies();
@@ -33,10 +33,18 @@ export default async function AdminLayout({ children }) {
           <nav className="p-4 space-y-1">
             <Link
               href="/admin/scholars"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+            >
+              <Users className="w-4 h-4 text-slate-400" />
+              {dict.admin.scholars}
+            </Link>
+
+            <Link
+              href="/admin/moderation"
               className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white bg-blue-600/20 border border-blue-500/30 transition-colors"
             >
-              <Users className="w-4 h-4 text-blue-400" />
-              {dict.admin.scholars}
+              <CheckSquare className="w-4 h-4 text-blue-400" />
+              Moderation Queue
             </Link>
 
             {user.role === 'SUPER_ADMIN' && (

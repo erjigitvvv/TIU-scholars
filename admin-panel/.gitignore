@@ -1,0 +1,11 @@
+django-unfold
+django-import-export
+openpyxl
+python-dotenv
+dj-database-url
+psycopg2-binary
+venv/
+__pycache__/
+*.pyc
+db.sqlite3
+.env
