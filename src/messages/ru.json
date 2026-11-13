@@ -1,29 +1,88 @@
 {
   "brand": "TIU Scholars",
-  "tagline": "Ташкентский международный университет — Портал научного потенциала и ученых",
+  "tagline": "Ташкентский международный университет — Научный потенциал и портал ученых",
   "nav": {
     "scholars": "Ученые",
     "publications": "Публикации",
     "rankings": "Рейтинг",
-    "login": "Войти",
-    "dashboard": "Панель управления"
+    "admin": "Админ панель",
+    "login": "Вход",
+    "dashboard": "Кабинет"
   },
   "home": {
-    "heroTitle": "Научный потенциал и портал ученых Ташкентского международного университета",
-    "heroSubtitle": "Отслеживайте научные исследования, публикации Scopus/WoS, гранты и достижения наших ученых.",
-    "searchPlaceholder": "Поиск по ученому, статье или направлению исследований...",
-    "searchButton": "Поиск",
+    "heroTitle": "Портал научных исследований и ученых Ташкентского международного университета",
+    "heroSubtitle": "Следите за научными исследованиями, статьями Scopus/WoS, грантами и достижениями ученых нашего университета.",
+    "searchPlaceholder": "Поиск по ученым, статье или научному направлению...",
+    "searchButton": "Найти",
     "stats": {
-      "activeScholars": "Активные ученые",
-      "approvedPublications": "Одобренные публикации",
+      "activeScholars": "Активных ученых",
+      "approvedPublications": "Утвержденных публикаций",
       "totalCitations": "Всего цитирований",
-      "grantProjects": "Грантовые проекты"
+      "grantProjects": "Грантовых проектов"
     },
     "topScholarsTitle": "Ведущие ученые",
     "viewAllScholars": "Все ученые",
     "tiuScore": "Балл TIU",
-    "hIndex": "H-индекс",
+    "hIndex": "H-Индекс",
     "citations": "Цитирования",
-    "publicationsCount": "Публикации"
+    "publicationsCount": "Публикации",
+    "facultiesTitle": "Факультеты и направления",
+    "latestPublicationsTitle": "Последние утвержденные публикации"
+  },
+  "scholars": {
+    "title": "Ученые университета",
+    "subtitle": "Каталог научного потенциала профессорско-преподавательского состава TIU",
+    "searchPlaceholder": "Имя ученого или область исследования...",
+    "filterFaculty": "Все факультеты",
+    "filterDegree": "Все ученые степени",
+    "filterTitle": "Все звания",
+    "sortBy": "Сортировка",
+    "sortScore": "По баллам TIU",
+    "sortHIndex": "По H-индексу",
+    "sortPubs": "По количеству публикаций",
+    "sortName": "По имени (А-Я)",
+    "viewProfile": "Смотреть профиль",
+    "noResults": "Ученые не найдены."
+  },
+  "profile": {
+    "metrics": "Научные показатели",
+    "hIndex": "H-Индекс",
+    "totalCitations": "Всего цитирований",
+    "approvedPubs": "Утвержденных публикаций",
+    "tiuScore": "Балл TIU",
+    "tabs": {
+      "publications": "Публикации",
+      "grants": "Гранты и проекты",
+      "supervisions": "Руководство (PhD/DSc)",
+      "coauthors": "Соавторы",
+      "bio": "Биография и интересы"
+    },
+    "downloadCv": "Скачать PDF CV",
+    "contact": "Контакты",
+    "externalIds": "Внешние профили",
+    "researchInterests": "Научные интересы"
+  },
+  "publications": {
+    "title": "База публикаций",
+    "subtitle": "Все утвержденные научные работы, опубликованные учеными TIU",
+    "searchPlaceholder": "Название статьи, DOI или журнал...",
+    "filterType": "Все типы",
+    "filterYear": "Все годы",
+    "journal": "Журнал / Издательство",
+    "year": "Год",
+    "citations": "Цитирования",
+    "doi": "DOI",
+    "authors": "Авторы"
+  },
+  "rankings": {
+    "title": "Научные рейтинги",
+    "subtitle": "Рейтинг научной активности ученых и кафедр TIU",
+    "tabScholars": "Рейтинг ученых",
+    "tabDepartments": "Рейтинг кафедр",
+    "rank": "Место",
+    "scholar": "Ученый",
+    "department": "Кафедра / Факультет",
+    "scholarsCount": "Кол-во ученых",
+    "totalPubs": "Публикации"
   }
 }

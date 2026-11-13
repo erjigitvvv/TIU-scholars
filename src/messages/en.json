@@ -5,13 +5,14 @@
     "scholars": "Scholars",
     "publications": "Publications",
     "rankings": "Rankings",
+    "admin": "Admin Panel",
     "login": "Sign In",
     "dashboard": "Dashboard"
   },
   "home": {
     "heroTitle": "Tashkent International University Scientific Potential & Scholars Portal",
-    "heroSubtitle": "Explore academic research, Scopus/WoS publications, grants, and scholarly achievements across TIU.",
-    "searchPlaceholder": "Search by scholar, publication title, or research interest...",
+    "heroSubtitle": "Explore scientific research, Scopus/WoS papers, grants, and scholarly achievements of our university faculty.",
+    "searchPlaceholder": "Search by scholar, article, or research interest...",
     "searchButton": "Search",
     "stats": {
       "activeScholars": "Active Scholars",
@@ -24,6 +25,64 @@
     "tiuScore": "TIU Score",
     "hIndex": "H-Index",
     "citations": "Citations",
-    "publicationsCount": "Publications"
+    "publicationsCount": "Publications",
+    "facultiesTitle": "Faculties & Departments",
+    "latestPublicationsTitle": "Latest Approved Publications"
+  },
+  "scholars": {
+    "title": "University Scholars",
+    "subtitle": "Directory of Tashkent International University faculty and researchers",
+    "searchPlaceholder": "Scholar name or research interest...",
+    "filterFaculty": "All Faculties",
+    "filterDegree": "All Academic Degrees",
+    "filterTitle": "All Academic Titles",
+    "sortBy": "Sort By",
+    "sortScore": "By TIU Score",
+    "sortHIndex": "By H-Index",
+    "sortPubs": "By Publication Count",
+    "sortName": "By Name (A-Z)",
+    "viewProfile": "View Profile",
+    "noResults": "No scholars found."
+  },
+  "profile": {
+    "metrics": "Scientific Metrics",
+    "hIndex": "H-Index",
+    "totalCitations": "Total Citations",
+    "approvedPubs": "Approved Publications",
+    "tiuScore": "TIU Score",
+    "tabs": {
+      "publications": "Publications",
+      "grants": "Grants & Projects",
+      "supervisions": "PhD / DSc Supervisions",
+      "coauthors": "Co-Authors",
+      "bio": "Biography & Interests"
+    },
+    "downloadCv": "Download PDF CV",
+    "contact": "Contact",
+    "externalIds": "External Profiles",
+    "researchInterests": "Research Interests"
+  },
+  "publications": {
+    "title": "Publications Database",
+    "subtitle": "All approved scholarly works authored by TIU researchers",
+    "searchPlaceholder": "Article title, DOI, or journal...",
+    "filterType": "All Types",
+    "filterYear": "All Years",
+    "journal": "Journal / Publisher",
+    "year": "Year",
+    "citations": "Citations",
+    "doi": "DOI",
+    "authors": "Authors"
+  },
+  "rankings": {
+    "title": "Scientific Rankings",
+    "subtitle": "Performance leaderboards for TIU scholars and academic departments",
+    "tabScholars": "Scholar Leaderboard",
+    "tabDepartments": "Department Leaderboard",
+    "rank": "Rank",
+    "scholar": "Scholar",
+    "department": "Department / Faculty",
+    "scholarsCount": "Scholars",
+    "totalPubs": "Publications"
   }
 }

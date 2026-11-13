@@ -5,6 +5,7 @@
     "scholars": "Olimlar",
     "publications": "Nashrlar",
     "rankings": "Reyting",
+    "admin": "Admin Panel",
     "login": "Kirish",
     "dashboard": "Boshqaruv paneli"
   },
@@ -24,6 +25,64 @@
     "tiuScore": "TIU Balli",
     "hIndex": "H-Indeks",
     "citations": "Iqtiboslar",
-    "publicationsCount": "Nashrlar"
+    "publicationsCount": "Nashrlar",
+    "facultiesTitle": "Fakultetlar va yo'nalishlar",
+    "latestPublicationsTitle": "So'nggi tasdiqlangan nashrlar"
+  },
+  "scholars": {
+    "title": "Universitet olimlari",
+    "subtitle": "TIU professor-o'qituvchilari va tadqiqotchilarining ilmiy salohiyati katalogi",
+    "searchPlaceholder": "Olim ismi yoki tadqiqot yo'nalishi...",
+    "filterFaculty": "Barcha fakultetlar",
+    "filterDegree": "Barcha ilmiy darajalar",
+    "filterTitle": "Barcha unvonlar",
+    "sortBy": "Saralash",
+    "sortScore": "TIU Balli bo'yicha",
+    "sortHIndex": "H-Indeks bo'yicha",
+    "sortPubs": "Nashrlar soni bo'yicha",
+    "sortName": "Ism bo'yicha (A-Z)",
+    "viewProfile": "Profilni ko'rish",
+    "noResults": "Olimlar topilmadi."
+  },
+  "profile": {
+    "metrics": "Ilmiy ko'rsatkichlar",
+    "hIndex": "H-Indeks",
+    "totalCitations": "Jami iqtiboslar",
+    "approvedPubs": "Tasdiqlangan nashrlar",
+    "tiuScore": "TIU Balli",
+    "tabs": {
+      "publications": "Nashrlar",
+      "grants": "Grantlar va loyihalar",
+      "supervisions": "Ilmiy rahbarlik (PhD/DSc)",
+      "coauthors": "Hammualliflar",
+      "bio": "Biografiya va qiziqishlar"
+    },
+    "downloadCv": "PDF CV ni yuklab olish",
+    "contact": "Bog'lanish",
+    "externalIds": "Tashqi profillar",
+    "researchInterests": "Tadqiqot yo'nalishlari"
+  },
+  "publications": {
+    "title": "Nashrlar bazasi",
+    "subtitle": "TIU olimlari tomonidan nashr etilgan barcha tasdiqlangan ilmiy ishlar",
+    "searchPlaceholder": "Maqola nomi, DOI yoki jurnal...",
+    "filterType": "Barcha turlar",
+    "filterYear": "Barcha yillar",
+    "journal": "Jurnal / Nashriyot",
+    "year": "Yil",
+    "citations": "Iqtiboslar",
+    "doi": "DOI",
+    "authors": "Mualliflar"
+  },
+  "rankings": {
+    "title": "Ilmiy reytinglar",
+    "subtitle": "TIU olimlari va kafedralarining ilmiy faollik ko'rsatkichlari reytingi",
+    "tabScholars": "Olimlar reytingi",
+    "tabDepartments": "Kafedralar reytingi",
+    "rank": "O'rin",
+    "scholar": "Olim",
+    "department": "Kafedra / Fakultet",
+    "scholarsCount": "Olimlar soni",
+    "totalPubs": "Nashrlar"
   }
 }

@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function Footer({ dict }) {
   return (
     <footer className="bg-slate-900 text-slate-400 py-12 border-t border-slate-800">
@@ -21,9 +23,9 @@ export default function Footer({ dict }) {
               Quick Links
             </h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="/scholars" className="hover:text-white transition-colors">{dict.nav.scholars}</a></li>
-              <li><a href="/publications" className="hover:text-white transition-colors">{dict.nav.publications}</a></li>
-              <li><a href="/rankings" className="hover:text-white transition-colors">{dict.nav.rankings}</a></li>
+              <li><Link href="/scholars" className="hover:text-white transition-colors">{dict.nav.scholars}</Link></li>
+              <li><Link href="/publications" className="hover:text-white transition-colors">{dict.nav.publications}</Link></li>
+              <li><Link href="/rankings" className="hover:text-white transition-colors">{dict.nav.rankings}</Link></li>
             </ul>
           </div>
           <div>
