@@ -1,14 +1,16 @@
 import { cookies } from 'next/headers';
 import { getDictionary } from '@/lib/i18n';
 import { prisma } from '@/lib/prisma';
+import { getCurrentUser } from '@/lib/auth';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
-import { Search, Users, BookOpen, Award, FileText, ArrowRight, CheckCircle2, ExternalLink } from 'lucide-react';
+import { Search, Users, BookOpen, Award, FileText, ArrowRight } from 'lucide-react';
 
 export default async function Home() {
   const cookieStore = await cookies();
   const locale = cookieStore.get('NEXT_LOCALE')?.value || 'uz';
   const dict = getDictionary(locale);
+  const currentUser = await getCurrentUser();
 
   // Fetch live stats from DB
   const [activeScholarsCount, approvedPubsCount, totalCitationsSum, grantCount, topScholars] = await Promise.all([
@@ -36,7 +38,7 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans">
-      <Navbar dict={dict} currentLocale={locale} />
+      <Navbar dict={dict} currentLocale={locale} user={currentUser} />
 
       <main className="flex-1">
         {/* Hero Section */}
@@ -148,7 +150,7 @@ export default async function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {topScholars.map((scholar, idx) => (
-              <div key={scholar.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between hover:shadow-md transition-shadow relative overflow{-hidden}">
+              <div key={scholar.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden">
                 <div className="absolute top-4 right-4 bg-blue-50 text-blue-800 font-bold text-xs px-2.5 py-1 rounded-full border border-blue-200 tabular-nums">
                   #{idx + 1}
                 </div>

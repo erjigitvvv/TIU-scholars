@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting database seed (SQLite mode)...');
+  console.log('🌱 Starting database seed (SQLite mode with 30+ publications)...');
 
   // Clean up database safely in correct order
   await prisma.auditLog.deleteMany();
@@ -120,7 +120,6 @@ async function main() {
     },
   });
 
-  // Audit log for seed
   await prisma.auditLog.create({
     data: {
       actorId: adminUser.id,
@@ -142,7 +141,6 @@ async function main() {
     { fullName: 'Dr. Zulfiya Saidova', email: 'z.saidova@tiu.uz', degree: 'PHD', title: 'DOCENT', deptIndex: 4, h: 9, citations: 380, score: 61.0 },
     { fullName: 'Dr. Sanjarbek Normatov', email: 's.normatov@tiu.uz', degree: 'PHD', title: 'ASSISTANT', deptIndex: 4, h: 6, citations: 210, score: 48.0 },
     { fullName: 'Dr. Gulchehra Sharipova', email: 'g.sharipova@tiu.uz', degree: 'PHD', title: 'DOCENT', deptIndex: 5, h: 10, citations: 440, score: 65.0 },
-    // Pending scholars
     { fullName: 'Azizbek Kadirov', email: 'a.kadirov@tiu.uz', degree: 'PHD', title: 'ASSISTANT', deptIndex: 0, h: 3, citations: 45, score: 20.0, pending: true },
     { fullName: 'Madina Tursunova', email: 'm.tursunova@tiu.uz', degree: 'NONE', title: 'ASSISTANT', deptIndex: 2, h: 1, citations: 12, score: 10.0, pending: true },
   ];
@@ -188,7 +186,7 @@ async function main() {
 
   console.log(`👨‍🎓 Created ${scholarNames.length} scholars (${createdScholars.length} active, 2 pending).`);
 
-  // 4. Publications
+  // 4. Publications (30+ records covering all types and quartiles)
   const samplePublications = [
     { title: 'Advanced Neural Network Architectures for Multilingual Natural Language Processing', type: 'SCOPUS', journal: 'IEEE Transactions on Neural Networks', quartile: 'Q1', year: 2025, doi: '10.1109/TNNLS.2025.3123456' },
     { title: 'Econometric Analysis of Digital Transformation in Emerging Central Asian Markets', type: 'SCOPUS', journal: 'Journal of Business Research', quartile: 'Q1', year: 2025, doi: '10.1016/j.jbusres.2025.112233' },
@@ -205,6 +203,23 @@ async function main() {
     { title: 'Machine Learning Approach for Early Detection of Macroeconomic Shocks', type: 'SCOPUS', journal: 'Economic Modelling', quartile: 'Q1', year: 2025, doi: '10.1016/j.econmod.2025.107001' },
     { title: 'Cross-Border Arbitration and International Trade Law Developments', type: 'WOS', journal: 'Journal of World Trade', quartile: 'Q2', year: 2024, doi: '10.54648/TRAD2024015' },
     { title: 'Textbook: Modern Software Engineering Principles and Practices', type: 'TEXTBOOK', journal: 'TIU Academic Publishing', quartile: 'NONE', year: 2024, doi: null },
+    // Additional 16 publications to exceed 30+ total
+    { title: 'Deep Learning for Medical Image Segmentation in Radiology', type: 'SCOPUS', journal: 'Computers in Biology and Medicine', quartile: 'Q1', year: 2025, doi: '10.1016/j.compbiomed.2025.109011' },
+    { title: 'Green Banking Practices and Environmental Performance in Central Asia', type: 'SCOPUS', journal: 'Journal of Cleaner Production', quartile: 'Q1', year: 2024, doi: '10.1016/j.jclepro.2024.141200' },
+    { title: 'Blockchain-Based Supply Chain Provenance for Agricultural Exports', type: 'WOS', journal: 'IEEE Access', quartile: 'Q2', year: 2025, doi: '10.1109/ACCESS.2025.3400112' },
+    { title: 'Artificial Intelligence Ethics and Regulatory Challenges in Public Administration', type: 'INTERNATIONAL_JOURNAL', journal: 'Public Administration Review', quartile: 'Q1', year: 2024, doi: '10.1111/puar.13788' },
+    { title: 'Quantum Cryptography Readiness in Post-Modern Financial Networks', type: 'SCOPUS', journal: 'Journal of Information Security and Applications', quartile: 'Q2', year: 2025, doi: '10.1016/j.jisa.2025.104112' },
+    { title: 'OAK: Pedagogical Innovations in Teaching Foreign Languages to STEM Students', type: 'OAK', journal: 'Toshkent Davlat Pedagogika Universiteti Ilmiy Axborotnomasi', quartile: 'NONE', year: 2024, doi: null },
+    { title: 'Conference: Natural Language Understanding for Low-Resource Turkic Languages', type: 'CONFERENCE', journal: 'ACL Conference Proceedings', quartile: 'NONE', year: 2024, doi: '10.18653/v1/2024.acl-long.450' },
+    { title: 'Monograph: Digital Economy Transformation and Labor Market Dynamics', type: 'MONOGRAPH', journal: 'Fan va Texnologiya Nashriyoti', quartile: 'NONE', year: 2023, doi: null },
+    { title: 'Patent: Automated Traffic Congestion Mitigation System Using Edge AI', type: 'PATENT', journal: 'Uzbekistan Intellectual Property Agency', quartile: 'NONE', year: 2025, doi: null },
+    { title: 'Local Journal: Regional Economic Integration and Trade Barriers', type: 'LOCAL_JOURNAL', journal: 'Iqtisodiy Taraqqiyot va Tahlil', quartile: 'NONE', year: 2025, doi: null },
+    { title: 'Textbook: Advanced Corporate Finance and Valuation Models', type: 'TEXTBOOK', journal: 'TIU Academic Press', quartile: 'NONE', year: 2024, doi: null },
+    { title: 'Web of Science: Sentiment Analysis of Financial News and Stock Market Volatility', type: 'WOS', journal: 'Financial Innovation', quartile: 'Q1', year: 2025, doi: '10.1186/s40854-025-00712-x' },
+    { title: 'Scopus Q2: IoT-Enabled Precision Agriculture Frameworks', type: 'SCOPUS', journal: 'Computers and Electronics in Agriculture', quartile: 'Q2', year: 2024, doi: '10.1016/j.compag.2024.108990' },
+    { title: 'OAK: Constitutional Guarantees of Human Rights in Digital Era', type: 'OAK', journal: 'Huquq va Burch', quartile: 'NONE', year: 2025, doi: null },
+    { title: 'Conference: Secure Multi-Party Computation for Healthcare Records', type: 'CONFERENCE', journal: 'IEEE Security and Privacy Workshops', quartile: 'NONE', year: 2024, doi: '10.1109/SPW60000.2024.00089' },
+    { title: 'International Journal: Higher Education Governance and Student Success Metrics', type: 'INTERNATIONAL_JOURNAL', journal: 'Journal of Higher Education Policy and Management', quartile: 'Q2', year: 2024, doi: '10.1080/1360080X.2024.2311200' },
   ];
 
   let pubCount = 0;
@@ -222,13 +237,13 @@ async function main() {
         url: p.doi ? `https://doi.org/${p.doi}` : 'https://tiu.uz/publications/sample',
         isbnOrPatentNo: p.type === 'PATENT' ? 'UZ-PAT-2024-0987' : p.type === 'MONOGRAPH' ? '978-9943-12-345-6' : null,
         quartile: p.quartile,
-        citationsCount: Math.floor(Math.random() * 50),
+        citationsCount: Math.floor(Math.random() * 60),
         status: 'APPROVED',
         submittedById: authorScholar.userId,
       },
     });
 
-    // Link author
+    // Link author 1
     await prisma.publicationAuthor.create({
       data: {
         publicationId: pub.id,
@@ -237,10 +252,28 @@ async function main() {
       },
     });
 
+    // Add co-author for multi-author links
+    if (createdScholars.length > 1 && i % 2 === 0) {
+      const coAuthor = createdScholars[(i + 3) % createdScholars.length];
+      if (coAuthor.id !== authorScholar.id) {
+        try {
+          await prisma.publicationAuthor.create({
+            data: {
+              publicationId: pub.id,
+              scholarId: coAuthor.id,
+              authorOrder: 2,
+            },
+          });
+        } catch (e) {
+          // ignore duplicate
+        }
+      }
+    }
+
     pubCount++;
   }
 
-  console.log(`📚 Created ${pubCount} publications with authors.`);
+  console.log(`📚 Created ${pubCount} publications with multi-author links.`);
 
   // 5. Grant Projects
   const grants = [
@@ -311,7 +344,7 @@ async function main() {
   }
 
   console.log('🎯 Created 2026 department KPI targets.');
-  console.log('✅ Database seeding completed successfully (SQLite)!');
+  console.log('✅ Database seeding completed successfully with 30+ publications!');
 }
 
 main()

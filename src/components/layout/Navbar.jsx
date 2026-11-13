@@ -3,16 +3,21 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Menu, X, Shield, Award, BookOpen, Users } from 'lucide-react';
+import { Menu, X, Shield, Award, BookOpen, Users, LogOut, LayoutDashboard, UserCheck } from 'lucide-react';
 
-export default function Navbar({ dict, currentLocale }) {
+export default function Navbar({ dict, currentLocale, user }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
 
   const handleLocaleChange = (newLocale) => {
-    // Set cookie and refresh
     // eslint-disable-next-line react-hooks/immutability
     document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000`;
+    router.refresh();
+  };
+
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    router.push('/login');
     router.refresh();
   };
 
@@ -69,14 +74,41 @@ export default function Navbar({ dict, currentLocale }) {
             ))}
           </div>
 
-          {/* Login CTA */}
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-900 hover:bg-blue-800 rounded-lg shadow-sm transition-all"
-          >
-            <Shield className="w-4 h-4" />
-            {dict.nav.login}
-          </Link>
+          {user ? (
+            <div className="flex items-center gap-3">
+              {(user.role === 'SUPER_ADMIN' || user.role === 'MODERATOR') && (
+                <Link
+                  href="/admin/scholars"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-blue-900 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-all"
+                >
+                  <UserCheck className="w-4 h-4 text-blue-700" />
+                  {dict.auth.adminPanel}
+                </Link>
+              )}
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition-all"
+              >
+                <LayoutDashboard className="w-4 h-4 text-slate-500" />
+                {dict.auth.dashboard}
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                title={dict.auth.logout}
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-900 hover:bg-blue-800 rounded-lg shadow-sm transition-all"
+            >
+              <Shield className="w-4 h-4" />
+              {dict.nav.login}
+            </Link>
+          )}
         </div>
 
         {/* Mobile menu button */}
@@ -127,15 +159,45 @@ export default function Navbar({ dict, currentLocale }) {
           >
             {dict.nav.rankings}
           </Link>
-          <div className="pt-2 border-t border-slate-100">
-            <Link
-              href="/login"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-blue-900 rounded-lg shadow-sm"
-            >
-              <Shield className="w-4 h-4" />
-              {dict.nav.login}
-            </Link>
+          <div className="pt-2 border-t border-slate-100 space-y-2">
+            {user ? (
+              <>
+                {(user.role === 'SUPER_ADMIN' || user.role === 'MODERATOR') && (
+                  <Link
+                    href="/admin/scholars"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-blue-900 bg-blue-50 rounded-lg"
+                  >
+                    <UserCheck className="w-4 h-4" />
+                    {dict.auth.adminPanel}
+                  </Link>
+                )}
+                <Link
+                  href="/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-slate-700 bg-slate-100 rounded-lg"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  {dict.auth.dashboard}
+                </Link>
+                <button
+                  onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-red-600 bg-red-50 rounded-lg"
+                >
+                  <LogOut className="w-4 h-4" />
+                  {dict.auth.logout}
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-blue-900 rounded-lg shadow-sm"
+              >
+                <Shield className="w-4 h-4" />
+                {dict.nav.login}
+              </Link>
+            )}
           </div>
         </div>
       )}
