@@ -1,0 +1,29 @@
+{
+  "brand": "TIU Scholars",
+  "tagline": "Tashkent International University — Scientific Potential & Scholars Portal",
+  "nav": {
+    "scholars": "Scholars",
+    "publications": "Publications",
+    "rankings": "Rankings",
+    "login": "Sign In",
+    "dashboard": "Dashboard"
+  },
+  "home": {
+    "heroTitle": "Tashkent International University Scientific Potential & Scholars Portal",
+    "heroSubtitle": "Explore academic research, Scopus/WoS publications, grants, and scholarly achievements across TIU.",
+    "searchPlaceholder": "Search by scholar, publication title, or research interest...",
+    "searchButton": "Search",
+    "stats": {
+      "activeScholars": "Active Scholars",
+      "approvedPublications": "Approved Publications",
+      "totalCitations": "Total Citations",
+      "grantProjects": "Grant Projects"
+    },
+    "topScholarsTitle": "Leading Scholars",
+    "viewAllScholars": "View All Scholars",
+    "tiuScore": "TIU Score",
+    "hIndex": "H-Index",
+    "citations": "Citations",
+    "publicationsCount": "Publications"
+  }
+}

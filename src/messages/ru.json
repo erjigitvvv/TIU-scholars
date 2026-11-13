@@ -1,0 +1,29 @@
+{
+  "brand": "TIU Scholars",
+  "tagline": "Ташкентский международный университет — Портал научного потенциала и ученых",
+  "nav": {
+    "scholars": "Ученые",
+    "publications": "Публикации",
+    "rankings": "Рейтинг",
+    "login": "Войти",
+    "dashboard": "Панель управления"
+  },
+  "home": {
+    "heroTitle": "Научный потенциал и портал ученых Ташкентского международного университета",
+    "heroSubtitle": "Отслеживайте научные исследования, публикации Scopus/WoS, гранты и достижения наших ученых.",
+    "searchPlaceholder": "Поиск по ученому, статье или направлению исследований...",
+    "searchButton": "Поиск",
+    "stats": {
+      "activeScholars": "Активные ученые",
+      "approvedPublications": "Одобренные публикации",
+      "totalCitations": "Всего цитирований",
+      "grantProjects": "Грантовые проекты"
+    },
+    "topScholarsTitle": "Ведущие ученые",
+    "viewAllScholars": "Все ученые",
+    "tiuScore": "Балл TIU",
+    "hIndex": "H-индекс",
+    "citations": "Цитирования",
+    "publicationsCount": "Публикации"
+  }
+}

@@ -1,0 +1,174 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id              String         @id @default(cuid())
+  email           String         @unique
+  passwordHash    String
+  role            String         @default("SCHOLAR") // SCHOLAR, MODERATOR, SUPER_ADMIN
+  accountStatus   String         @default("PENDING") // PENDING, ACTIVE, REJECTED, SUSPENDED
+  rejectionReason String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  scholarProfile  ScholarProfile?
+  publications    Publication[]  @relation("SubmittedPublications")
+  auditLogs       AuditLog[]
+}
+
+model Faculty {
+  id          String       @id @default(cuid())
+  code        String       @unique
+  nameUz      String
+  nameRu      String
+  nameEn      String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  departments Department[]
+}
+
+model Department {
+  id          String           @id @default(cuid())
+  facultyId   String
+  faculty     Faculty          @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  nameUz      String
+  nameRu      String
+  nameEn      String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  scholars    ScholarProfile[]
+  kpiTargets  KpiTarget[]
+}
+
+model ScholarProfile {
+  id                 String              @id @default(cuid())
+  userId             String              @unique
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  departmentId       String
+  department         Department          @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  fullName           String
+  academicDegree     String              @default("NONE") // NONE, PHD, DSC
+  academicTitle      String              @default("NONE") // NONE, ASSISTANT, DOCENT, PROFESSOR
+  bioUz              String?
+  bioRu              String?
+  bioEn              String?
+  researchInterests  String              @default("[]") // JSON string array
+  photoUrl           String?
+  publicEmail        String?
+  orcidId            String?
+  scopusId           String?
+  googleScholarUrl   String?
+  hIndex             Int                 @default(0)
+  totalCitations     Int                 @default(0)
+  tiuScore           Float               @default(0)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  publications       PublicationAuthor[]
+  grantProjects      GrantProject[]
+  supervisions       Supervision[]
+  kpiTargets         KpiTarget[]
+}
+
+model Publication {
+  id                 String              @id @default(cuid())
+  title              String
+  type               String              // SCOPUS, WOS, OAK, INTERNATIONAL_JOURNAL, LOCAL_JOURNAL, CONFERENCE, MONOGRAPH, TEXTBOOK, PATENT
+  journalOrPublisher String
+  year               Int
+  doi                String?             @unique
+  url                String?
+  isbnOrPatentNo     String?
+  quartile           String              @default("NONE") // Q1, Q2, Q3, Q4, NONE
+  citationsCount     Int                 @default(0)
+  status             String              @default("PENDING") // PENDING, APPROVED, REJECTED
+  rejectionReason    String?
+  submittedById      String
+  submittedBy        User                @relation("SubmittedPublications", fields: [submittedById], references: [id], onDelete: Cascade)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  authors            PublicationAuthor[]
+}
+
+model PublicationAuthor {
+  id            String         @id @default(cuid())
+  publicationId String
+  publication   Publication    @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  scholarId     String
+  scholar       ScholarProfile @relation(fields: [scholarId], references: [id], onDelete: Cascade)
+  authorOrder   Int            @default(1)
+
+  @@unique([publicationId, scholarId])
+}
+
+model GrantProject {
+  id            String         @id @default(cuid())
+  scholarId     String
+  scholar       ScholarProfile @relation(fields: [scholarId], references: [id], onDelete: Cascade)
+  title         String
+  role          String
+  fundingSource String
+  startYear     Int
+  endYear       Int?
+  status        String         @default("PENDING")
+  rejectionReason String?
+  createdAt     DateTime       @default(now())
+}
+
+model Supervision {
+  id                String         @id @default(cuid())
+  scholarId         String
+  scholar           ScholarProfile @relation(fields: [scholarId], references: [id], onDelete: Cascade)
+  studentName       String
+  degreeType        String         @default("PHD")
+  dissertationTitle String
+  year              Int
+  status            String         @default("PENDING")
+  rejectionReason   String?
+  createdAt         DateTime       @default(now())
+}
+
+model KpiTarget {
+  id                String          @id @default(cuid())
+  year              Int
+  departmentId      String?
+  department        Department?     @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  scholarId         String?
+  scholar           ScholarProfile? @relation(fields: [scholarId], references: [id], onDelete: Cascade)
+  targetPublications Int
+  targetScopus      Int
+  targetScore       Float
+  createdAt         DateTime        @default(now())
+}
+
+model ScoringConfig {
+  id                String  @id @default(cuid())
+  scopusWeight      Float   @default(10)
+  q1Q2Bonus         Float   @default(5)
+  wosWeight         Float   @default(10)
+  oakWeight         Float   @default(5)
+  monographWeight   Float   @default(7)
+  patentWeight      Float   @default(6)
+  conferenceWeight  Float   @default(2)
+  citationWeight    Float   @default(0.2)
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String
+  actor     User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  action    String
+  entityType String
+  entityId  String
+  details   String?  // JSON string
+  createdAt DateTime @default(now())
+}

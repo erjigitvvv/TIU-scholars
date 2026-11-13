@@ -1,0 +1,29 @@
+{
+  "brand": "TIU Scholars",
+  "tagline": "Tashkent International University — Scientific Potential & Scholars Portal",
+  "nav": {
+    "scholars": "Olimlar",
+    "publications": "Nashrlar",
+    "rankings": "Reyting",
+    "login": "Kirish",
+    "dashboard": "Boshqaruv paneli"
+  },
+  "home": {
+    "heroTitle": "Toshkent xalqaro universiteti ilmiy salohiyati va olimlar portali",
+    "heroSubtitle": "Universitetimiz olimlarining ilmiy tadqiqotlari, Scopus/WoS maqolalari, grantlari va ilmiy yutuqlarini kuzatib boring.",
+    "searchPlaceholder": "Olim, maqola yoki tadqiqot yo'nalishi bo'yicha qidirish...",
+    "searchButton": "Qidirish",
+    "stats": {
+      "activeScholars": "Faol olimlar",
+      "approvedPublications": "Tasdiqlangan nashrlar",
+      "totalCitations": "Jami iqtiboslar",
+      "grantProjects": "Grant loyihalari"
+    },
+    "topScholarsTitle": "Yetakchi olimlar",
+    "viewAllScholars": "Barcha olimlarni ko'rish",
+    "tiuScore": "TIU Balli",
+    "hIndex": "H-Indeks",
+    "citations": "Iqtiboslar",
+    "publicationsCount": "Nashrlar"
+  }
+}
