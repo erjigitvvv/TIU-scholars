@@ -1,17 +1,210 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Menu, X, Shield, Award, BookOpen, Users, LogOut, LayoutDashboard, UserCheck } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Menu,
+  X,
+  Shield,
+  Award,
+  BookOpen,
+  Users,
+  LogOut,
+  LayoutDashboard,
+  UserCheck,
+  Home,
+  Building2,
+  Globe,
+  ChevronDown,
+  Check,
+  GraduationCap,
+  FileText,
+  Trophy,
+  Sun,
+  Moon,
+} from 'lucide-react';
+
+const LANGUAGES = [
+  { code: 'uz', label: "O'zbekcha", short: 'UZ' },
+  { code: 'ru', label: 'Русский', short: 'RU' },
+  { code: 'en', label: 'English', short: 'EN' },
+];
+
+const SUBMENU_LABELS = {
+  uz: {
+    allScholars: 'Barcha olimlar',
+    dscScholars: 'Fan doktorlari (DSc)',
+    phdScholars: 'Falsafa doktorlari (PhD)',
+    professors: 'Professorlar',
+    allPubs: 'Barcha nashrlar',
+    scopusWos: 'Scopus & Web of Science',
+    oakJournals: 'OAK Jurnallar',
+    monographs: 'Monografiya & Darsliklar',
+    patents: 'Patentlar & Guvohnomalar',
+    allFaculties: 'Barcha fakultetlar & kafedralar',
+    biznesFaculty: "Biznes va innovatsion ta'lim fakulteti",
+    yurFaculty: 'Yurisprudensiya fakulteti',
+    topScholars: 'Top Olimlar reytingi',
+    topDepts: 'Top Kafedralar reytingi',
+  },
+  ru: {
+    allScholars: 'Все ученые',
+    dscScholars: 'Доктора наук (DSc)',
+    phdScholars: 'Доктора философии (PhD)',
+    professors: 'Профессора',
+    allPubs: 'Все публикации',
+    scopusWos: 'Scopus & Web of Science',
+    oakJournals: 'Журналы ВАК (OAK)',
+    monographs: 'Монографии и учебники',
+    patents: 'Патенты и свидетельства',
+    allFaculties: 'Все факультеты и кафедры',
+    biznesFaculty: 'Факультет бизнеса и инновационного образования',
+    yurFaculty: 'Факультет юриспруденции',
+    topScholars: 'Рейтинг лучших ученых',
+    topDepts: 'Рейтинг лучших кафедр',
+  },
+  en: {
+    allScholars: 'All Scholars',
+    dscScholars: 'Doctors of Science (DSc)',
+    phdScholars: 'PhD Researchers',
+    professors: 'Full Professors',
+    allPubs: 'All Publications',
+    scopusWos: 'Scopus & Web of Science',
+    oakJournals: 'OAK Peer-Reviewed',
+    monographs: 'Monographs & Textbooks',
+    patents: 'Patents & Certificates',
+    allFaculties: 'All Faculties & Departments',
+    biznesFaculty: 'Faculty of Business & Innovative Education',
+    yurFaculty: 'Faculty of Jurisprudence',
+    topScholars: 'Top Scholars Leaderboard',
+    topDepts: 'Top Departments Leaderboard',
+  },
+};
 
 export default function Navbar({ dict, currentLocale, user }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileExpanded, setMobileExpanded] = useState(null);
+  const [openSubmenu, setOpenSubmenu] = useState(null);
+  const [langOpen, setLangOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+  const langRef = useRef(null);
+  const hoverTimeoutRef = useRef(null);
+  const pathname = usePathname();
   const router = useRouter();
+  const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:8000/admin';
+  const sub = dict?.nav?.submenu || SUBMENU_LABELS[currentLocale] || SUBMENU_LABELS.uz;
+
+  const handleSubmenuEnter = (href) => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    hoverTimeoutRef.current = setTimeout(() => {
+      setOpenSubmenu(href);
+    }, 160);
+  };
+
+  const handleSubmenuLeave = () => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    hoverTimeoutRef.current = setTimeout(() => {
+      setOpenSubmenu(null);
+    }, 180);
+  };
+
+  const isHome = pathname === '/';
+  const isTransparent = isHome && !scrolled;
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('tiu-theme');
+    const isDark = saved === 'dark';
+    setDarkMode(isDark);
+    document.documentElement.classList.toggle('dark', isDark);
+  }, []);
+
+  const toggleTheme = () => {
+    setDarkMode((prev) => {
+      const next = !prev;
+      document.documentElement.classList.toggle('dark', next);
+      localStorage.setItem('tiu-theme', next ? 'dark' : 'light');
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (langRef.current && !langRef.current.contains(e.target)) {
+        setLangOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const navItems = [
+    { href: '/', label: dict.nav.home, icon: Home, exact: true },
+    {
+      href: '/scholars',
+      label: dict.nav.scholars,
+      icon: Users,
+      children: [
+        { href: '/scholars', label: sub.allScholars, icon: Users },
+        { isGroupHeader: true, label: sub.groupDegree || 'Ilmiy daraja' },
+        { href: '/scholars?degree=dsc', label: sub.dscScholars, icon: GraduationCap },
+        { href: '/scholars?degree=phd', label: sub.phdScholars, icon: GraduationCap },
+        { isGroupHeader: true, label: sub.groupTitle || 'Ilmiy unvon' },
+        { href: '/scholars?title=professor', label: sub.professors, icon: Award },
+        {
+          href: '/scholars?title=docent',
+          label: sub.docents || (currentLocale === 'ru' ? 'Доценты' : currentLocale === 'en' ? 'Associate Professors' : 'Dotsentlar'),
+          icon: Award,
+        },
+      ],
+    },
+    {
+      href: '/publications',
+      label: dict.nav.publications,
+      icon: BookOpen,
+      children: [
+        { href: '/publications', label: sub.allPubs, icon: BookOpen },
+        { href: '/publications?type=SCOPUS', label: sub.scopusWos, icon: FileText },
+        { href: '/publications?type=OAK', label: sub.oakJournals, icon: FileText },
+        { href: '/publications?type=MONOGRAPH', label: sub.monographs, icon: BookOpen },
+        { href: '/publications?type=PATENT', label: sub.patents, icon: Shield },
+      ],
+    },
+    {
+      href: '/faculties',
+      label: dict.nav.faculties,
+      icon: Building2,
+      children: [
+        { href: '/faculties?code=BITF', label: sub.biznesFaculty, icon: GraduationCap },
+        { href: '/faculties?code=YURF', label: sub.yurFaculty, icon: Shield },
+      ],
+    },
+    {
+      href: '/rankings',
+      label: dict.nav.rankings,
+      icon: Award,
+      children: [
+        { href: '/rankings', label: sub.topScholars, icon: Trophy },
+        { href: '/rankings?tab=departments', label: sub.topDepts, icon: Building2 },
+      ],
+    },
+  ];
+
+  const isActive = (item) => (item.exact ? pathname === item.href : pathname.startsWith(item.href));
 
   const handleLocaleChange = (newLocale) => {
     // eslint-disable-next-line react-hooks/immutability
     document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000`;
+    setLangOpen(false);
     router.refresh();
   };
 
@@ -21,69 +214,222 @@ export default function Navbar({ dict, currentLocale, user }) {
     router.refresh();
   };
 
+  const activeLang = LANGUAGES.find((l) => l.code === currentLocale) || LANGUAGES[0];
+
   return (
-    <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm">
+    <header
+      className={`${
+        isHome ? 'fixed top-0 left-0 right-0' : 'sticky top-0'
+      } z-[100] transition-all duration-300 ${
+        isTransparent
+          ? 'bg-transparent text-white'
+          : 'bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-xs border-b border-slate-200/80 dark:border-slate-800 text-slate-900 dark:text-white'
+      }`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Brand */}
-        <Link href="/" className="flex items-center gap-2 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-900 to-blue-700 flex items-center justify-center text-white font-bold shadow-md group-hover:scale-105 transition-transform">
-            TIU
-          </div>
-          <div>
-            <span className="text-lg font-bold text-slate-900 tracking-tight font-heading">
-              {dict.brand}
-            </span>
-            <span className="block text-[10px] text-slate-500 font-medium tracking-wide uppercase">
-              Scientific Potential Portal
-            </span>
-          </div>
+        {/* Minimal Text Brand (No University Logo Image in Navbar) */}
+        <Link href="/" className="flex items-center gap-2 group shrink-0">
+          <span
+            className={`text-lg font-extrabold tracking-tight font-heading transition-colors ${
+              isTransparent ? 'text-white drop-shadow-sm' : 'text-[#0F294A]'
+            }`}
+          >
+            {dict.brand}
+          </span>
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-8">
-          <Link href="/scholars" className="text-sm font-medium text-slate-700 hover:text-blue-700 transition-colors flex items-center gap-1.5">
-            <Users className="w-4 h-4 text-slate-400" />
-            {dict.nav.scholars}
-          </Link>
-          <Link href="/publications" className="text-sm font-medium text-slate-700 hover:text-blue-700 transition-colors flex items-center gap-1.5">
-            <BookOpen className="w-4 h-4 text-slate-400" />
-            {dict.nav.publications}
-          </Link>
-          <Link href="/rankings" className="text-sm font-medium text-slate-700 hover:text-blue-700 transition-colors flex items-center gap-1.5">
-            <Award className="w-4 h-4 text-slate-400" />
-            {dict.nav.rankings}
-          </Link>
+        <nav className="hidden lg:flex items-center gap-3">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item);
+            const hasChildren = Boolean(item.children?.length);
+            const isHovered = openSubmenu === item.href;
+
+            return (
+              <div
+                key={item.href}
+                className="relative"
+                onMouseEnter={() => hasChildren && handleSubmenuEnter(item.href)}
+                onMouseLeave={() => hasChildren && handleSubmenuLeave()}
+              >
+                <motion.div
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.96 }}
+                  transition={{ duration: 0.18 }}
+                  className="flex items-center"
+                >
+                  <Link
+                    href={item.href}
+                    onClick={(e) => {
+                      if (hasChildren && openSubmenu !== item.href) {
+                        e.preventDefault();
+                        if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+                        setOpenSubmenu(item.href);
+                      } else {
+                        setOpenSubmenu(null);
+                      }
+                    }}
+                    className={`relative px-3 py-2 text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                      isTransparent
+                        ? active
+                          ? 'text-white font-semibold'
+                          : 'text-white/85 hover:text-white'
+                        : active
+                        ? 'text-[#0F294A] font-semibold'
+                        : 'text-slate-600 hover:text-[#0F294A]'
+                    }`}
+                  >
+                    <Icon
+                      className={`w-4 h-4 transition-colors ${
+                        isTransparent
+                          ? active
+                            ? 'text-blue-200'
+                            : 'text-white/75'
+                          : active
+                          ? 'text-[#0F294A]'
+                          : 'text-slate-400'
+                      }`}
+                    />
+                    <span>{item.label}</span>
+                    {hasChildren && (
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                          isHovered ? 'rotate-180' : ''
+                        }`}
+                      />
+                    )}
+                  </Link>
+                </motion.div>
+
+                {/* Submenus: 160-180ms delay + click support + grouped headers */}
+                <AnimatePresence>
+                  {hasChildren && isHovered && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 6 }}
+                      transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                      className="absolute left-0 top-full pt-2.5 w-64 z-[110]"
+                    >
+                      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-[0_20px_45px_-12px_rgba(15,41,74,0.25)] ring-1 ring-slate-900/5 py-2 px-1.5">
+                        {item.children.map((child, cIdx) => {
+                          if (child.isGroupHeader) {
+                            return (
+                              <div
+                                key={`group-${cIdx}`}
+                                className="px-3 pt-2.5 pb-1 text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-t border-slate-100 dark:border-slate-800/80 mt-1 first:mt-0 first:border-t-0"
+                              >
+                                {child.label}
+                              </div>
+                            );
+                          }
+                          const ChildIcon = child.icon;
+                          return (
+                            <motion.div
+                              key={child.href}
+                              whileHover={{ x: 4 }}
+                              transition={{ duration: 0.14 }}
+                            >
+                              <Link
+                                href={child.href}
+                                onClick={() => setOpenSubmenu(null)}
+                                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50/80 dark:hover:bg-slate-800 hover:text-[#0F294A] dark:hover:text-sky-300 hover:font-semibold transition-colors"
+                              >
+                                {ChildIcon && (
+                                  <ChildIcon className="w-3.5 h-3.5 shrink-0 text-[#0F294A] dark:text-sky-400" />
+                                )}
+                                <span>{child.label}</span>
+                              </Link>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
         </nav>
 
-        {/* Right side actions */}
-        <div className="hidden md:flex items-center gap-4">
-          {/* Language Switcher */}
-          <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
-            {['uz', 'ru', 'en'].map((loc) => (
-              <button
-                key={loc}
-                onClick={() => handleLocaleChange(loc)}
-                className={`px-2.5 py-1 text-xs font-semibold rounded-md uppercase transition-all ${
-                  currentLocale === loc
-                    ? 'bg-white text-blue-900 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
+        {/* Right side: Language Dropdown + Light/Dark Toggle + Logged-in User Actions */}
+        <div className="hidden lg:flex items-center gap-2.5">
+          <div className="relative" ref={langRef}>
+            <button
+              type="button"
+              onClick={() => setLangOpen((prev) => !prev)}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border transition-colors ${
+                isTransparent
+                  ? 'text-white bg-white/15 hover:bg-white/25 border-white/25'
+                  : 'text-slate-700 bg-slate-50 hover:bg-slate-100 border-slate-200'
+              }`}
+            >
+              <Globe className={`w-3.5 h-3.5 ${isTransparent ? 'text-blue-200' : 'text-[#0F294A]'}`} />
+              <span>{activeLang.short}</span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                  langOpen ? 'rotate-180' : ''
                 }`}
-              >
-                {loc}
-              </button>
-            ))}
+              />
+            </button>
+
+            <AnimatePresence>
+              {langOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 4, scale: 0.97 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 mt-2 w-40 bg-white/95 backdrop-blur-md rounded-xl border border-slate-200 shadow-lg py-1.5 z-50 text-slate-800"
+                >
+                  {LANGUAGES.map((lang) => (
+                    <button
+                      key={lang.code}
+                      type="button"
+                      onClick={() => handleLocaleChange(lang.code)}
+                      className={`w-full px-3.5 py-2 text-left text-xs flex items-center justify-between transition-colors ${
+                        currentLocale === lang.code
+                          ? 'text-[#0F294A] font-semibold'
+                          : 'text-slate-700 hover:text-[#0F294A]'
+                      }`}
+                    >
+                      <span>{lang.label}</span>
+                      {currentLocale === lang.code && <Check className="w-3.5 h-3.5 text-[#0F294A]" />}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          {user ? (
-            <div className="flex items-center gap-3">
+          {/* Light / Dark Mode Toggle */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={darkMode ? 'Light mode' : 'Dark mode'}
+            className={`w-9 h-9 inline-flex items-center justify-center rounded-lg border transition-all ${
+              isTransparent
+                ? 'text-white bg-white/15 hover:bg-white/25 border-white/25'
+                : 'text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700'
+            }`}
+          >
+            {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
+          </button>
+
+          {user && (
+            <div className="flex items-center gap-2.5">
               {(user.role === 'SUPER_ADMIN' || user.role === 'MODERATOR') && (
-                <Link
-                  href="/admin/scholars"
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-blue-900 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-all"
+                <a
+                  href={adminUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-[#0F294A] bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-all"
                 >
-                  <UserCheck className="w-4 h-4 text-blue-700" />
+                  <UserCheck className="w-4 h-4 text-[#0F294A]" />
                   {dict.auth.adminPanel}
-                </Link>
+                </a>
               )}
               <Link
                 href="/dashboard"
@@ -94,83 +440,170 @@ export default function Navbar({ dict, currentLocale, user }) {
               </Link>
               <button
                 onClick={handleLogout}
-                className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                className={`p-2 rounded-lg transition-colors ${
+                  isTransparent
+                    ? 'text-white/80 hover:text-red-300 hover:bg-white/10'
+                    : 'text-slate-500 hover:text-red-600 hover:bg-red-50'
+                }`}
                 title={dict.auth.logout}
               >
                 <LogOut className="w-4 h-4" />
               </button>
             </div>
-          ) : (
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-900 hover:bg-blue-800 rounded-lg shadow-sm transition-all"
-            >
-              <Shield className="w-4 h-4" />
-              {dict.nav.login}
-            </Link>
           )}
         </div>
 
-        {/* Mobile menu button */}
-        <div className="flex md:hidden items-center gap-3">
-          <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-            {['uz', 'ru', 'en'].map((loc) => (
-              <button
-                key={loc}
-                onClick={() => handleLocaleChange(loc)}
-                className={`px-2 py-0.5 text-[10px] font-semibold rounded uppercase ${
-                  currentLocale === loc ? 'bg-white text-blue-900 shadow-sm' : 'text-slate-600'
-                }`}
-              >
-                {loc}
-              </button>
+        {/* Mobile Controls */}
+        <div className="flex lg:hidden items-center gap-2">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            className={`p-1.5 rounded-lg border transition-colors ${
+              isTransparent
+                ? 'bg-white/15 border-white/25 text-white'
+                : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'
+            }`}
+          >
+            {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
+          </button>
+          <select
+            aria-label="Language"
+            value={currentLocale}
+            onChange={(e) => handleLocaleChange(e.target.value)}
+            className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg border uppercase outline-none ${
+              isTransparent
+                ? 'bg-white/15 border-white/25 text-white'
+                : 'bg-slate-50 border-slate-200 text-slate-700'
+            }`}
+          >
+            {LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code} className="text-slate-900">
+                {l.short}
+              </option>
             ))}
-          </div>
+          </select>
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+            aria-label="Toggle Menu"
+            className={`p-2 rounded-lg transition-colors ${
+              isTransparent
+                ? 'text-white hover:bg-white/15'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </div>
       </div>
 
-      {/* Mobile Menu Dropdown */}
-      {mobileMenuOpen && (
-        <div className="md:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-6 space-y-3 shadow-lg">
-          <Link
-            href="/scholars"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-lg text-base font-medium text-slate-700 hover:bg-slate-50"
+      {/* Responsive Mobile Accordion Menu */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className={`lg:hidden border-t px-4 pt-3 pb-6 space-y-1.5 shadow-xl overflow-hidden backdrop-blur-lg ${
+              isTransparent
+                ? 'bg-slate-950/85 border-white/15 text-white'
+                : 'bg-white/95 border-slate-200 text-slate-800'
+            }`}
           >
-            {dict.nav.scholars}
-          </Link>
-          <Link
-            href="/publications"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-lg text-base font-medium text-slate-700 hover:bg-slate-50"
-          >
-            {dict.nav.publications}
-          </Link>
-          <Link
-            href="/rankings"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-lg text-base font-medium text-slate-700 hover:bg-slate-50"
-          >
-            {dict.nav.rankings}
-          </Link>
-          <div className="pt-2 border-t border-slate-100 space-y-2">
-            {user ? (
-              <>
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item);
+              const hasChildren = Boolean(item.children?.length);
+              const expanded = mobileExpanded === item.href;
+
+              return (
+                <div key={item.href}>
+                  <div className="flex items-center justify-between">
+                    <Link
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex-1 flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-base font-medium ${
+                        active
+                          ? isTransparent
+                            ? 'text-blue-200 font-semibold'
+                            : 'text-[#0F294A] font-semibold'
+                          : ''
+                      }`}
+                    >
+                      <Icon className="w-4 h-4 opacity-80" />
+                      {item.label}
+                    </Link>
+                    {hasChildren && (
+                      <button
+                        type="button"
+                        onClick={() => setMobileExpanded(expanded ? null : item.href)}
+                        className="p-2.5 rounded-lg opacity-80 hover:opacity-100"
+                      >
+                        <ChevronDown
+                          className={`w-4 h-4 transition-transform duration-200 ${
+                            expanded ? 'rotate-180' : ''
+                          }`}
+                        />
+                      </button>
+                    )}
+                  </div>
+
+                  <AnimatePresence>
+                    {hasChildren && expanded && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="pl-9 space-y-1 overflow-hidden pb-1"
+                      >
+                        {item.children.map((child, cIdx) =>
+                          child.isGroupHeader ? (
+                            <div
+                              key={`mgroup-${cIdx}`}
+                              className="pt-2 pb-0.5 text-[10px] font-mono font-bold uppercase tracking-wider opacity-50"
+                            >
+                              {child.label}
+                            </div>
+                          ) : (
+                            <Link
+                              key={child.href}
+                              href={child.href}
+                              onClick={() => setMobileMenuOpen(false)}
+                              className={`block py-1.5 text-xs font-medium ${
+                                isTransparent
+                                  ? 'text-white/80 hover:text-blue-200'
+                                  : 'text-slate-600 hover:text-[#0F294A]'
+                              }`}
+                            >
+                              {child.label}
+                            </Link>
+                          )
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+
+            {user && (
+              <div
+                className={`pt-3 mt-2 border-t space-y-2 ${
+                  isTransparent ? 'border-white/15' : 'border-slate-200'
+                }`}
+              >
                 {(user.role === 'SUPER_ADMIN' || user.role === 'MODERATOR') && (
-                  <Link
-                    href="/admin/scholars"
+                  <a
+                    href={adminUrl}
+                    target="_blank"
+                    rel="noreferrer"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-blue-900 bg-blue-50 rounded-lg"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-[#0F294A] bg-blue-50 rounded-lg"
                   >
                     <UserCheck className="w-4 h-4" />
                     {dict.auth.adminPanel}
-                  </Link>
+                  </a>
                 )}
                 <Link
                   href="/dashboard"
@@ -181,26 +614,20 @@ export default function Navbar({ dict, currentLocale, user }) {
                   {dict.auth.dashboard}
                 </Link>
                 <button
-                  onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleLogout();
+                  }}
                   className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-red-600 bg-red-50 rounded-lg"
                 >
                   <LogOut className="w-4 h-4" />
                   {dict.auth.logout}
                 </button>
-              </>
-            ) : (
-              <Link
-                href="/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-blue-900 rounded-lg shadow-sm"
-              >
-                <Shield className="w-4 h-4" />
-                {dict.nav.login}
-              </Link>
+              </div>
             )}
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }
