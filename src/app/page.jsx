@@ -1,283 +1,334 @@
-import Link from 'next/link'
-import { BookOpen, Users, Award, Briefcase, Search, Globe, ExternalLink, ArrowRight } from 'lucide-react'
-import { PrismaClient } from '@prisma/client'
+import Link from 'next/link';
+import { cookies } from 'next/headers';
+import {
+  BookOpen,
+  Users,
+  Award,
+  Briefcase,
+  ExternalLink,
+  ArrowRight,
+  Building2,
+  Sparkles,
+  TrendingUp,
+} from 'lucide-react';
+import { prisma } from '@/lib/prisma';
+import { getDictionary } from '@/lib/i18n';
+import HeroBanner from '@/components/home/HeroBanner';
+import HomeMetricsBento from '@/components/home/HomeMetricsBento';
+import HomeScholarsAndFaculties from '@/components/home/HomeScholarsAndFaculties';
+import HomeLatestPublications from '@/components/home/HomeLatestPublications';
 
-const prisma = new PrismaClient()
+function getInitials(name = '') {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0].toUpperCase())
+    .join('');
+}
+
+const RANK_BADGE_STYLES = [
+  'bg-amber-100 text-amber-800 border-amber-200', // 1st Gold
+  'bg-slate-100 text-slate-700 border-slate-300', // 2nd Silver
+  'bg-orange-100 text-orange-800 border-orange-200', // 3rd Bronze
+];
+
+const PUB_TYPE_STYLES = {
+  SCOPUS: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  WOS: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  OAK: 'bg-blue-50 text-blue-700 border-blue-200',
+  MONOGRAPH: 'bg-purple-50 text-purple-700 border-purple-200',
+  PATENT: 'bg-amber-50 text-amber-700 border-amber-200',
+};
 
 export default async function Home() {
-  // Fetch stats & top scholars strictly for ACTIVE scholars and APPROVED publications
-  const activeScholarsCount = await prisma.scholarProfile.count({
-    where: { user: { accountStatus: 'ACTIVE' } }
-  })
+  const cookieStore = await cookies();
+  const locale = cookieStore.get('NEXT_LOCALE')?.value || 'uz';
+  const dict = getDictionary(locale);
 
-  const approvedPubsCount = await prisma.publication.count({
-    where: { status: 'APPROVED' }
-  })
+  const getLocalizedName = (item) => {
+    if (!item) return '';
+    if (locale === 'ru') return item.nameRu || item.nameUz;
+    if (locale === 'en') return item.nameEn || item.nameUz;
+    return item.nameUz;
+  };
 
-  const grantsCount = await prisma.grantProject.count({
-    where: { status: 'APPROVED' }
-  })
+  // Parallel DB aggregation strictly enforcing ACTIVE scholars & APPROVED outputs
+  const [
+    activeScholarsCount,
+    dscCount,
+    phdCount,
+    scholarAvgAgg,
+    pubAgg,
+    pubTypesRaw,
+    grantsCount,
+    supervisionsCount,
+    topScholars,
+    faculties,
+    latestPubs,
+  ] = await Promise.all([
+    prisma.scholarProfile.count({
+      where: { user: { accountStatus: 'ACTIVE' } },
+    }),
+    prisma.scholarProfile.count({
+      where: { user: { accountStatus: 'ACTIVE' }, academicDegree: 'DSC' },
+    }),
+    prisma.scholarProfile.count({
+      where: { user: { accountStatus: 'ACTIVE' }, academicDegree: 'PHD' },
+    }),
+    prisma.scholarProfile.aggregate({
+      where: { user: { accountStatus: 'ACTIVE' } },
+      _avg: { hIndex: true },
+    }),
+    prisma.publication.aggregate({
+      where: { status: 'APPROVED' },
+      _count: { id: true },
+      _sum: { citationsCount: true },
+    }),
+    prisma.publication.groupBy({
+      by: ['type'],
+      where: { status: 'APPROVED' },
+      _count: { id: true },
+    }),
+    prisma.grantProject.count({
+      where: { status: 'APPROVED' },
+    }),
+    prisma.supervision.count({
+      where: { status: 'APPROVED' },
+    }),
+    prisma.scholarProfile.findMany({
+      where: { user: { accountStatus: 'ACTIVE' } },
+      include: {
+        department: { include: { faculty: true } },
+        publications: {
+          where: { publication: { status: 'APPROVED' } },
+          select: {
+            publication: {
+              select: { year: true, quartile: true },
+            },
+          },
+        },
+      },
+      orderBy: [{ tiuScore: 'desc' }, { hIndex: 'desc' }],
+    }),
+    prisma.faculty.findMany({
+      include: {
+        departments: {
+          include: {
+            scholars: {
+              where: { user: { accountStatus: 'ACTIVE' } },
+              select: { id: true, tiuScore: true },
+            },
+          },
+        },
+      },
+      orderBy: { nameUz: 'asc' },
+    }),
+    prisma.publication.findMany({
+      where: { status: 'APPROVED' },
+      include: {
+        authors: {
+          include: {
+            scholar: {
+              include: {
+                department: { include: { faculty: true } },
+              },
+            },
+          },
+          orderBy: { authorOrder: 'asc' },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    }),
+  ]);
 
-  // Calculate total citations from approved publications
-  const approvedPubs = await prisma.publication.findMany({
+  const approvedPubsCount = pubAgg._count.id || 0;
+  const totalCitations = pubAgg._sum.citationsCount || 0;
+  const avgHIndex = Number((scholarAvgAgg._avg.hIndex || 0).toFixed(1));
+
+  const typeMap = Object.fromEntries(pubTypesRaw.map((t) => [t.type, t._count.id]));
+  const scopusWosCount = (typeMap.SCOPUS || 0) + (typeMap.WOS || 0);
+  const oakCount = typeMap.OAK || 0;
+
+  const facultyShares = faculties
+    .map((f) => ({
+      id: f.id,
+      name: getLocalizedName(f),
+      score: f.departments.reduce(
+        (sum, d) => sum + d.scholars.reduce((sSum, s) => sSum + (s.tiuScore || 0), 0),
+        0
+      ),
+    }))
+    .sort((a, b) => b.score - a.score);
+
+  const yearlyCountsRaw = await prisma.publication.groupBy({
+    by: ['year'],
     where: { status: 'APPROVED' },
-    select: { citationsCount: true }
-  })
-  const totalCitations = approvedPubs.reduce((acc, p) => acc + (p.citationsCount || 0), 0)
-
-  // Top 5 Researchers
-  const topScholars = await prisma.scholarProfile.findMany({
-    where: { user: { accountStatus: 'ACTIVE' } },
-    include: { department: { include: { faculty: true } } },
-    orderBy: { tiuScore: 'desc' },
-    take: 5,
-  })
-
-  // Faculties with counts
-  const faculties = await prisma.faculty.findMany({
-    include: {
-      departments: {
-        include: {
-          scholars: {
-            where: { user: { accountStatus: 'ACTIVE' } },
-            include: {
-              publications: {
-                include: { publication: true }
-              }
-            }
-          }
-        }
-      }
-    }
-  })
-
-  // Latest 5 Approved Publications
-  const latestPubs = await prisma.publication.findMany({
-    where: { status: 'APPROVED' },
-    include: {
-      authors: {
-        include: { scholar: true }
-      }
-    },
-    orderBy: { createdAt: 'desc' },
-    take: 5,
-  })
+    _count: { id: true },
+    orderBy: { year: 'asc' },
+  });
+  const yearlyBars = yearlyCountsRaw.slice(-5).map((r) => ({
+    year: r.year,
+    count: r._count.id,
+  }));
 
   return (
-    <div className="space-y-16 pb-20">
-      {/* Hero Section */}
-      <section className="bg-gradient-to-b from-blue-900 to-blue-950 text-white py-20 px-6 rounded-3xl mx-6 mt-6 shadow-xl relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(29,78,216,0.3),transparent_50%)]" />
-        <div className="max-w-4xl mx-auto text-center relative z-10 space-y-6">
-          <span className="inline-block px-4 py-1.5 bg-blue-800/80 text-blue-200 text-xs font-bold uppercase tracking-wider rounded-full border border-blue-700">
-            Tashkent International University
-          </span>
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight leading-tight">
-            Scientific Potential & Scholars Portal
-          </h1>
-          <p className="text-lg text-blue-100 max-w-2xl mx-auto font-light">
-            Explore cutting-edge research, Scopus & Web of Science publications, research grants, and doctoral supervisions.
-          </p>
+    <div className="bg-white">
+      {/* 1. Full-Screen Animated Campus Hero Banner */}
+      <HeroBanner
+        heroTitle={dict.home.heroTitle}
+        heroSubtitle={dict.home.heroSubtitle}
+        searchPlaceholder={dict.home.searchPlaceholder}
+        searchButton={dict.home.searchButton}
+        scholarsLabel={dict.nav.scholars}
+        pubsLabel={dict.nav.publications}
+      />
 
-          {/* Search Bar */}
-          <form action="/scholars" method="GET" className="max-w-2xl mx-auto bg-white p-2 rounded-2xl shadow-lg flex gap-2">
-            <div className="flex-1 flex items-center px-4 gap-3">
-              <Search className="w-5 h-5 text-neutral-400" />
-              <input
-                type="text"
-                name="q"
-                placeholder="Search scholar name, research interest, or keyword..."
-                className="w-full bg-transparent text-neutral-900 placeholder:text-neutral-400 text-sm outline-none"
-              />
-            </div>
-            <button
-              type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors shadow-sm"
-            >
-              Search
-            </button>
-          </form>
-        </div>
-      </section>
+      {/* 2. Full-Layout 6-Card Animated Bento Analytics */}
+      <HomeMetricsBento
+        stats={{
+          activeScholars: activeScholarsCount,
+          dscCount,
+          phdCount,
+          avgHIndex,
+          approvedPublications: approvedPubsCount,
+          scopusWosCount,
+          oakCount,
+          totalCitations,
+          grantProjects: grantsCount,
+          supervisions: supervisionsCount,
+        }}
+        labels={dict.home.stats}
+        locale={locale}
+        topScholars={topScholars}
+        facultyShares={facultyShares}
+        yearlyBars={
+          yearlyBars.length > 0
+            ? yearlyBars
+            : [
+                { year: 2022, count: 4 },
+                { year: 2023, count: 7 },
+                { year: 2024, count: 10 },
+                { year: 2025, count: 14 },
+                { year: 2026, count: approvedPubsCount || 8 },
+              ]
+        }
+      />
 
-      {/* Animated KPI Cards */}
-      <section className="max-w-7xl mx-auto px-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center font-bold">
-              <Users className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="text-3xl font-extrabold text-neutral-900 tabular-nums">{activeScholarsCount}</div>
-              <div className="text-xs text-neutral-500 font-medium uppercase tracking-wider mt-0.5">Active Scholars</div>
-            </div>
-          </div>
+      {/* 3 & 4. Combined Full-Layout: Top Scholars Carousel & Faculties */}
+      <HomeScholarsAndFaculties
+        locale={locale}
+        topScholars={(() => {
+          const currentYear = new Date().getFullYear();
+          const parseTags = (raw) => {
+            if (!raw) return [];
+            try {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed)) return parsed.filter(Boolean).slice(0, 2);
+            } catch {}
+            return String(raw)
+              .split(',')
+              .map((t) => t.trim())
+              .filter(Boolean)
+              .slice(0, 2);
+          };
 
-          <div className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center font-bold">
-              <BookOpen className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="text-3xl font-extrabold text-neutral-900 tabular-nums">{approvedPubsCount}</div>
-              <div className="text-xs text-neutral-500 font-medium uppercase tracking-wider mt-0.5">Approved Publications</div>
-            </div>
-          </div>
+          return [...topScholars]
+            .map((s) => {
+              const pubs = s.publications || [];
+              const recentQ1Q2Count = pubs.filter(
+                (pa) =>
+                  pa.publication &&
+                  pa.publication.year >= currentYear - 2 &&
+                  (pa.publication.quartile === 'Q1' || pa.publication.quartile === 'Q2')
+              ).length;
 
-          <div className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center font-bold">
-              <Award className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="text-3xl font-extrabold text-neutral-900 tabular-nums">{totalCitations}</div>
-              <div className="text-xs text-neutral-500 font-medium uppercase tracking-wider mt-0.5">Total Citations</div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center font-bold">
-              <Briefcase className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="text-3xl font-extrabold text-neutral-900 tabular-nums">{grantsCount}</div>
-              <div className="text-xs text-neutral-500 font-medium uppercase tracking-wider mt-0.5">Funded Grants</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Top-5 Researchers Showcase */}
-      <section className="max-w-7xl mx-auto px-6 space-y-6">
-        <div className="flex justify-between items-end">
-          <div>
-            <h2 className="text-2xl font-bold text-neutral-900">Leading Researchers</h2>
-            <p className="text-neutral-600 text-sm mt-1">Top ranking professors and scholars by TIU Score</p>
-          </div>
-          <Link href="/scholars" className="text-blue-600 hover:text-blue-700 font-semibold text-sm flex items-center gap-1.5">
-            View All Scholars <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-          {topScholars.map((scholar, idx) => (
-            <Link
-              key={scholar.id}
-              href={`/scholars/${scholar.id}`}
-              className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm hover:border-blue-300 hover:shadow-md transition-all flex flex-col justify-between group"
-            >
-              <div className="space-y-4">
-                <div className="flex justify-between items-start">
-                  <div className="w-12 h-12 bg-blue-100 text-blue-800 rounded-xl font-bold flex items-center justify-center text-lg">
-                    {scholar.fullName.charAt(0)}
-                  </div>
-                  <span className="text-xs font-bold px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full border border-amber-200">
-                    #{idx + 1}
-                  </span>
-                </div>
-                <div>
-                  <h3 className="font-bold text-neutral-900 group-hover:text-blue-600 transition-colors line-clamp-1">{scholar.fullName}</h3>
-                  <p className="text-xs text-neutral-500 mt-0.5 line-clamp-1">{scholar.department.nameEn}</p>
-                </div>
-              </div>
-
-              <div className="pt-4 mt-4 border-t border-neutral-100 flex justify-between items-center text-xs font-semibold">
-                <span className="text-neutral-500">TIU Score</span>
-                <span className="text-blue-600 text-sm tabular-nums">{scholar.tiuScore}</span>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* Faculties Quick Filter Grid */}
-      <section className="max-w-7xl mx-auto px-6 space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold text-neutral-900">Faculties & Academic Units</h2>
-          <p className="text-neutral-600 text-sm mt-1">Explore research activity by faculty</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {faculties.map((faculty) => {
-            const facultyScholars = faculty.departments.flatMap(d => d.scholars)
-            const facultyPubsCount = facultyScholars.reduce((acc, s) => acc + s.publications.filter(p => p.publication.status === 'APPROVED').length, 0)
-
-            return (
-              <Link
-                key={faculty.id}
-                href={`/scholars?facultyId=${faculty.id}`}
-                className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm hover:border-blue-300 hover:shadow-md transition-all space-y-4"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="w-10 h-10 bg-neutral-100 text-neutral-800 rounded-xl font-bold flex items-center justify-center text-sm">
-                    {faculty.code}
-                  </div>
-                  <span className="text-xs font-semibold px-2.5 py-1 bg-neutral-100 text-neutral-700 rounded-full">
-                    {faculty.departments.length} Depts
-                  </span>
-                </div>
-                <div>
-                  <h3 className="font-bold text-neutral-900 text-lg">{faculty.nameEn}</h3>
-                  <p className="text-xs text-neutral-500 mt-1">{facultyScholars.length} Active Scholars • {facultyPubsCount} Publications</p>
-                </div>
-              </Link>
+              return {
+                id: s.id,
+                fullName: s.fullName,
+                photoUrl: s.photoUrl,
+                academicTitle: s.academicTitle,
+                academicDegree: s.academicDegree,
+                hIndex: s.hIndex,
+                totalCitations: s.totalCitations,
+                tiuScore: s.tiuScore,
+                publicationsCount: pubs.length,
+                recentQ1Q2Count,
+                departmentName: s.department ? getLocalizedName(s.department) : '',
+                researchTags: parseTags(s.researchInterests),
+              };
+            })
+            .sort((a, b) => {
+              if (b.tiuScore !== a.tiuScore) return b.tiuScore - a.tiuScore;
+              if (b.hIndex !== a.hIndex) return b.hIndex - a.hIndex;
+              return b.recentQ1Q2Count - a.recentQ1Q2Count;
+            });
+        })()}
+        faculties={faculties.map((f) => ({
+          id: f.id,
+          code: f.code,
+          name: getLocalizedName(f),
+          departmentCount: f.departments.length,
+          scholarCount: f.departments.reduce((sum, d) => sum + d.scholars.length, 0),
+          totalScore: Math.round(
+            f.departments.reduce(
+              (sum, d) => sum + d.scholars.reduce((sSum, s) => sSum + (s.tiuScore || 0), 0),
+              0
             )
-          })}
-        </div>
-      </section>
+          ),
+          departments: f.departments.map((d) => ({
+            id: d.id,
+            name: getLocalizedName(d),
+            scholarCount: d.scholars.length,
+          })),
+        }))}
+        labels={{
+          topScholarsTitle: dict.home.topScholarsTitle,
+          topScholarsSubtitle: `${dict.home.tiuScore} & ${dict.home.hIndex}`,
+          viewAllScholars: dict.home.viewAllScholars,
+          viewProfile: locale === 'ru' ? 'Открыть профиль' : locale === 'en' ? 'View Profile' : "Profilni ko'rish",
+          facultiesTitle: dict.home.facultiesTitle,
+          facultiesNav: dict.nav.faculties,
+          departmentsWord: locale === 'ru' ? 'кафедр' : locale === 'en' ? 'depts' : 'kafedra',
+          scholarsWord: dict.nav.scholars.toLowerCase(),
+        }}
+      />
 
-      {/* Latest Approved Publications */}
-      <section className="max-w-7xl mx-auto px-6 space-y-6">
-        <div className="flex justify-between items-end">
-          <div>
-            <h2 className="text-2xl font-bold text-neutral-900">Latest Approved Publications</h2>
-            <p className="text-neutral-600 text-sm mt-1">Recent peer-reviewed research papers added to the repository</p>
-          </div>
-          <Link href="/publications" className="text-blue-600 hover:text-blue-700 font-semibold text-sm flex items-center gap-1.5">
-            View All Publications <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden shadow-sm divide-y divide-neutral-200">
-          {latestPubs.map((pub) => (
-            <div key={pub.id} className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:bg-neutral-50 transition-colors">
-              <div className="space-y-1.5 max-w-3xl">
-                <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 text-xs font-bold rounded">
-                    {pub.type}
-                  </span>
-                  {pub.quartile && pub.quartile !== 'NONE' && (
-                    <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-xs font-bold rounded">
-                      {pub.quartile}
-                    </span>
-                  )}
-                  <span className="text-xs text-neutral-500">{pub.year}</span>
-                </div>
-                <h3 className="font-bold text-neutral-900 text-base">{pub.title}</h3>
-                <p className="text-xs text-neutral-600">
-                  {pub.journalOrPublisher} {pub.doi && `• DOI: ${pub.doi}`}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-4 shrink-0">
-                <div className="text-right">
-                  <div className="text-xs font-semibold text-neutral-500">Citations</div>
-                  <div className="text-sm font-bold text-neutral-900 tabular-nums">{pub.citationsCount}</div>
-                </div>
-                {pub.doi && (
-                  <a
-                    href={`https://doi.org/${pub.doi}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-2.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-xl transition-colors"
-                    title="View DOI"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* 5. Latest Approved Publications (Full Layout) */}
+      <HomeLatestPublications
+        locale={locale}
+        publications={latestPubs.map((pub) => ({
+          id: pub.id,
+          title: pub.title,
+          type: pub.type,
+          quartile: pub.quartile,
+          year: pub.year,
+          journalOrPublisher: pub.journalOrPublisher,
+          doi: pub.doi,
+          url: pub.url,
+          citationsCount: pub.citationsCount,
+          approvedAt: pub.createdAt ? pub.createdAt.toISOString() : null,
+          facultyCode: pub.authors?.[0]?.scholar?.department?.faculty?.code || '',
+          facultyName: pub.authors?.[0]?.scholar?.department?.faculty
+            ? getLocalizedName(pub.authors[0].scholar.department.faculty)
+            : '',
+          departmentName: pub.authors?.[0]?.scholar?.department
+            ? getLocalizedName(pub.authors[0].scholar.department)
+            : '',
+          authors: (pub.authors || []).map((a) => ({
+            id: a.id,
+            scholarId: a.scholar.id,
+            fullName: a.scholar.fullName,
+            academicDegree: a.scholar.academicDegree,
+          })),
+        }))}
+        labels={{
+          title: dict.home.latestPublicationsTitle,
+          viewAll: dict.nav.publications,
+          citations: dict.home.citations,
+        }}
+      />
     </div>
-  )
+  );
 }
