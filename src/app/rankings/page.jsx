@@ -10,6 +10,11 @@ export default function RankingsPage() {
   const [tab, setTab] = useState('scholars') // scholars, departments
 
   useEffect(() => {
+    const urlTab = new URLSearchParams(window.location.search).get('tab')
+    if (urlTab === 'departments') setTab('departments')
+  }, [])
+
+  useEffect(() => {
     async function fetchRankings() {
       try {
         const res = await fetch('/api/rankings')
