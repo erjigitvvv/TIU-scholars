@@ -409,7 +409,7 @@ export default function PublicationsDirectoryPage() {
                               title="Tashqi havola mavjud emas"
                             >
                               <ExternalLink className="w-3.5 h-3.5" />
-                            </a>
+                            </button>
                           )}
                         </div>
                       </td>
