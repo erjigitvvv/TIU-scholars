@@ -155,16 +155,8 @@ export default function Navbar({ dict, currentLocale, user }) {
       icon: Users,
       children: [
         { href: '/scholars', label: sub.allScholars, icon: Users },
-        { isGroupHeader: true, label: sub.groupDegree || 'Ilmiy daraja' },
         { href: '/scholars?degree=dsc', label: sub.dscScholars, icon: GraduationCap },
         { href: '/scholars?degree=phd', label: sub.phdScholars, icon: GraduationCap },
-        { isGroupHeader: true, label: sub.groupTitle || 'Ilmiy unvon' },
-        { href: '/scholars?title=professor', label: sub.professors, icon: Award },
-        {
-          href: '/scholars?title=docent',
-          label: sub.docents || (currentLocale === 'ru' ? 'Доценты' : currentLocale === 'en' ? 'Associate Professors' : 'Dotsentlar'),
-          icon: Award,
-        },
       ],
     },
     {
@@ -302,7 +294,7 @@ export default function Navbar({ dict, currentLocale, user }) {
                   </Link>
                 </motion.div>
 
-                {/* Submenus: 160-180ms delay + click support + grouped headers */}
+                {/* Submenus: transparent (no background), 160-180ms delay + click support */}
                 <AnimatePresence>
                   {hasChildren && isHovered && (
                     <motion.div
@@ -310,34 +302,34 @@ export default function Navbar({ dict, currentLocale, user }) {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 6 }}
                       transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-                      className="absolute left-0 top-full pt-2.5 w-64 z-[110]"
+                      className="absolute left-0 top-full pt-2 w-60 z-[110]"
                     >
-                      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-[0_20px_45px_-12px_rgba(15,41,74,0.25)] ring-1 ring-slate-900/5 py-2 px-1.5">
-                        {item.children.map((child, cIdx) => {
-                          if (child.isGroupHeader) {
-                            return (
-                              <div
-                                key={`group-${cIdx}`}
-                                className="px-3 pt-2.5 pb-1 text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-t border-slate-100 dark:border-slate-800/80 mt-1 first:mt-0 first:border-t-0"
-                              >
-                                {child.label}
-                              </div>
-                            );
-                          }
+                      <div className="py-1.5">
+                        {item.children.map((child) => {
                           const ChildIcon = child.icon;
                           return (
                             <motion.div
                               key={child.href}
-                              whileHover={{ x: 4 }}
-                              transition={{ duration: 0.14 }}
+                              whileHover={{ x: 5 }}
+                              transition={{ duration: 0.15 }}
                             >
                               <Link
                                 href={child.href}
                                 onClick={() => setOpenSubmenu(null)}
-                                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50/80 dark:hover:bg-slate-800 hover:text-[#0F294A] dark:hover:text-sky-300 hover:font-semibold transition-colors"
+                                className={`flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium transition-colors ${
+                                  isTransparent
+                                    ? 'text-white/95 hover:text-[#0F294A] drop-shadow-sm'
+                                    : 'text-slate-700 dark:text-slate-200 hover:text-[#0F294A] dark:hover:text-sky-300'
+                                } hover:font-semibold`}
                               >
                                 {ChildIcon && (
-                                  <ChildIcon className="w-3.5 h-3.5 shrink-0 text-[#0F294A] dark:text-sky-400" />
+                                  <ChildIcon
+                                    className={`w-3.5 h-3.5 shrink-0 ${
+                                      isTransparent
+                                        ? 'text-white/90'
+                                        : 'text-[#0F294A] dark:text-sky-400'
+                                    }`}
+                                  />
                                 )}
                                 <span>{child.label}</span>
                               </Link>

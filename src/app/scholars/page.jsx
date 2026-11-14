@@ -448,7 +448,7 @@ export default function ScholarsDirectoryPage() {
   const remainingCount = Math.max(0, scholars.length - visibleCount);
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 pb-16 space-y-8">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-24 pb-16 space-y-8">
       {/* Sahifa sarlavhasi (Navbar menyusi bilan to'qnashmasligi uchun yetarli tepa masofa berilgan) */}
       <div className="space-y-2">
         <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0F294A] dark:text-white tracking-tight">
