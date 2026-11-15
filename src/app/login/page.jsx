@@ -51,16 +51,25 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-12">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl border border-slate-200 shadow-xl">
+    <div className="min-h-screen flex items-center justify-center bg-transparent px-4 py-12">
+      <div className="max-w-md w-full space-y-8 neu-card p-8 rounded-3xl">
         <div className="text-center">
-          <Link href="/" className="inline-flex w-12 h-12 rounded-2xl bg-blue-900 text-white font-bold items-center justify-center text-xl mb-4 shadow-md">
-            TIU
+          <Link href="/" className="inline-flex items-center justify-center mb-4">
+            <img
+              src="/tiu-logo.png"
+              alt="Tashkent International University"
+              className="h-14 w-auto object-contain dark:hidden"
+            />
+            <img
+              src="/tiu-logo-white.png"
+              alt="Tashkent International University"
+              className="h-14 w-auto object-contain hidden dark:block"
+            />
           </Link>
-          <h2 className="text-2xl font-extrabold text-slate-900 font-heading">
+          <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white font-heading">
             Sign In to TIU Scholars
           </h2>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             Scientific Potential & Scholars Portal
           </p>
         </div>
@@ -88,6 +97,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="block w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-blue-600 focus:bg-white transition-all"
                 placeholder="name@tiu.uz"
+                autoComplete="email"
               />
             </div>
           </div>
@@ -106,7 +116,8 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="block w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-blue-600 focus:bg-white transition-all"
-                placeholder="••••••••"
+                placeholder="Parolingizni kiriting"
+                autoComplete="current-password"
               />
             </div>
           </div>

@@ -91,43 +91,84 @@ function getFontSizeClass(className = '') {
   return 'text-xs';
 }
 
+const SIZE_MAP = {
+  sm: 'w-8 h-8',
+  md: 'w-11 h-11',
+  lg: 'w-16 h-16',
+  xl: 'w-20 h-20',
+};
+
 export default function ScholarAvatar({
   photoUrl,
   fullName = '',
+  academicDegree = '',
+  size,
+  showDegreeBadge = false,
   index = 0,
-  className = 'w-9 h-9',
+  className = '',
 }) {
   const [imgError, setImgError] = useState(false);
-  const hasCustomRing = className.includes('ring-');
-  const ringClass = hasCustomRing ? '' : 'ring-2 ring-white shadow-sm';
+  const resolvedClass = className || SIZE_MAP[size] || 'w-9 h-9';
+  const hasCustomRing = resolvedClass.includes('ring-');
+  const deg = String(academicDegree || '').toUpperCase();
+  const hasDegreeRing = deg === 'DSC' || deg === 'PHD';
+  const ringClass = hasCustomRing || hasDegreeRing ? '' : 'ring-2 ring-white shadow-sm';
   const cleanName = stripTitles(fullName) || fullName;
 
-  if (photoUrl && !imgError) {
-    return (
+  const degreeGradient =
+    deg === 'DSC'
+      ? 'bg-gradient-to-tr from-amber-500 via-fuchsia-500 to-indigo-600'
+      : deg === 'PHD'
+        ? 'bg-gradient-to-tr from-blue-600 via-indigo-500 to-cyan-400'
+        : '';
+
+  const degreeBadgeClass =
+    deg === 'DSC'
+      ? 'bg-gradient-to-r from-amber-500 to-purple-600 text-white'
+      : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white';
+
+  const initials = getInitials(fullName);
+  const palette = getPaletteForName(fullName, index);
+  const fontSizeClass = getFontSizeClass(resolvedClass);
+
+  const avatarNode =
+    photoUrl && !imgError ? (
       <img
         src={photoUrl}
         alt={cleanName}
         onError={() => setImgError(true)}
-        className={`${className} rounded-full object-cover shrink-0 ${ringClass}`}
+        className={`${resolvedClass} rounded-full object-cover shrink-0 ${ringClass} ${hasDegreeRing ? 'ring-2 ring-white dark:ring-slate-900' : ''}`}
       />
+    ) : (
+      <div
+        title={cleanName}
+        aria-label={cleanName}
+        className={`${resolvedClass} rounded-full overflow-hidden ${ringClass} ${hasDegreeRing ? 'ring-2 ring-white dark:ring-slate-900' : ''} shrink-0 flex items-center justify-center select-none font-heading font-extrabold tracking-tight`}
+        style={{
+          background: palette.bg,
+          color: palette.text,
+        }}
+      >
+        <span className={`${fontSizeClass} leading-none drop-shadow-2xs`}>{initials}</span>
+      </div>
     );
+
+  if (!hasDegreeRing) {
+    return avatarNode;
   }
 
-  const initials = getInitials(fullName);
-  const palette = getPaletteForName(fullName, index);
-  const fontSizeClass = getFontSizeClass(className);
-
   return (
-    <div
-      title={cleanName}
-      aria-label={cleanName}
-      className={`${className} rounded-full overflow-hidden ${ringClass} shrink-0 flex items-center justify-center select-none font-heading font-extrabold tracking-tight`}
-      style={{
-        background: palette.bg,
-        color: palette.text,
-      }}
-    >
-      <span className={`${fontSizeClass} leading-none drop-shadow-2xs`}>{initials}</span>
+    <div className="relative inline-flex shrink-0">
+      <div className={`p-[3px] rounded-full shadow-sm transition-all duration-300 ${degreeGradient}`}>
+        {avatarNode}
+      </div>
+      {showDegreeBadge && (
+        <span
+          className={`absolute -bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-full text-[9px] font-extrabold tracking-wide shadow-sm border border-white dark:border-slate-900 ${degreeBadgeClass}`}
+        >
+          {deg === 'DSC' ? 'DSc' : 'PhD'}
+        </span>
+      )}
     </div>
   );
 }

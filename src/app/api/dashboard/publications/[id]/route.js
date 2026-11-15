@@ -1,9 +1,10 @@
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
+import { getCurrentUser } from '@/lib/auth'
 
 async function getActiveScholar() {
-  return await prisma.scholarProfile.findFirst()
+  const user = await getCurrentUser()
+  if (!user || !user.scholarProfile) return null
+  return user.scholarProfile
 }
 
 export async function PUT(request, { params }) {
@@ -11,9 +12,14 @@ export async function PUT(request, { params }) {
     const scholar = await getActiveScholar()
     if (!scholar) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { id } = params
-    const pub = await prisma.publication.findUnique({ where: { id } })
+    const { id } = await params
+    const pub = await prisma.publication.findUnique({
+      where: { id },
+      include: { authors: true }
+    })
     if (!pub) return Response.json({ error: 'Publication not found' }, { status: 404 })
+    const isOwner = pub.submittedById === scholar.userId || pub.authors.some(a => a.scholarId === scholar.id)
+    if (!isOwner) return Response.json({ error: 'Forbidden' }, { status: 403 })
 
     // Integrity Lock: Allow edit/resubmit ONLY for PENDING or REJECTED. Block (403) for APPROVED.
     if (pub.status === 'APPROVED') {
@@ -50,9 +56,14 @@ export async function DELETE(request, { params }) {
     const scholar = await getActiveScholar()
     if (!scholar) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { id } = params
-    const pub = await prisma.publication.findUnique({ where: { id } })
+    const { id } = await params
+    const pub = await prisma.publication.findUnique({
+      where: { id },
+      include: { authors: true }
+    })
     if (!pub) return Response.json({ error: 'Publication not found' }, { status: 404 })
+    const isOwner = pub.submittedById === scholar.userId || pub.authors.some(a => a.scholarId === scholar.id)
+    if (!isOwner) return Response.json({ error: 'Forbidden' }, { status: 403 })
 
     // Integrity Lock: Block (403) deleting APPROVED items
     if (pub.status === 'APPROVED') {

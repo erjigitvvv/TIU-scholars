@@ -107,10 +107,10 @@ export default function HomeMetricsBento({
   };
 
   const cardClass =
-    'group bg-white rounded-3xl border border-blue-100/90 ring-4 ring-blue-50/70 hover:ring-blue-100 p-7 shadow-sm hover:shadow-xl hover:border-blue-300 transition-all duration-300 flex flex-col justify-between gap-5 cursor-pointer h-full';
+    'group neu-card rounded-3xl p-7 transition-all duration-300 flex flex-col justify-between gap-5 cursor-pointer h-full hover:-translate-y-0.5';
 
   return (
-    <section className="w-full min-h-[88vh] flex flex-col justify-center bg-[#F4F7FB] border-b border-slate-200/80 py-16 md:py-20">
+    <section className="w-full min-h-[88vh] flex flex-col justify-center bg-transparent border-b border-white/40 dark:border-slate-800/60 py-16 md:py-20">
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
         {/* Section Heading */}
         <motion.div

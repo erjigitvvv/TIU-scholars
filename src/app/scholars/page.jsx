@@ -366,7 +366,7 @@ export default function ScholarsDirectoryPage() {
       </div>
 
       {/* Qidiruv va Filtrlar Paneli */}
-      <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-5">
+      <div className="neu-card p-4 sm:p-6 rounded-3xl space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 sm:gap-4 items-start">
           {/* Qidiruv (doim ko'rinib turadi, 300ms debounce bilan) */}
           <div className="md:col-span-5 flex items-center gap-2.5">
@@ -711,7 +711,7 @@ export default function ScholarsDirectoryPage() {
         )
       ) : scholars.length === 0 ? (
         /* Bo'sh holat: "Hech kim topilmadi" yozuvi va "Filtrlarni tozalash" tugmasi */
-        <div className="bg-white dark:bg-slate-900 py-16 px-6 rounded-3xl border border-slate-200 dark:border-slate-800 text-center space-y-4">
+        <div className="neu-card py-16 px-6 rounded-3xl text-center space-y-4">
           <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 mx-auto flex items-center justify-center">
             <UserX className="w-7 h-7" />
           </div>
@@ -724,7 +724,7 @@ export default function ScholarsDirectoryPage() {
           <button
             type="button"
             onClick={handleClearAll}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-[#0F294A] dark:text-white text-xs font-semibold hover:border-blue-500 hover:text-blue-600 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl glass-btn text-[#0F294A] dark:text-white text-xs font-semibold hover:text-blue-600 cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>{t.clearFilters}</span>
@@ -765,7 +765,7 @@ export default function ScholarsDirectoryPage() {
               <div key={scholar.id} className="h-full">
                 <Link
                   href={`/scholars/${scholar.id}`}
-                  className="group h-full bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/85 dark:border-slate-800 shadow-xs hover:-translate-y-[2px] hover:shadow-xl hover:border-blue-300 dark:hover:border-sky-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 dark:focus-visible:ring-sky-400 dark:focus-visible:ring-offset-slate-950 focus-visible:-translate-y-[2px] focus-visible:shadow-xl transition-all duration-200 flex flex-col justify-between gap-5"
+                  className="group h-full neu-card p-6 rounded-3xl hover:-translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 dark:focus-visible:ring-sky-400 dark:focus-visible:ring-offset-slate-950 focus-visible:-translate-y-[2px] transition-all duration-200 flex flex-col justify-between gap-5"
                 >
                   <div className="space-y-4">
                     {/* 1. Rasm yoki rangli monogramma + TIU Score */}
@@ -921,7 +921,7 @@ export default function ScholarsDirectoryPage() {
         </div>
       ) : (
         /* Ro'yxat (Jadval) ko'rinishi — 50+ olim bo'lganda tez ko'rib chiqish uchun qulay */
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/85 dark:border-slate-800 shadow-xs overflow-hidden">
+        <div className="neu-card rounded-3xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -1062,7 +1062,7 @@ export default function ScholarsDirectoryPage() {
             <button
               type="button"
               onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-[#0F294A] dark:text-white hover:border-blue-500 hover:text-blue-600 dark:hover:border-sky-400 dark:hover:text-sky-300 shadow-2xs transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl glass-btn text-xs font-bold text-[#0F294A] dark:text-white hover:text-blue-600 dark:hover:text-sky-300 cursor-pointer"
             >
               <span>
                 {t.loadMore || 'Yana yuklash'} (+{Math.min(PAGE_SIZE, remainingCount)})

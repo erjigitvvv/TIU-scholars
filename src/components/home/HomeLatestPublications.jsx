@@ -221,7 +221,7 @@ export default function HomeLatestPublications({
 
             <Link
               href="/publications"
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 text-xs sm:text-sm font-semibold text-blue-700 dark:text-sky-400 hover:border-blue-300 hover:text-[#0F294A] dark:hover:text-white transition-all shadow-2xs"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl glass-btn text-xs sm:text-sm font-semibold text-blue-700 dark:text-sky-400 hover:text-[#0F294A] dark:hover:text-white"
             >
               <span>{labels.viewAll}</span>
               <ArrowRight className="w-4 h-4" />
@@ -230,7 +230,7 @@ export default function HomeLatestPublications({
         </div>
 
         {/* Full-Layout Jadval (6 ta ustun: Sana, Nashr nomi va jurnal, Mualliflar, Tur va kvartil, Iqtibos, Havola) */}
-        <div className="w-full bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-xs overflow-hidden">
+        <div className="w-full neu-card rounded-3xl overflow-hidden">
           <div className="w-full overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>

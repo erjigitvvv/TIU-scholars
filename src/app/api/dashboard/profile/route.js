@@ -1,18 +1,88 @@
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
+import { getCurrentUser } from '@/lib/auth'
 import { fetchOrcidWorks } from '@/lib/orcid'
-
-const prisma = new PrismaClient()
+import { getScholarSocialLinks, saveScholarSocialLinks } from '@/lib/scholarLinks'
 
 async function getActiveScholar() {
-  return await prisma.scholarProfile.findFirst()
+  const user = await getCurrentUser()
+  if (!user || !user.scholarProfile) return null
+  return { ...user.scholarProfile, accountEmail: user.email || '' }
 }
 
 export async function GET(request) {
   try {
-    const scholar = await getActiveScholar()
-    if (!scholar) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    const active = await getActiveScholar()
+    if (!active) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-    return Response.json({ profile: scholar })
+    const [scholar, faculties, higherRankedCount, totalActiveScholars] = await Promise.all([
+      prisma.scholarProfile.findUnique({
+        where: { id: active.id },
+        include: {
+          department: { include: { faculty: true } },
+          publications: {
+            include: {
+              publication: {
+                include: { authors: true }
+              }
+            }
+          },
+          grantProjects: true,
+          supervisions: true,
+        }
+      }),
+      prisma.faculty.findMany({
+        include: { departments: { orderBy: { nameUz: 'asc' } } },
+        orderBy: { nameUz: 'asc' }
+      }),
+      prisma.scholarProfile.count({
+        where: {
+          user: { accountStatus: 'ACTIVE' },
+          tiuScore: { gt: active.tiuScore }
+        }
+      }),
+      prisma.scholarProfile.count({
+        where: { user: { accountStatus: 'ACTIVE' } }
+      })
+    ])
+
+    const pubs = scholar.publications.map((pa) => pa.publication)
+    const coAuthorIds = new Set()
+    const yearMap = new Map()
+    for (const pub of pubs) {
+      for (const a of pub.authors || []) {
+        if (a.scholarId !== scholar.id) coAuthorIds.add(a.scholarId)
+      }
+      if (pub.year) {
+        yearMap.set(pub.year, (yearMap.get(pub.year) || 0) + 1)
+      }
+    }
+    const yearlyDynamics = Array.from(yearMap.entries())
+      .sort((a, b) => a[0] - b[0])
+      .slice(-6)
+      .map(([year, count]) => ({ year, count }))
+
+    const ratingSummary = {
+      rank: higherRankedCount + 1,
+      totalScholars: totalActiveScholars,
+      tiuScore: scholar.tiuScore,
+      hIndex: scholar.hIndex,
+      totalCitations: scholar.totalCitations,
+      pubsCount: pubs.length,
+      approvedPubs: pubs.filter((p) => p.status === 'APPROVED').length,
+      grantsCount: scholar.grantProjects.length,
+      supervisionsCount: scholar.supervisions.length,
+      coAuthorsCount: coAuthorIds.size,
+      yearlyDynamics,
+    }
+
+    const socialLinks = getScholarSocialLinks(scholar.id)
+    return Response.json({
+      profile: scholar,
+      accountEmail: active.accountEmail || '',
+      faculties,
+      socialLinks,
+      ratingSummary,
+    })
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 })
   }
@@ -26,6 +96,7 @@ export async function PUT(request) {
     const body = await request.json()
     const {
       fullName,
+      departmentId,
       academicDegree,
       academicTitle,
       bioUz,
@@ -37,13 +108,19 @@ export async function PUT(request) {
       orcidId,
       scopusId,
       googleScholarUrl,
+      socialLinks,
       syncOrcid,
     } = body
+
+    if (socialLinks) {
+      saveScholarSocialLinks(scholar.id, socialLinks)
+    }
 
     let updated = await prisma.scholarProfile.update({
       where: { id: scholar.id },
       data: {
         fullName: fullName || scholar.fullName,
+        ...(departmentId ? { departmentId } : {}),
         academicDegree: academicDegree || scholar.academicDegree,
         academicTitle: academicTitle || scholar.academicTitle,
         bioUz,

@@ -16,7 +16,7 @@ export default async function AdminLayout({ children }) {
   }
 
   return (
-    <div className="min-h-screen flex bg-slate-50 text-slate-900 font-sans">
+    <div className="min-h-screen flex bg-transparent text-slate-900 font-sans">
       {/* Admin Sidebar */}
       <aside className="w-64 bg-slate-900 text-slate-300 border-r border-slate-800 flex flex-col justify-between hidden md:flex">
         <div>
@@ -81,7 +81,7 @@ export default async function AdminLayout({ children }) {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between">
+        <header className="h-16 bg-white/60 dark:bg-slate-900/70 backdrop-blur-xl border-b border-white/75 dark:border-slate-800 px-6 flex items-center justify-between">
           <h1 className="text-lg font-bold text-slate-900 font-heading">
             {dict.admin.title}
           </h1>

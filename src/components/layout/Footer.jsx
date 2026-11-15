@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { MapPin, Mail, Phone, Globe, BookOpen, Users, Award, ShieldCheck } from 'lucide-react';
+import { MapPin, Mail, Phone, Globe, Clock, BookOpen, Users, Award, ShieldCheck } from 'lucide-react';
 
 export default function Footer({ dict }) {
   return (
@@ -8,17 +8,17 @@ export default function Footer({ dict }) {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 mb-10">
           {/* Brand & Mission */}
           <div className="space-y-4 md:col-span-4">
-            <div className="inline-flex items-center gap-3 bg-white px-3.5 py-2 rounded-xl shadow-sm">
+            <div className="inline-flex items-center gap-3.5">
               <img
-                src="/tiu-logo.png"
+                src="/tiu-logo-white.png"
                 alt="Tashkent International University"
-                className="h-9 w-auto object-contain"
+                className="h-10 w-auto object-contain"
               />
-              <div className="border-l border-slate-200 pl-3">
-                <span className="text-sm font-bold text-slate-900 tracking-tight block leading-none">
+              <div className="border-l border-slate-700/80 pl-3.5">
+                <span className="text-sm font-bold text-white tracking-tight block leading-none">
                   {dict.brand}
                 </span>
-                <span className="text-[10px] text-slate-500 font-medium">
+                <span className="text-[11px] text-slate-400 font-medium mt-1 block">
                   Scholars Portal
                 </span>
               </div>
@@ -102,19 +102,23 @@ export default function Footer({ dict }) {
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                <span>Toshkent sh., Yunusobod tumani, TIU Kampusi</span>
+                <span>Toshkent, Kichik Halqa yo&apos;li 7</span>
               </li>
               <li className="flex items-center gap-2.5">
                 <Phone className="w-4 h-4 text-blue-400 shrink-0" />
-                <a href="tel:+998712000000" className="hover:text-white transition-colors">
-                  +998 (71) 200-00-00
+                <a href="tel:+998951315555" className="hover:text-white transition-colors">
+                  +998 95 131 55 55
                 </a>
               </li>
               <li className="flex items-center gap-2.5">
                 <Mail className="w-4 h-4 text-blue-400 shrink-0" />
-                <a href="mailto:science@tiu.uz" className="hover:text-white transition-colors">
-                  science@tiu.uz
+                <a href="mailto:info@tiu.uz" className="hover:text-white transition-colors">
+                  info@tiu.uz
                 </a>
+              </li>
+              <li className="flex items-center gap-2.5">
+                <Clock className="w-4 h-4 text-blue-400 shrink-0" />
+                <span>Du-Ju: 9:00 - 18:00</span>
               </li>
               <li className="flex items-center gap-2.5">
                 <Globe className="w-4 h-4 text-blue-400 shrink-0" />

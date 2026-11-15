@@ -19,6 +19,8 @@ import {
   Check,
   Copy,
   Building2,
+  Search,
+  X,
 } from 'lucide-react';
 import { INTEREST_TRANSLATIONS } from '@/lib/interests';
 import ScholarAvatar from '@/components/ui/ScholarAvatar';
@@ -52,6 +54,8 @@ const LABELS = {
     allYears: 'Barcha yillar',
     allQuartiles: 'Barcha kvartillar',
     allTypes: 'Barcha turlar',
+    searchPlaceholder: 'Maqola nomi, jurnal yoki DOI bo‘yicha qidirish...',
+    viewDetails: 'Batafsil',
     noPubs: 'Tanlangan filtr bo‘yicha nashrlar topilmadi.',
     grantsTitle: 'Ilmiy grantlar va loyihalar',
     noGrants: 'Grant loyihalari kiritilmagan.',
@@ -102,6 +106,8 @@ const LABELS = {
     allYears: 'Все годы',
     allQuartiles: 'Все квартили',
     allTypes: 'Все типы',
+    searchPlaceholder: 'Поиск по названию, журналу или DOI...',
+    viewDetails: 'Подробнее',
     noPubs: 'Публикации по выбранному фильтру не найдены.',
     grantsTitle: 'Научные гранты и проекты',
     noGrants: 'Грантовые проекты не указаны.',
@@ -152,6 +158,8 @@ const LABELS = {
     allYears: 'All Years',
     allQuartiles: 'All Quartiles',
     allTypes: 'All Types',
+    searchPlaceholder: 'Search by title, journal, or DOI...',
+    viewDetails: 'Details',
     noPubs: 'No publications match the selected filters.',
     grantsTitle: 'Research Grants & Projects',
     noGrants: 'No grant projects listed.',
@@ -209,6 +217,7 @@ export default function ScholarProfilePage() {
   const [pubYear, setPubYear] = useState('ALL');
   const [pubType, setPubType] = useState('ALL');
   const [pubQuartile, setPubQuartile] = useState('ALL');
+  const [pubSearch, setPubSearch] = useState('');
 
   useEffect(() => {
     const syncLocale = () => setLocale(getCookieLocale());
@@ -315,6 +324,11 @@ export default function ScholarProfilePage() {
     if (pubYear !== 'ALL' && String(p.year) !== pubYear) return false;
     if (pubType !== 'ALL' && p.type !== pubType) return false;
     if (pubQuartile !== 'ALL' && p.quartile !== pubQuartile) return false;
+    if (pubSearch.trim()) {
+      const q = pubSearch.trim().toLowerCase();
+      const hay = `${p.title || ''} ${p.journalOrPublisher || ''} ${p.doi || ''}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
     return true;
   });
 
@@ -332,6 +346,7 @@ export default function ScholarProfilePage() {
       key: 'scopusWos',
       label: `${L.breakdown.scopusWos} (${bd.scopusWos.count})`,
       points: bd.scopusWos.points,
+      hint: 'Scopus/WoS: 10 ball + Q1/Q2 bonusi: +5 ball',
       barColor: 'bg-emerald-500',
       dotColor: 'bg-emerald-500',
     },
@@ -339,6 +354,7 @@ export default function ScholarProfilePage() {
       key: 'oak',
       label: `${L.breakdown.oak} (${bd.oak.count})`,
       points: bd.oak.points,
+      hint: 'OAK jurnallar: har bir maqola +5 ball',
       barColor: 'bg-blue-500',
       dotColor: 'bg-blue-500',
     },
@@ -346,6 +362,7 @@ export default function ScholarProfilePage() {
       key: 'otherPubs',
       label: `${L.breakdown.otherPubs} (${bd.otherPubs.count})`,
       points: bd.otherPubs.points,
+      hint: 'Monografiya (+7), Patent/Darslik (+6), Konferensiya (+2)',
       barColor: 'bg-cyan-500',
       dotColor: 'bg-cyan-500',
     },
@@ -353,6 +370,7 @@ export default function ScholarProfilePage() {
       key: 'citations',
       label: `${L.breakdown.citations} (${bd.citations.count})`,
       points: bd.citations.points,
+      hint: 'Har bir iqtibos × 0.2 ball',
       barColor: 'bg-indigo-500',
       dotColor: 'bg-indigo-500',
     },
@@ -360,6 +378,7 @@ export default function ScholarProfilePage() {
       key: 'grants',
       label: `${L.breakdown.grants} (${bd.grants.count})`,
       points: bd.grants.points,
+      hint: 'Grant rahbari (PI): +10 ball, Ishtirokchi: +6 ball',
       barColor: 'bg-amber-500',
       dotColor: 'bg-amber-500',
     },
@@ -367,6 +386,7 @@ export default function ScholarProfilePage() {
       key: 'supervisions',
       label: `${L.breakdown.supervisions} (${bd.supervisions.count})`,
       points: bd.supervisions.points,
+      hint: 'DSc rahbarlik: +10 ball, PhD rahbarlik: +6 ball',
       barColor: 'bg-purple-500',
       dotColor: 'bg-purple-500',
     },
@@ -413,19 +433,19 @@ export default function ScholarProfilePage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10 space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <Link
-          href="/scholars"
-          className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-sky-400 transition-colors"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          {L.backToScholars}
-        </Link>
+          <div className="flex items-center justify-between gap-4">
+            <Link
+              href="/scholars"
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/55 dark:bg-slate-800/55 backdrop-blur-md border border-white/75 dark:border-white/15 shadow-[0_4px_16px_rgba(15,41,74,0.06)] text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-white/85 hover:text-blue-700 dark:hover:text-sky-400 transition-all"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              {L.backToScholars}
+            </Link>
 
-        <button
-          onClick={handleShareProfile}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-blue-400 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors"
-        >
+            <button
+              onClick={handleShareProfile}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/55 dark:bg-slate-800/55 backdrop-blur-md border border-white/75 dark:border-white/15 shadow-[0_4px_16px_rgba(15,41,74,0.08)] hover:bg-white/85 hover:border-blue-300 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-all"
+            >
           {copiedProfile ? (
             <>
               <Check className="w-3.5 h-3.5 text-emerald-600" />
@@ -442,8 +462,8 @@ export default function ScholarProfilePage() {
 
       {/* 2-Column Portfolio Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-7 items-start">
-        {/* LEFT STICKY SIDEBAR */}
-        <aside className="lg:col-span-4 lg:sticky lg:top-24 bg-gradient-to-br from-white via-[#F7FAFF] to-[#EEF5FE] dark:from-slate-900 dark:via-slate-900 dark:to-slate-800/90 p-6 sm:p-7 rounded-3xl border border-slate-200/85 dark:border-slate-800 shadow-xs space-y-5">
+        {/* LEFT STICKY SIDEBAR (Neumorphism Card) */}
+        <aside className="lg:col-span-4 lg:sticky lg:top-24 bg-[#EEF2F7] dark:bg-slate-900 p-6 sm:p-7 rounded-3xl border border-white/80 dark:border-slate-800/80 shadow-[8px_8px_18px_rgba(163,177,198,0.45),-8px_-8px_18px_rgba(255,255,255,0.9)] dark:shadow-[8px_8px_18px_rgba(0,0,0,0.55),-6px_-6px_14px_rgba(30,41,59,0.45)] space-y-5">
           <div className="flex flex-col items-center text-center space-y-4">
             <div className="relative inline-flex">
               <ScholarAvatar
@@ -482,11 +502,6 @@ export default function ScholarProfilePage() {
                     {s.academicTitle.toLowerCase().replace('_', ' ')}
                   </span>
                 )}
-                {positionText && (
-                  <span className="px-2.5 py-1 bg-blue-50 dark:bg-sky-950/60 text-blue-700 dark:text-sky-300 border border-blue-200/80 dark:border-sky-800/60 text-xs font-semibold rounded-full">
-                    {positionText}
-                  </span>
-                )}
                 {s.universityRank && (
                   <span
                     className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-full border ${
@@ -499,6 +514,11 @@ export default function ScholarProfilePage() {
                   </span>
                 )}
               </div>
+              {positionText && (
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                  {positionText}
+                </p>
+              )}
 
               {/* Clickable Department & Faculty links */}
               <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium leading-relaxed space-y-0.5 pt-1">
@@ -527,77 +547,51 @@ export default function ScholarProfilePage() {
             </div>
           </div>
 
-          {/* External Profiles & Social Links */}
-          <div className="flex flex-wrap justify-center gap-2 pt-1">
-            {s.publicEmail && (
-              <a
-                href={`mailto:${s.publicEmail}`}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-sky-500 text-xs font-medium text-slate-700 dark:text-slate-200 transition-colors"
-              >
-                <Mail className="w-3.5 h-3.5 text-slate-400" /> {s.publicEmail}
-              </a>
-            )}
-            {s.orcidId && (
-              <a
-                href={`https://orcid.org/${s.orcidId}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-300 text-xs font-medium text-slate-700 dark:text-slate-200 transition-colors"
-              >
-                <ExternalLink className="w-3.5 h-3.5 text-emerald-600" /> ORCID
-              </a>
-            )}
-            {s.scopusId && (
-              <a
-                href={`https://www.scopus.com/authid/detail.uri?authorId=${s.scopusId}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-orange-300 text-xs font-medium text-slate-700 dark:text-slate-200 transition-colors"
-              >
-                <ExternalLink className="w-3.5 h-3.5 text-orange-500" /> Scopus
-              </a>
-            )}
-            {s.googleScholarUrl && (
-              <a
-                href={s.googleScholarUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-300 text-xs font-medium text-slate-700 dark:text-slate-200 transition-colors"
-              >
-                <ExternalLink className="w-3.5 h-3.5 text-blue-600" /> Scholar
-              </a>
-            )}
-            {s.linkedinUrl && (
-              <a
-                href={s.linkedinUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-sky-400 text-xs font-medium text-slate-700 dark:text-slate-200 transition-colors"
-              >
-                <ExternalLink className="w-3.5 h-3.5 text-sky-600" /> LinkedIn
-              </a>
-            )}
-            {s.researchGateUrl && (
-              <a
-                href={s.researchGateUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-teal-400 text-xs font-medium text-slate-700 dark:text-slate-200 transition-colors"
-              >
-                <ExternalLink className="w-3.5 h-3.5 text-teal-600" /> ResearchGate
-              </a>
-            )}
-            {s.telegramUrl && (
-              <a
-                href={s.telegramUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-400 text-xs font-medium text-slate-700 dark:text-slate-200 transition-colors"
-              >
-                <ExternalLink className="w-3.5 h-3.5 text-blue-500" /> Telegram
-              </a>
-            )}
-          </div>
+          {/* Academic Profiles (Glassmorphism Buttons) */}
+          {(s.orcidId || s.scopusId || s.googleScholarUrl || s.researchGateUrl) && (
+            <div className="flex flex-wrap justify-center gap-2 pt-1">
+              {s.orcidId && (
+                <a
+                  href={`https://orcid.org/${s.orcidId}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/55 dark:bg-slate-800/55 backdrop-blur-md border border-white/75 dark:border-white/15 shadow-[0_4px_14px_rgba(15,41,74,0.06)] hover:bg-white/85 hover:border-emerald-300 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-all"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-emerald-600" /> ORCID
+                </a>
+              )}
+              {s.scopusId && (
+                <a
+                  href={`https://www.scopus.com/authid/detail.uri?authorId=${s.scopusId}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/55 dark:bg-slate-800/55 backdrop-blur-md border border-white/75 dark:border-white/15 shadow-[0_4px_14px_rgba(15,41,74,0.06)] hover:bg-white/85 hover:border-orange-300 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-all"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-orange-500" /> Scopus
+                </a>
+              )}
+              {s.googleScholarUrl && (
+                <a
+                  href={s.googleScholarUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/55 dark:bg-slate-800/55 backdrop-blur-md border border-white/75 dark:border-white/15 shadow-[0_4px_14px_rgba(15,41,74,0.06)] hover:bg-white/85 hover:border-blue-300 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-all"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-blue-600" /> Scholar
+                </a>
+              )}
+              {s.researchGateUrl && (
+                <a
+                  href={s.researchGateUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/55 dark:bg-slate-800/55 backdrop-blur-md border border-white/75 dark:border-white/15 shadow-[0_4px_14px_rgba(15,41,74,0.06)] hover:bg-white/85 hover:border-teal-400 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-all"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-teal-600" /> ResearchGate
+                </a>
+              )}
+            </div>
+          )}
 
           {/* Education & Degree Defense */}
           {educationText && (
@@ -647,21 +641,65 @@ export default function ScholarProfilePage() {
               </div>
             </div>
           )}
+
+          {/* Bottom Contact Icon Links (Glassmorphism Buttons) */}
+          {(s.publicEmail || s.telegramUrl || s.linkedinUrl) && (
+            <div className="pt-4 border-t border-slate-200/70 dark:border-slate-800 flex flex-wrap items-center justify-center gap-3">
+              {s.publicEmail && (
+                <a
+                  href={`mailto:${s.publicEmail}`}
+                  title={s.publicEmail}
+                  aria-label="Email"
+                  className="w-10 h-10 rounded-full bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-white/80 dark:border-white/15 shadow-[0_4px_14px_rgba(15,41,74,0.08)] hover:bg-[#0F294A] hover:border-[#0F294A] hover:text-white dark:hover:bg-sky-500 dark:hover:border-sky-500 hover:-translate-y-0.5 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-all"
+                >
+                  <Mail className="w-4 h-4" />
+                </a>
+              )}
+              {s.telegramUrl && (
+                <a
+                  href={s.telegramUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Telegram"
+                  aria-label="Telegram"
+                  className="w-10 h-10 rounded-full bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-white/80 dark:border-white/15 shadow-[0_4px_14px_rgba(15,41,74,0.08)] hover:bg-sky-500 hover:border-sky-500 hover:text-white hover:-translate-y-0.5 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-all"
+                >
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+                    <path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z" />
+                  </svg>
+                </a>
+              )}
+              {s.linkedinUrl && (
+                <a
+                  href={s.linkedinUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="LinkedIn"
+                  aria-label="LinkedIn"
+                  className="w-10 h-10 rounded-full bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-white/80 dark:border-white/15 shadow-[0_4px_14px_rgba(15,41,74,0.08)] hover:bg-blue-700 hover:border-blue-700 hover:text-white hover:-translate-y-0.5 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-all"
+                >
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+                    <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
+                  </svg>
+                </a>
+              )}
+            </div>
+          )}
         </aside>
 
         {/* RIGHT MAIN CONTENT */}
         <main className="lg:col-span-8 space-y-6">
-          {/* 4 Clean Non-Redundant KPIs */}
+          {/* 4 Clean Non-Redundant KPIs (Neumorphism Cards) */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-[#0F294A] dark:bg-sky-950/80 p-5 rounded-2xl border border-[#0F294A] dark:border-sky-800 shadow-xs text-white">
+            <div className="bg-[#0F294A] dark:bg-sky-950 p-5 rounded-2xl border border-[#1a3a63] dark:border-sky-800 shadow-[8px_8px_18px_rgba(15,41,74,0.28),-6px_-6px_14px_rgba(255,255,255,0.7)] dark:shadow-[8px_8px_18px_rgba(0,0,0,0.55),-6px_-6px_14px_rgba(30,41,59,0.4)] text-white">
               <div className="text-[11px] font-semibold text-blue-200 uppercase tracking-wider mb-1">
                 {L.tiuScore}
               </div>
               <div className="font-mono text-3xl font-extrabold tabular-nums">{s.tiuScore}</div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/85 dark:border-slate-800 shadow-xs">
-              <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+            <div className="bg-[#EEF2F7] dark:bg-slate-900 p-5 rounded-2xl border border-white/80 dark:border-slate-800/80 shadow-[6px_6px_14px_rgba(163,177,198,0.42),-6px_-6px_14px_rgba(255,255,255,0.88)] dark:shadow-[6px_6px_14px_rgba(0,0,0,0.5),-5px_-5px_12px_rgba(30,41,59,0.4)]">
+              <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
                 {L.hIndex}
               </div>
               <div className="font-mono text-3xl font-extrabold text-slate-900 dark:text-white tabular-nums">
@@ -669,8 +707,8 @@ export default function ScholarProfilePage() {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/85 dark:border-slate-800 shadow-xs">
-              <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+            <div className="bg-[#EEF2F7] dark:bg-slate-900 p-5 rounded-2xl border border-white/80 dark:border-slate-800/80 shadow-[6px_6px_14px_rgba(163,177,198,0.42),-6px_-6px_14px_rgba(255,255,255,0.88)] dark:shadow-[6px_6px_14px_rgba(0,0,0,0.5),-5px_-5px_12px_rgba(30,41,59,0.4)]">
+              <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
                 {L.citations}
               </div>
               <div className="font-mono text-3xl font-extrabold text-indigo-700 dark:text-indigo-400 tabular-nums">
@@ -678,8 +716,8 @@ export default function ScholarProfilePage() {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/85 dark:border-slate-800 shadow-xs">
-              <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+            <div className="bg-[#EEF2F7] dark:bg-slate-900 p-5 rounded-2xl border border-white/80 dark:border-slate-800/80 shadow-[6px_6px_14px_rgba(163,177,198,0.42),-6px_-6px_14px_rgba(255,255,255,0.88)] dark:shadow-[6px_6px_14px_rgba(0,0,0,0.5),-5px_-5px_12px_rgba(30,41,59,0.4)]">
+              <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
                 {L.publications}
               </div>
               <div className="flex items-baseline gap-2">
@@ -695,8 +733,8 @@ export default function ScholarProfilePage() {
             </div>
           </div>
 
-          {/* Unified Stacked Score Breakdown */}
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/85 dark:border-slate-800 shadow-xs space-y-4">
+          {/* Unified Stacked Score Breakdown (Neumorphism Card) */}
+          <div className="bg-[#EEF2F7] dark:bg-slate-900 p-6 rounded-3xl border border-white/80 dark:border-slate-800/80 shadow-[8px_8px_18px_rgba(163,177,198,0.45),-8px_-8px_18px_rgba(255,255,255,0.9)] dark:shadow-[8px_8px_18px_rgba(0,0,0,0.55),-6px_-6px_14px_rgba(30,41,59,0.45)] space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-sky-950/60 text-blue-700 dark:text-sky-400 flex items-center justify-center">
@@ -730,28 +768,31 @@ export default function ScholarProfilePage() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {breakdownRows.map((row) => (
-                <div
-                  key={row.key}
-                  className="p-3 rounded-2xl bg-slate-50/80 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70 flex items-center justify-between gap-2"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${row.dotColor}`} />
-                    <span className="text-xs font-medium text-slate-600 dark:text-slate-300 truncate">
-                      {row.label}
+              {breakdownRows
+                .filter((row) => row.points > 0)
+                .map((row) => (
+                  <div
+                    key={row.key}
+                    title={row.hint}
+                    className="p-3 rounded-2xl bg-slate-50/80 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70 flex items-center justify-between gap-2"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${row.dotColor}`} />
+                      <span className="text-xs font-medium text-slate-600 dark:text-slate-300 truncate">
+                        {row.label}
+                      </span>
+                    </div>
+                    <span className="font-mono text-xs font-extrabold text-slate-900 dark:text-white tabular-nums shrink-0">
+                      +{row.points}
                     </span>
                   </div>
-                  <span className="font-mono text-xs font-extrabold text-slate-900 dark:text-white tabular-nums shrink-0">
-                    +{row.points}
-                  </span>
-                </div>
-              ))}
+                ))}
             </div>
           </div>
 
-          {/* Yearly Publication Dynamics + Quartiles + Publication Mix */}
+          {/* Yearly Publication Dynamics + Quartiles + Publication Mix (Neumorphism Card) */}
           {yearlyStats.length > 0 && (
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/85 dark:border-slate-800 shadow-xs space-y-4">
+            <div className="bg-[#EEF2F7] dark:bg-slate-900 p-6 rounded-3xl border border-white/80 dark:border-slate-800/80 shadow-[8px_8px_18px_rgba(163,177,198,0.45),-8px_-8px_18px_rgba(255,255,255,0.9)] dark:shadow-[8px_8px_18px_rgba(0,0,0,0.55),-6px_-6px_14px_rgba(30,41,59,0.45)] space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 text-blue-600 dark:text-sky-400" />
@@ -760,18 +801,16 @@ export default function ScholarProfilePage() {
                   </h2>
                 </div>
                 <div className="flex flex-wrap items-center gap-1.5">
-                  {(['Q1', 'Q2', 'Q3', 'Q4']).map((q) => (
-                    <span
-                      key={q}
-                      className={`font-mono text-[11px] font-bold px-2 py-0.5 rounded-md border ${
-                        quartileStats[q] > 0
-                          ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
-                          : 'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-200/70 dark:border-slate-700'
-                      }`}
-                    >
-                      {q}: {quartileStats[q]}
-                    </span>
-                  ))}
+                  {(['Q1', 'Q2', 'Q3', 'Q4'])
+                    .filter((q) => quartileStats[q] > 0)
+                    .map((q) => (
+                      <span
+                        key={q}
+                        className="font-mono text-[11px] font-bold px-2 py-0.5 rounded-md border bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800"
+                      >
+                        {q}: {quartileStats[q]}
+                      </span>
+                    ))}
                 </div>
               </div>
 
@@ -816,8 +855,8 @@ export default function ScholarProfilePage() {
             </div>
           )}
 
-          {/* 4 Interactive Tabs */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/85 dark:border-slate-800 overflow-hidden shadow-xs">
+          {/* 4 Interactive Tabs (Neumorphism Card) */}
+          <div className="bg-[#EEF2F7] dark:bg-slate-900 rounded-3xl border border-white/80 dark:border-slate-800/80 shadow-[8px_8px_18px_rgba(163,177,198,0.45),-8px_-8px_18px_rgba(255,255,255,0.9)] dark:shadow-[8px_8px_18px_rgba(0,0,0,0.55),-6px_-6px_14px_rgba(30,41,59,0.45)] overflow-hidden">
             <div className="flex border-b border-slate-200 dark:border-slate-800 overflow-x-auto">
               {[
                 {
@@ -861,48 +900,72 @@ export default function ScholarProfilePage() {
             <div className="p-6 sm:p-7">
               {activeTab === 'publications' && (
                 <div className="space-y-5">
-                  <div className="flex flex-wrap gap-3 items-center justify-between">
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                      {L.approvedPubs}
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      <select
-                        value={pubYear}
-                        onChange={(e) => setPubYear(e.target.value)}
-                        className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200"
-                      >
-                        <option value="ALL">{L.allYears}</option>
-                        {years.map((y) => (
-                          <option key={y} value={String(y)}>
-                            {y}
-                          </option>
-                        ))}
-                      </select>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-wrap gap-3 items-center justify-between">
+                      <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                        {L.approvedPubs}
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        <select
+                          value={pubYear}
+                          onChange={(e) => setPubYear(e.target.value)}
+                          className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200"
+                        >
+                          <option value="ALL">{L.allYears}</option>
+                          {years.map((y) => (
+                            <option key={y} value={String(y)}>
+                              {y}
+                            </option>
+                          ))}
+                        </select>
 
-                      <select
-                        value={pubQuartile}
-                        onChange={(e) => setPubQuartile(e.target.value)}
-                        className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200"
-                      >
-                        <option value="ALL">{L.allQuartiles}</option>
-                        <option value="Q1">Q1</option>
-                        <option value="Q2">Q2</option>
-                        <option value="Q3">Q3</option>
-                        <option value="Q4">Q4</option>
-                      </select>
+                        <select
+                          value={pubQuartile}
+                          onChange={(e) => setPubQuartile(e.target.value)}
+                          className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200"
+                        >
+                          <option value="ALL">{L.allQuartiles}</option>
+                          <option value="Q1">Q1</option>
+                          <option value="Q2">Q2</option>
+                          <option value="Q3">Q3</option>
+                          <option value="Q4">Q4</option>
+                        </select>
 
-                      <select
-                        value={pubType}
-                        onChange={(e) => setPubType(e.target.value)}
-                        className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200"
-                      >
-                        <option value="ALL">{L.allTypes}</option>
-                        <option value="SCOPUS">Scopus</option>
-                        <option value="WOS">Web of Science</option>
-                        <option value="OAK">OAK</option>
-                        <option value="MONOGRAPH">Monograph</option>
-                        <option value="PATENT">Patent</option>
-                      </select>
+                        <select
+                          value={pubType}
+                          onChange={(e) => setPubType(e.target.value)}
+                          className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200"
+                        >
+                          <option value="ALL">{L.allTypes}</option>
+                          <option value="SCOPUS">Scopus</option>
+                          <option value="WOS">Web of Science</option>
+                          <option value="OAK">OAK</option>
+                          <option value="MONOGRAPH">Monograph</option>
+                          <option value="PATENT">Patent</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Quick Search Input */}
+                    <div className="relative">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={pubSearch}
+                        onChange={(e) => setPubSearch(e.target.value)}
+                        placeholder={L.searchPlaceholder}
+                        className="w-full pl-10 pr-9 py-2.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
+                      />
+                      {pubSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setPubSearch('')}
+                          aria-label="Clear search"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -912,69 +975,83 @@ export default function ScholarProfilePage() {
                     </div>
                   ) : (
                     <div className="space-y-3.5">
-                      {filteredPubs.map((pub) => (
-                        <div
-                          key={pub.id}
-                          className="p-5 bg-slate-50/80 dark:bg-slate-800/50 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 space-y-2"
-                        >
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="px-2.5 py-0.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-xs font-bold rounded">
-                              {pub.type}
-                            </span>
-                            {pub.quartile && pub.quartile !== 'NONE' && (
-                              <span className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-xs font-bold rounded">
-                                {pub.quartile}
+                      {filteredPubs.map((pub) => {
+                        const paperCoAuthors = (pub.authors || [])
+                          .map((a) => a.scholar)
+                          .filter(
+                            (co) =>
+                              co &&
+                              co.id !== s.id &&
+                              co.user?.accountStatus === 'ACTIVE'
+                          );
+
+                        return (
+                          <div
+                            key={pub.id}
+                            className="p-5 bg-slate-50/80 dark:bg-slate-800/50 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 space-y-2.5 hover:border-blue-200 dark:hover:border-sky-700 transition-colors"
+                          >
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="px-2.5 py-0.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-xs font-bold rounded">
+                                {pub.type}
                               </span>
-                            )}
-                            <span className="font-mono text-xs font-semibold text-slate-500 dark:text-slate-400 tabular-nums">
-                              {pub.year}
-                            </span>
-                            <div className="ml-auto flex items-center gap-2">
-                              {pub.citationsCount > 0 && (
-                                <span className="font-mono text-xs font-semibold text-blue-700 dark:text-sky-400 tabular-nums">
-                                  {L.citationsCount}: {pub.citationsCount}
+                              {pub.quartile && pub.quartile !== 'NONE' && (
+                                <span className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-xs font-bold rounded">
+                                  {pub.quartile}
                                 </span>
                               )}
-                              <button
-                                type="button"
-                                onClick={() => handleCopyBibtex(pub, pureName)}
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-400 text-[11px] font-mono font-semibold text-slate-600 dark:text-slate-300 transition-colors"
-                              >
-                                {copiedBibId === pub.id ? (
-                                  <>
-                                    <Check className="w-3 h-3 text-emerald-600" />
-                                    <span className="text-emerald-600">{L.copied}</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Copy className="w-3 h-3 text-slate-400" />
-                                    <span>{L.copyBibtex}</span>
-                                  </>
+                              <span className="font-mono text-xs font-semibold text-slate-500 dark:text-slate-400 tabular-nums">
+                                {pub.year}
+                              </span>
+                              <div className="ml-auto flex flex-wrap items-center gap-2">
+                                {pub.citationsCount > 0 && (
+                                  <span className="font-mono text-xs font-semibold text-blue-700 dark:text-sky-400 tabular-nums">
+                                    {L.citationsCount}: {pub.citationsCount}
+                                  </span>
                                 )}
-                              </button>
+                                {pub.doi && (
+                                  <a
+                                    href={`https://doi.org/${pub.doi}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    title={`DOI: ${pub.doi}`}
+                                    aria-label={`DOI: ${pub.doi}`}
+                                    className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-400 text-blue-600 dark:text-sky-400 flex items-center justify-center transition-colors"
+                                  >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                  </a>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                          <h4 className="font-bold text-slate-900 dark:text-white text-base leading-snug">
-                            {pub.title}
-                          </h4>
-                          <p className="text-xs text-slate-600 dark:text-slate-400">
-                            {pub.journalOrPublisher}
-                            {pub.doi && (
-                              <>
-                                {' • '}
-                                <a
-                                  href={`https://doi.org/${pub.doi}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-blue-600 dark:text-sky-400 hover:underline"
-                                >
-                                  DOI: {pub.doi}
-                                </a>
-                              </>
+
+                            <h4 className="font-bold text-slate-900 dark:text-white text-base leading-snug">
+                              <Link
+                                href={`/publications/${pub.id}`}
+                                className="hover:text-blue-700 dark:hover:text-sky-400 transition-colors"
+                              >
+                                {pub.title}
+                              </Link>
+                            </h4>
+
+                            <p className="text-xs text-slate-600 dark:text-slate-400">
+                              {pub.journalOrPublisher}
+                            </p>
+
+                            {paperCoAuthors.length > 0 && (
+                              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                                {paperCoAuthors.map((co) => (
+                                  <Link
+                                    key={co.id}
+                                    href={`/scholars/${co.id}`}
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:text-blue-700 dark:hover:text-sky-400 hover:border-blue-300 transition-colors"
+                                  >
+                                    {getPureFullName(co.fullName)}
+                                  </Link>
+                                ))}
+                              </div>
                             )}
-                          </p>
-                        </div>
-                      ))}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

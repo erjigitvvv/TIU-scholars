@@ -1,9 +1,10 @@
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
+import { getCurrentUser } from '@/lib/auth'
 
 async function getActiveScholar() {
-  return await prisma.scholarProfile.findFirst()
+  const user = await getCurrentUser()
+  if (!user || !user.scholarProfile) return null
+  return user.scholarProfile
 }
 
 export async function GET(request) {

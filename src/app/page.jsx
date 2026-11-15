@@ -174,7 +174,7 @@ export default async function Home() {
   }));
 
   return (
-    <div className="bg-white">
+    <div className="bg-transparent">
       {/* 1. Full-Screen Animated Campus Hero Banner */}
       <HeroBanner
         heroTitle={dict.home.heroTitle}

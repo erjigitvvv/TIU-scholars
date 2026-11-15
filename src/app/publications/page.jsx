@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useMemo, startTransition } from 'react';
+import { Suspense, useState, useEffect, useMemo, startTransition } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   Search,
   ExternalLink,
@@ -11,10 +12,14 @@ import {
   Building2,
   Layers,
   X,
+  Calendar,
+  ArrowUpDown,
+  RotateCcw,
 } from 'lucide-react';
 import { getDictionary } from '@/lib/i18n';
 import PublicationTypeBadge from '@/components/ui/PublicationTypeBadge';
 import CustomSelect from '@/components/ui/CustomSelect';
+import ScholarAvatar from '@/components/ui/ScholarAvatar';
 
 function getCookieLocale() {
   if (typeof document === 'undefined') return 'uz';
@@ -39,26 +44,29 @@ function getPureFullName(rawName = '') {
     .trim();
 }
 
-// kun.oy.yil (DD.MM.YYYY) formati
-function formatDotDate(dateStr, fallbackYear) {
-  if (!dateStr) return fallbackYear ? `01.01.${fallbackYear}` : '—';
+// kun.oy (DD.MM) qisqa formati
+function formatShortDayMonth(dateStr) {
+  if (!dateStr) return '';
   const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return fallbackYear ? `01.01.${fallbackYear}` : '—';
+  if (Number.isNaN(d.getTime())) return '';
   const day = String(d.getDate()).padStart(2, '0');
   const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-  return `${day}.${month}.${year}`;
+  return `${day}.${month}`;
 }
 
-export default function PublicationsDirectoryPage() {
+function PublicationsDirectoryContent() {
+  const searchParams = useSearchParams();
   const [locale, setLocale] = useState('uz');
   const [publications, setPublications] = useState([]);
   const [faculties, setFaculties] = useState([]);
+  const [years, setYears] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [searchInput, setSearchInput] = useState('');
   const [q, setQ] = useState('');
   const [type, setType] = useState('ALL');
+  const [year, setYear] = useState('ALL');
+  const [sort, setSort] = useState('newest');
   const [facultyId, setFacultyId] = useState('');
   const [departmentId, setDepartmentId] = useState('');
 
@@ -81,14 +89,15 @@ export default function PublicationsDirectoryPage() {
   };
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const urlType = params.get('type');
-    const urlFaculty = params.get('facultyId');
-    const urlDept = params.get('departmentId');
-    if (urlType) setType(urlType);
-    if (urlFaculty) setFacultyId(urlFaculty);
-    if (urlDept) setDepartmentId(urlDept);
-  }, []);
+    const urlType = searchParams.get('type');
+    const urlFaculty = searchParams.get('facultyId');
+    const urlDept = searchParams.get('departmentId');
+    const urlYear = searchParams.get('year');
+    setType(urlType || 'ALL');
+    setFacultyId(urlFaculty || '');
+    setDepartmentId(urlDept || '');
+    setYear(urlYear || 'ALL');
+  }, [searchParams]);
 
   // 300ms Debounce qidiruv uchun
   useEffect(() => {
@@ -104,6 +113,8 @@ export default function PublicationsDirectoryPage() {
         const params = new URLSearchParams();
         if (q) params.set('q', q);
         if (type !== 'ALL') params.set('type', type);
+        if (year !== 'ALL') params.set('year', year);
+        if (sort !== 'newest') params.set('sort', sort);
         if (facultyId) params.set('facultyId', facultyId);
         if (departmentId) params.set('departmentId', departmentId);
 
@@ -113,6 +124,7 @@ export default function PublicationsDirectoryPage() {
           startTransition(() => {
             setPublications(data.publications);
             if (data.faculties) setFaculties(data.faculties);
+            if (data.years) setYears(data.years);
           });
         }
       } catch (err) {
@@ -124,23 +136,58 @@ export default function PublicationsDirectoryPage() {
       }
     }
     fetchPubs();
-  }, [q, type, facultyId, departmentId]);
+  }, [q, type, year, sort, facultyId, departmentId]);
 
   const selectedFacultyObj = faculties.find((f) => f.id === facultyId) || null;
   const availableDepartments = selectedFacultyObj ? selectedFacultyObj.departments || [] : [];
 
   const typeOptions = [
     { value: 'ALL', label: tp.filterType },
+    { value: 'SCOPUS_WOS', label: 'Scopus & WoS' },
     { value: 'SCOPUS', label: 'Scopus' },
     { value: 'WOS', label: 'WoS (Web of Science)' },
     { value: 'OAK', label: locale === 'ru' ? 'Журналы ВАК (OAK)' : 'OAK' },
+    { value: 'LOCAL_OTHER', label: locale === 'ru' ? 'Журналы и конференции' : locale === 'en' ? 'Journals & Conferences' : 'Jurnallar & Konferensiyalar' },
     { value: 'LOCAL_JOURNAL', label: locale === 'ru' ? 'Местный журнал' : locale === 'en' ? 'Local Journal' : 'Mahalliy jurnal' },
     { value: 'INTERNATIONAL_JOURNAL', label: locale === 'ru' ? 'Междунар. журнал' : locale === 'en' ? 'Intl. Journal' : 'Xalqaro jurnal' },
     { value: 'CONFERENCE', label: locale === 'ru' ? 'Конференция' : locale === 'en' ? 'Conference' : 'Konferensiya' },
+    { value: 'BOOKS', label: locale === 'ru' ? 'Монографии и учебники' : locale === 'en' ? 'Monographs & Textbooks' : 'Monografiya & Darsliklar' },
     { value: 'MONOGRAPH', label: locale === 'ru' ? 'Монография' : locale === 'en' ? 'Monograph' : 'Monografiya' },
     { value: 'TEXTBOOK', label: locale === 'ru' ? 'Учебник' : locale === 'en' ? 'Textbook' : 'Darslik' },
     { value: 'PATENT', label: locale === 'ru' ? 'Патент' : locale === 'en' ? 'Patent' : 'Patent' },
   ];
+
+  const categoryTabs = [
+    { key: 'ALL', label: locale === 'ru' ? 'Все' : locale === 'en' ? 'All' : 'Barchasi' },
+    { key: 'SCOPUS_WOS', label: 'Scopus & WoS' },
+    { key: 'OAK', label: locale === 'ru' ? 'ВАК (OAK)' : 'OAK' },
+    { key: 'LOCAL_OTHER', label: locale === 'ru' ? 'Журналы / Конф.' : locale === 'en' ? 'Journals / Conf.' : 'Jurnallar & Konf.' },
+    { key: 'BOOKS', label: locale === 'ru' ? 'Монографии / Учебники' : locale === 'en' ? 'Books & Textbooks' : 'Monografiya & Darslik' },
+    { key: 'PATENT', label: locale === 'ru' ? 'Патенты' : locale === 'en' ? 'Patents' : 'Patentlar' },
+  ];
+
+  const yearOptions = [
+    { value: 'ALL', label: locale === 'ru' ? 'Все годы' : locale === 'en' ? 'All Years' : 'Barcha yillar' },
+    ...years.map((y) => ({ value: String(y), label: String(y) })),
+  ];
+
+  const sortOptions = [
+    { value: 'newest', label: locale === 'ru' ? 'Сначала новые' : locale === 'en' ? 'Newest First' : 'Eng yangilari' },
+    { value: 'citations', label: locale === 'ru' ? 'По цитированиям' : locale === 'en' ? 'Most Cited' : 'Eng ko‘p iqtibos' },
+    { value: 'year', label: locale === 'ru' ? 'По году издания' : locale === 'en' ? 'By Year' : 'Yil bo‘yicha' },
+  ];
+
+  const hasActiveFilters = q || type !== 'ALL' || year !== 'ALL' || sort !== 'newest' || facultyId || departmentId;
+
+  const handleResetFilters = () => {
+    setSearchInput('');
+    setQ('');
+    setType('ALL');
+    setYear('ALL');
+    setSort('newest');
+    setFacultyId('');
+    setDepartmentId('');
+  };
 
   const facultyOptions = [
     { value: '', label: tp.filterFaculty || ts.filterFaculty },
@@ -168,7 +215,7 @@ export default function PublicationsDirectoryPage() {
       </div>
 
       {/* Yuqori Qidiruv va CustomSelect Filtrlar Paneli */}
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-xs grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+      <div className="neu-card p-6 rounded-3xl grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
         <div className="md:col-span-4 relative flex items-center">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
           <input
@@ -232,26 +279,26 @@ export default function PublicationsDirectoryPage() {
       {loading ? (
         <div className="text-center py-20 text-slate-500">Nashrlar yuklanmoqda...</div>
       ) : publications.length === 0 ? (
-        <div className="bg-white dark:bg-slate-900 p-16 rounded-3xl border border-slate-200 dark:border-slate-800 text-center text-slate-500">
+        <div className="neu-card p-16 rounded-3xl text-center text-slate-500">
           Tanlangan mezonlar bo‘yicha tasdiqlangan nashrlar topilmadi.
         </div>
       ) : (
-        <div className="w-full bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-xs overflow-hidden">
-          <div className="w-full overflow-x-auto">
+        <div className="w-full neu-card rounded-3xl overflow-hidden">
+          <div className="w-full max-h-[68vh] overflow-auto">
             <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50/90 dark:bg-slate-800/60 border-b border-slate-200/80 dark:border-slate-800 text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  <th className="py-4 pl-6 pr-3 w-28 font-semibold">
-                    {locale === 'ru' ? 'Дата' : locale === 'en' ? 'Date' : 'Sana'}
+              <thead className="sticky top-0 z-20 bg-[#EDF1F7]/95 dark:bg-slate-900/95 backdrop-blur-md shadow-[0_1px_0_rgba(148,163,184,0.28)]">
+                <tr className="text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <th className="py-4 pl-5 pr-2 w-16 font-semibold text-center">
+                    {locale === 'ru' ? 'Год' : locale === 'en' ? 'Year' : 'Yil'}
                   </th>
-                  <th className="py-4 px-4 min-w-[340px] font-semibold">
+                  <th className="py-4 px-4 min-w-[320px] font-semibold">
                     {locale === 'ru'
                       ? 'Название публикации и журнал'
                       : locale === 'en'
                       ? 'Publication Title & Journal'
                       : 'Nashr nomi va jurnal'}
                   </th>
-                  <th className="py-4 px-4 min-w-[230px] font-semibold">
+                  <th className="py-4 px-4 min-w-[240px] font-semibold">
                     {tp.authors} (TIU)
                   </th>
                   <th className="py-4 px-4 min-w-[200px] font-semibold">
@@ -291,9 +338,18 @@ export default function PublicationsDirectoryPage() {
                       key={pub.id}
                       className="group h-[82px] hover:bg-blue-50/50 dark:hover:bg-slate-800/60 transition-colors"
                     >
-                      {/* 1. Sana (kun.oy.yil formatida) */}
-                      <td className="py-3.5 pl-6 pr-3 align-middle font-mono text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap tabular-nums">
-                        {formatDotDate(pub.createdAt, pub.year)}
+                      {/* 1. Qisqa Yil + kun.oy */}
+                      <td className="py-3.5 pl-5 pr-2 align-middle text-center whitespace-nowrap tabular-nums">
+                        <div className="inline-flex flex-col items-center leading-tight">
+                          <span className="font-mono text-sm font-extrabold text-[#0F294A] dark:text-white">
+                            {pub.year}
+                          </span>
+                          {formatShortDayMonth(pub.createdAt) && (
+                            <span className="font-mono text-[10px] font-medium text-slate-400 dark:text-slate-500">
+                              {formatShortDayMonth(pub.createdAt)}
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* 2. Nashr nomi (Sarlavha havola bo'lib nashr tafsilot sahifasiga o'tadi) */}
@@ -320,23 +376,67 @@ export default function PublicationsDirectoryPage() {
                         </div>
                       </td>
 
-                      {/* 3. Mualliflar (faqat F.I.Sh., TIU mualliflari ajratilgan) */}
+                      {/* 3. Mualliflar (avatar + ikki ohangli Ism Familiya pillari) */}
                       <td className="py-3.5 px-4 align-middle">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          {(pub.authors || []).map(
-                            (auth) =>
-                              auth.scholar && (
-                                <Link
-                                  key={auth.scholar.id}
-                                  href={`/scholars/${auth.scholar.id}`}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50/90 dark:bg-slate-800 hover:bg-[#0F294A] hover:text-white dark:hover:bg-sky-500 text-[#0F294A] dark:text-sky-300 border border-blue-200/70 dark:border-slate-700 text-xs font-semibold transition-colors"
+                        {(() => {
+                          const validAuthors = (pub.authors || []).filter((a) => a.scholar);
+                          const visibleAuthors = validAuthors.slice(0, 2);
+                          const hiddenAuthors = validAuthors.slice(2);
+                          return (
+                            <div className="flex flex-wrap items-center gap-2">
+                              {visibleAuthors.map((auth, aIdx) => {
+                                const pureName = getPureFullName(auth.scholar.fullName);
+                                const parts = pureName.split(/\s+/);
+                                const firstName = parts[0] || '';
+                                const lastName = parts.slice(1).join(' ');
+                                const degreeRing =
+                                  auth.scholar.academicDegree === 'DSC'
+                                    ? 'ring-2 ring-amber-400/90'
+                                    : auth.scholar.academicDegree === 'PHD'
+                                    ? 'ring-2 ring-blue-500/80'
+                                    : 'ring-1 ring-white/90 dark:ring-slate-700';
+
+                                return (
+                                  <Link
+                                    key={auth.scholar.id}
+                                    href={`/scholars/${auth.scholar.id}`}
+                                    className="group/author inline-flex items-center gap-2 pl-1 pr-3 py-1 rounded-full glass-btn hover:bg-[#0F294A] dark:hover:bg-sky-500 hover:-translate-y-[1px] transition-all"
+                                  >
+                                    <ScholarAvatar
+                                      photoUrl={auth.scholar.photoUrl}
+                                      fullName={pureName}
+                                      index={aIdx}
+                                      className={`w-6 h-6 text-[10px] shrink-0 ${degreeRing}`}
+                                    />
+                                    <span className="text-xs tracking-tight truncate max-w-[145px]">
+                                      <span className="font-medium text-slate-600 dark:text-slate-300 group-hover/author:text-blue-100 transition-colors">
+                                        {firstName}
+                                      </span>
+                                      {lastName && (
+                                        <>
+                                          {' '}
+                                          <span className="font-bold text-[#0F294A] dark:text-white group-hover/author:text-white transition-colors">
+                                            {lastName}
+                                          </span>
+                                        </>
+                                      )}
+                                    </span>
+                                  </Link>
+                                );
+                              })}
+                              {hiddenAuthors.length > 0 && (
+                                <span
+                                  title={hiddenAuthors
+                                    .map((a) => getPureFullName(a.scholar.fullName))
+                                    .join(', ')}
+                                  className="inline-flex items-center px-2.5 py-1 rounded-full glass-btn font-mono text-[11px] font-bold text-[#0F294A] dark:text-sky-300"
                                 >
-                                  <UserCheck className="w-3 h-3 text-blue-600 dark:text-sky-400 shrink-0 group-hover:text-current" />
-                                  <span>{getPureFullName(auth.scholar.fullName)}</span>
-                                </Link>
-                              )
-                          )}
-                        </div>
+                                  +{hiddenAuthors.length}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
 
                       {/* 4. Fakultet / kafedra (tanlangan tilda) */}
@@ -395,7 +495,7 @@ export default function PublicationsDirectoryPage() {
                               href={externalHref}
                               target="_blank"
                               rel="noreferrer"
-                              className="w-8 h-8 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-[#0F294A] hover:text-white dark:hover:bg-sky-500 text-slate-600 dark:text-slate-300 border border-slate-200/70 dark:border-slate-700 flex items-center justify-center transition-colors"
+                              className="w-8 h-8 rounded-xl glass-btn hover:bg-[#0F294A] hover:text-white dark:hover:bg-sky-500 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-all"
                               title={pub.doi ? `DOI: ${pub.doi}` : 'Manbani ochish'}
                             >
                               <ExternalLink className="w-3.5 h-3.5" />
@@ -422,5 +522,13 @@ export default function PublicationsDirectoryPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function PublicationsDirectoryPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-20 text-slate-500">Yuklanmoqda...</div>}>
+      <PublicationsDirectoryContent />
+    </Suspense>
   );
 }

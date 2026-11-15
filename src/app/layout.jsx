@@ -3,6 +3,7 @@ import { Inter, Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
+import PageBackgroundShell from '@/components/layout/PageBackgroundShell';
 import MacCursor from '@/components/ui/MacCursor';
 import { getDictionary } from '@/lib/i18n';
 import { getCurrentUser } from '@/lib/auth';
@@ -24,11 +25,13 @@ export default async function RootLayout({ children }) {
 
   return (
     <html lang={locale} className={`${inter.variable} ${jakarta.variable} ${jetbrainsMono.variable}`}>
-      <body className="min-h-screen flex flex-col bg-white text-slate-900 antialiased">
-        <MacCursor />
-        <Navbar dict={dict} currentLocale={locale} user={user} />
-        <main className="flex-1">{children}</main>
-        <Footer dict={dict} />
+      <body className="min-h-screen flex flex-col bg-[#EDF1F7] text-slate-900 antialiased">
+        <PageBackgroundShell>
+          <MacCursor />
+          <Navbar dict={dict} currentLocale={locale} user={user} />
+          <main className="flex-1">{children}</main>
+          <Footer dict={dict} />
+        </PageBackgroundShell>
       </body>
     </html>
   );

@@ -1,20 +1,33 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-import { signToken } from '@/lib/auth';
 
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { email, password, fullName, departmentId, academicDegree, academicTitle } = body;
+    const { email, password, fullName, phone, departmentId, academicDegree, academicTitle } = body;
 
-    if (!email || !password || !fullName || !departmentId) {
+    if (!email || !password || !fullName) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (String(password).length < 6) {
+      return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 });
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existingUser) {
       return NextResponse.json({ error: 'Email already registered' }, { status: 409 });
+    }
+
+    let resolvedDeptId = departmentId;
+    if (!resolvedDeptId) {
+      const firstDept = await prisma.department.findFirst({ select: { id: true } });
+      if (!firstDept) {
+        return NextResponse.json({ error: 'No departments configured yet' }, { status: 400 });
+      }
+      resolvedDeptId = firstDept.id;
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -22,7 +35,7 @@ export async function POST(request) {
     const result = await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
-          email,
+          email: normalizedEmail,
           passwordHash,
           role: 'SCHOLAR',
           accountStatus: 'PENDING',
@@ -32,8 +45,9 @@ export async function POST(request) {
       const profile = await tx.scholarProfile.create({
         data: {
           userId: user.id,
-          departmentId,
-          fullName,
+          departmentId: resolvedDeptId,
+          fullName: String(fullName).trim(),
+          publicEmail: normalizedEmail,
           academicDegree: academicDegree || 'NONE',
           academicTitle: academicTitle || 'NONE',
           researchInterests: JSON.stringify([]),
@@ -46,7 +60,11 @@ export async function POST(request) {
           action: 'USER_REGISTERED',
           entityType: 'User',
           entityId: user.id,
-          details: JSON.stringify({ email, fullName }),
+          details: JSON.stringify({
+            email: normalizedEmail,
+            fullName: String(fullName).trim(),
+            phone: phone ? String(phone).trim() : null,
+          }),
         },
       });
 

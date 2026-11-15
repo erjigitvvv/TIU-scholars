@@ -1,6 +1,10 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
-const prisma = new PrismaClient();
+const TYPE_GROUPS = {
+  SCOPUS_WOS: ['SCOPUS', 'WOS'],
+  LOCAL_OTHER: ['LOCAL_JOURNAL', 'INTERNATIONAL_JOURNAL', 'CONFERENCE'],
+  BOOKS: ['MONOGRAPH', 'TEXTBOOK'],
+};
 
 export async function GET(request) {
   try {
@@ -10,17 +14,25 @@ export async function GET(request) {
     const year = searchParams.get('year') || '';
     const facultyId = searchParams.get('facultyId') || '';
     const departmentId = searchParams.get('departmentId') || '';
+    const sort = searchParams.get('sort') || 'newest';
 
     const where = {
       status: 'APPROVED',
     };
 
     if (type && type !== 'ALL') {
-      where.type = type;
+      if (TYPE_GROUPS[type]) {
+        where.type = { in: TYPE_GROUPS[type] };
+      } else {
+        where.type = type;
+      }
     }
 
     if (year && year !== 'ALL') {
-      where.year = parseInt(year, 10);
+      const parsedYear = parseInt(year, 10);
+      if (!Number.isNaN(parsedYear)) {
+        where.year = parsedYear;
+      }
     }
 
     if (q) {
@@ -64,7 +76,14 @@ export async function GET(request) {
       };
     }
 
-    const [publications, faculties] = await Promise.all([
+    const orderBy =
+      sort === 'citations'
+        ? [{ citationsCount: 'desc' }, { year: 'desc' }]
+        : sort === 'year'
+        ? [{ year: 'desc' }, { citationsCount: 'desc' }]
+        : [{ createdAt: 'desc' }];
+
+    const [publications, faculties, yearsRaw] = await Promise.all([
       prisma.publication.findMany({
         where,
         include: {
@@ -79,7 +98,7 @@ export async function GET(request) {
             orderBy: { authorOrder: 'asc' },
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy,
       }),
       prisma.faculty.findMany({
         include: {
@@ -89,9 +108,17 @@ export async function GET(request) {
         },
         orderBy: { nameUz: 'asc' },
       }),
+      prisma.publication.findMany({
+        where: { status: 'APPROVED' },
+        select: { year: true },
+        distinct: ['year'],
+        orderBy: { year: 'desc' },
+      }),
     ]);
 
-    return Response.json({ publications, faculties });
+    const years = yearsRaw.map((y) => y.year).filter(Boolean);
+
+    return Response.json({ publications, faculties, years });
   } catch (error) {
     console.error('API GET /api/publications error:', error);
     return Response.json({ error: error.message }, { status: 500 });

@@ -62,10 +62,25 @@ export async function GET(request, { params }) {
         scoringConfig
       );
 
-    // University rank among active scholars
-    const rankIndex = activeScores.findIndex((s) => s.id === scholar.id);
+    // Keep DB metrics synchronized if they drifted
+    if (
+      Math.abs((scholar.tiuScore || 0) - tiuScore) > 0.01 ||
+      scholar.hIndex !== hIndex ||
+      scholar.totalCitations !== totalCitations
+    ) {
+      await prisma.scholarProfile.update({
+        where: { id: scholar.id },
+        data: { tiuScore, hIndex, totalCitations },
+      });
+    }
+
+    // University rank among active scholars using synced score
+    const syncedScores = activeScores
+      .map((item) => (item.id === scholar.id ? { ...item, tiuScore } : item))
+      .sort((a, b) => b.tiuScore - a.tiuScore);
+    const rankIndex = syncedScores.findIndex((s) => s.id === scholar.id);
     const universityRank = rankIndex >= 0 ? rankIndex + 1 : null;
-    const totalActiveScholars = activeScores.length;
+    const totalActiveScholars = syncedScores.length;
 
     // Yearly publications & citations analytics + Publication Mix (typeStats)
     const yearMap = new Map();

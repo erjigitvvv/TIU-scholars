@@ -258,7 +258,7 @@ export default function HomeScholarsAndFaculties({
   };
 
   return (
-    <section className="w-full min-h-screen bg-[#F8FAFD] dark:bg-slate-950 border-t border-slate-200/70 dark:border-slate-800 flex flex-col justify-center overflow-x-clip">
+    <section className="w-full min-h-screen bg-transparent border-t border-white/40 dark:border-slate-800/60 flex flex-col justify-center overflow-x-clip">
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 space-y-20">
         {/* 1. Yetakchi Olimlar Carousel (Markazda 1160px max-width, 4 ta card) */}
         <div className="space-y-4">
@@ -285,7 +285,7 @@ export default function HomeScholarsAndFaculties({
 
             <Link
               href="/scholars"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm font-semibold text-[#0F294A] dark:text-slate-100 hover:bg-[#0F294A] hover:text-white dark:hover:bg-blue-600 transition-all shadow-xs self-start sm:self-auto"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full glass-btn text-sm font-semibold text-[#0F294A] dark:text-slate-100 hover:bg-[#0F294A] hover:text-white dark:hover:bg-blue-600 self-start sm:self-auto"
             >
               {labels.viewAllScholars}
               <ArrowRight className="w-4 h-4" />
@@ -306,7 +306,7 @@ export default function HomeScholarsAndFaculties({
               whileTap={{ scale: 0.94 }}
               onClick={() => scrollCarousel('left')}
               aria-label="Oldingi olimlar"
-              className="hidden sm:flex absolute -left-4 lg:-left-6 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 text-[#0F294A] dark:text-white hover:bg-[#0F294A] hover:text-white dark:hover:bg-blue-600 items-center justify-center shadow-lg transition-colors cursor-pointer"
+              className="hidden sm:flex absolute -left-4 lg:-left-6 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full glass-btn text-[#0F294A] dark:text-white hover:bg-[#0F294A] hover:text-white dark:hover:bg-blue-600 items-center justify-center cursor-pointer"
             >
               <ChevronLeft className="w-5 h-5" />
             </motion.button>
@@ -318,7 +318,7 @@ export default function HomeScholarsAndFaculties({
               whileTap={{ scale: 0.94 }}
               onClick={() => scrollCarousel('right')}
               aria-label="Keyingi olimlar"
-              className="hidden sm:flex absolute -right-4 lg:-right-6 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 text-[#0F294A] dark:text-white hover:bg-[#0F294A] hover:text-white dark:hover:bg-blue-600 items-center justify-center shadow-lg transition-colors cursor-pointer"
+              className="hidden sm:flex absolute -right-4 lg:-right-6 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full glass-btn text-[#0F294A] dark:text-white hover:bg-[#0F294A] hover:text-white dark:hover:bg-blue-600 items-center justify-center cursor-pointer"
             >
               <ChevronRight className="w-5 h-5" />
             </motion.button>
@@ -392,7 +392,7 @@ export default function HomeScholarsAndFaculties({
                       href={`/scholars/${scholar.id}`}
                       onClick={handleCardClick}
                       draggable={false}
-                      className="group h-full min-h-[340px] rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/85 dark:border-slate-800 p-5 shadow-xs hover:-translate-y-[2px] hover:shadow-xl hover:border-blue-300 dark:hover:border-sky-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 dark:focus-visible:ring-sky-400 dark:focus-visible:ring-offset-slate-950 focus-visible:-translate-y-[2px] focus-visible:shadow-xl transition-all duration-200 flex flex-col justify-between gap-4"
+                      className="group h-full min-h-[340px] rounded-2xl neu-card-sm p-5 hover:-translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 dark:focus-visible:ring-sky-400 dark:focus-visible:ring-offset-slate-950 focus-visible:-translate-y-[2px] transition-all duration-200 flex flex-col justify-between gap-4"
                     >
                       <div className="space-y-4">
                         {/* 1. Rasm yoki rangli monogramma (DSc: oltin halqa, PhD: ko'k halqa + burchagida kichik DSc/PhD belgisi) + Reyting medali */}
@@ -533,7 +533,7 @@ export default function HomeScholarsAndFaculties({
               >
                 <Link
                   href={`/faculties?code=${faculty.code}`}
-                  className="group w-full text-left h-full bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 hover:border-blue-300 dark:hover:border-sky-600 p-7 shadow-sm hover:shadow-xl hover:ring-2 hover:ring-blue-100 dark:hover:ring-sky-900/50 transition-all duration-300 flex items-center justify-between gap-4"
+                  className="group w-full text-left h-full neu-card rounded-3xl p-7 transition-all duration-300 flex items-center justify-between gap-4"
                 >
                   <div className="space-y-2.5">
                     <span className="inline-block px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[#0F294A] dark:text-sky-300 rounded-lg">

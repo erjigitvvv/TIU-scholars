@@ -22,8 +22,8 @@ export default async function PendingApprovalPage() {
   const isRejected = user.accountStatus === 'REJECTED';
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-12">
-      <div className="max-w-md w-full space-y-6 bg-white p-8 rounded-2xl border border-slate-200 shadow-xl text-center">
+    <div className="min-h-screen flex items-center justify-center bg-transparent px-4 py-12">
+      <div className="max-w-md w-full space-y-6 neu-card p-8 rounded-3xl text-center">
         <div className="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center shadow-md mb-2">
           {isRejected ? (
             <div className="w-full h-full bg-red-50 text-red-600 rounded-2xl flex items-center justify-center">

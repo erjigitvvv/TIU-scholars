@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { Building2, Users, ArrowRight, Layers, BookOpen } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import FacultyFilterSelect from '@/components/faculties/FacultyFilterSelect';
 
 export default async function FacultiesPage({ searchParams }) {
   const cookieStore = await cookies();
@@ -64,32 +65,32 @@ export default async function FacultiesPage({ searchParams }) {
           <p className="text-slate-600 dark:text-slate-400 text-sm max-w-2xl">{subtitle}</p>
         </div>
 
-        {/* Fakultetlar o'rtasida tezkor o'tish tugmalari */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/faculties"
-            className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all ${
-              !activeCode
-                ? 'bg-[#0F294A] text-white border-[#0F294A] dark:bg-sky-500 dark:border-sky-500'
-                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-blue-300'
-            }`}
-          >
-            {locale === 'uz' ? 'Barcha fakultetlar' : locale === 'ru' ? 'Все факультеты' : 'All Faculties'}
-          </Link>
-          {allFaculties.map((f) => (
-            <Link
-              key={f.id}
-              href={`/faculties?code=${f.code}`}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all ${
-                activeCode === f.code
-                  ? 'bg-[#0F294A] text-white border-[#0F294A] dark:bg-sky-500 dark:border-sky-500'
-                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-blue-300'
-              }`}
-            >
-              {getLocalizedName(f)}
-            </Link>
-          ))}
-        </div>
+        {/* Fakultet tanlash Dropdown */}
+        <FacultyFilterSelect
+          activeCode={activeCode}
+          placeholder={
+            locale === 'uz'
+              ? 'Barcha fakultetlar'
+              : locale === 'ru'
+              ? 'Все факультеты'
+              : 'All Faculties'
+          }
+          options={[
+            {
+              value: '',
+              label:
+                locale === 'uz'
+                  ? 'Barcha fakultetlar'
+                  : locale === 'ru'
+                  ? 'Все факультеты'
+                  : 'All Faculties',
+            },
+            ...allFaculties.map((f) => ({
+              value: f.code,
+              label: getLocalizedName(f),
+            })),
+          ]}
+        />
       </div>
 
       {/* Fakultetlar va ularning Kafedralar Card UI ro'yxati */}
@@ -102,7 +103,7 @@ export default async function FacultiesPage({ searchParams }) {
           return (
             <section
               key={faculty.id}
-              className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/90 dark:border-slate-800 p-7 sm:p-8 shadow-xs space-y-6"
+              className="neu-card rounded-3xl p-7 sm:p-8 space-y-6"
             >
               {/* Fakultet Header qismi */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
@@ -129,7 +130,7 @@ export default async function FacultiesPage({ searchParams }) {
 
                 <Link
                   href={`/scholars?facultyId=${faculty.id}`}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-blue-50 dark:bg-slate-800 hover:bg-[#0F294A] hover:text-white dark:hover:bg-sky-500 text-blue-800 dark:text-sky-300 text-xs sm:text-sm font-semibold transition-all self-start sm:self-auto"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl glass-btn hover:bg-[#0F294A] hover:text-white dark:hover:bg-sky-500 text-blue-800 dark:text-sky-300 text-xs sm:text-sm font-semibold self-start sm:self-auto"
                 >
                   <span>
                     {locale === 'uz'
@@ -162,7 +163,7 @@ export default async function FacultiesPage({ searchParams }) {
                     <Link
                       key={dept.id}
                       href={`/scholars?facultyId=${faculty.id}&departmentId=${dept.id}`}
-                      className="group/dept bg-slate-50/80 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 hover:border-blue-400 dark:hover:border-sky-500 p-5 shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col justify-between gap-4"
+                      className="group/dept neu-card-sm rounded-2xl p-5 hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between gap-4"
                     >
                       <div className="space-y-2.5">
                         <div className="flex items-center justify-between gap-2">

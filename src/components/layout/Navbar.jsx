@@ -163,13 +163,6 @@ export default function Navbar({ dict, currentLocale, user }) {
       href: '/publications',
       label: dict.nav.publications,
       icon: BookOpen,
-      children: [
-        { href: '/publications', label: sub.allPubs, icon: BookOpen },
-        { href: '/publications?type=SCOPUS', label: sub.scopusWos, icon: FileText },
-        { href: '/publications?type=OAK', label: sub.oakJournals, icon: FileText },
-        { href: '/publications?type=MONOGRAPH', label: sub.monographs, icon: BookOpen },
-        { href: '/publications?type=PATENT', label: sub.patents, icon: Shield },
-      ],
     },
     {
       href: '/faculties',
@@ -207,6 +200,21 @@ export default function Navbar({ dict, currentLocale, user }) {
   };
 
   const activeLang = LANGUAGES.find((l) => l.code === currentLocale) || LANGUAGES[0];
+  const AUTH_FALLBACK = {
+    uz: { dashboard: 'Kabinet', adminPanel: 'Admin', logout: 'Chiqish' },
+    ru: { dashboard: 'Кабинет', adminPanel: 'Админ', logout: 'Выйти' },
+    en: { dashboard: 'Cabinet', adminPanel: 'Admin', logout: 'Sign Out' },
+  };
+  const authLabels = dict?.auth || AUTH_FALLBACK[currentLocale] || AUTH_FALLBACK.uz;
+
+  if (
+    pathname === '/login' ||
+    pathname === '/register' ||
+    pathname?.startsWith('/dashboard') ||
+    pathname?.startsWith('/admin')
+  ) {
+    return null;
+  }
 
   return (
     <header
@@ -420,7 +428,7 @@ export default function Navbar({ dict, currentLocale, user }) {
                   className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-[#0F294A] bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-all"
                 >
                   <UserCheck className="w-4 h-4 text-[#0F294A]" />
-                  {dict.auth.adminPanel}
+                  {authLabels.adminPanel}
                 </a>
               )}
               <Link
@@ -428,7 +436,7 @@ export default function Navbar({ dict, currentLocale, user }) {
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition-all"
               >
                 <LayoutDashboard className="w-4 h-4 text-slate-500" />
-                {dict.auth.dashboard}
+                {authLabels.dashboard}
               </Link>
               <button
                 onClick={handleLogout}
@@ -437,7 +445,7 @@ export default function Navbar({ dict, currentLocale, user }) {
                     ? 'text-white/80 hover:text-red-300 hover:bg-white/10'
                     : 'text-slate-500 hover:text-red-600 hover:bg-red-50'
                 }`}
-                title={dict.auth.logout}
+                title={authLabels.logout}
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -594,7 +602,7 @@ export default function Navbar({ dict, currentLocale, user }) {
                     className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-[#0F294A] bg-blue-50 rounded-lg"
                   >
                     <UserCheck className="w-4 h-4" />
-                    {dict.auth.adminPanel}
+                    {authLabels.adminPanel}
                   </a>
                 )}
                 <Link
@@ -603,7 +611,7 @@ export default function Navbar({ dict, currentLocale, user }) {
                   className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-slate-700 bg-slate-100 rounded-lg"
                 >
                   <LayoutDashboard className="w-4 h-4" />
-                  {dict.auth.dashboard}
+                  {authLabels.dashboard}
                 </Link>
                 <button
                   onClick={() => {
@@ -613,7 +621,7 @@ export default function Navbar({ dict, currentLocale, user }) {
                   className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-red-600 bg-red-50 rounded-lg"
                 >
                   <LogOut className="w-4 h-4" />
-                  {dict.auth.logout}
+                  {authLabels.logout}
                 </button>
               </div>
             )}

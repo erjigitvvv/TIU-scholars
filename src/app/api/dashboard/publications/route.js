@@ -1,14 +1,31 @@
-import { PrismaClient } from '@prisma/client'
-import { recalculateScholarMetrics } from '@/lib/scoring'
+import fs from 'fs'
+import path from 'path'
+import { prisma } from '@/lib/prisma'
+import { getCurrentUser } from '@/lib/auth'
+import { recalculateScholarMetrics, TYPE_WEIGHTS } from '@/lib/scoring'
 import { fetchByDoi } from '@/lib/crossref'
 import { parseBibtex } from '@/lib/bibtex'
 
-const prisma = new PrismaClient()
+function getFeedbackMap() {
+  try {
+    const file = path.join(process.cwd(), 'data', 'publication-feedback.json')
+    if (!fs.existsSync(file)) return {}
+    return JSON.parse(fs.readFileSync(file, 'utf8') || '{}')
+  } catch {
+    return {}
+  }
+}
 
-// Helper to get demo/active scholar
+function estimatePubPoints(pub) {
+  const base = TYPE_WEIGHTS[pub.type] || 3
+  const qBonus = pub.quartile === 'Q1' || pub.quartile === 'Q2' ? 5 : 0
+  return base + qBonus
+}
+
 async function getActiveScholar() {
-  let scholar = await prisma.scholarProfile.findFirst()
-  return scholar
+  const user = await getCurrentUser()
+  if (!user || !user.scholarProfile) return null
+  return user.scholarProfile
 }
 
 export async function GET(request) {
@@ -32,12 +49,27 @@ export async function GET(request) {
       orderBy: { publication: { createdAt: 'desc' } }
     })
 
+    const feedbackMap = getFeedbackMap()
     const publications = pubAuthors.map(pa => ({
       ...pa.publication,
       authorOrder: pa.authorOrder,
+      views: feedbackMap[pa.publication.id]?.views || 0,
+      commentsCount: Array.isArray(feedbackMap[pa.publication.id]?.comments)
+        ? feedbackMap[pa.publication.id].comments.length
+        : 0,
+      tiuScoreValue: estimatePubPoints(pa.publication),
     }))
 
-    return Response.json({ publications })
+    const allScholars = await prisma.scholarProfile.findMany({
+      where: {
+        id: { not: scholar.id },
+        user: { accountStatus: 'ACTIVE' },
+      },
+      select: { id: true, fullName: true, academicDegree: true },
+      orderBy: { fullName: 'asc' },
+    })
+
+    return Response.json({ publications, allScholars })
   } catch (error) {
     console.error('API GET /api/dashboard/publications error:', error)
     return Response.json({ error: error.message }, { status: 500 })
@@ -52,7 +84,7 @@ export async function POST(request) {
     }
 
     const body = await request.json()
-    const { mode, doi, bibContent, manualData } = body
+    const { mode, doi, bibContent, manualData, pdfUrl, coAuthorIds } = body
 
     let targetPubs = []
 
@@ -127,6 +159,11 @@ export async function POST(request) {
         }
       } else {
         // Create new publication
+        const extraAuthors = Array.isArray(coAuthorIds)
+          ? coAuthorIds
+              .filter((cid) => cid && cid !== scholar.id)
+              .map((cid, idx) => ({ scholarId: cid, authorOrder: idx + 2 }))
+          : []
         const newPub = await prisma.publication.create({
           data: {
             title: pubData.title,
@@ -134,17 +171,20 @@ export async function POST(request) {
             journalOrPublisher: pubData.journalOrPublisher,
             year: pubData.year,
             doi: pubData.doi || null,
-            url: pubData.url || null,
+            url: pdfUrl || pubData.url || null,
             isbnOrPatentNo: pubData.isbnOrPatentNo || null,
             quartile: pubData.quartile || 'NONE',
             citationsCount: pubData.citationsCount || 0,
             status: 'PENDING',
             submittedById: scholar.userId,
             authors: {
-              create: {
-                scholarId: scholar.id,
-                authorOrder: 1,
-              }
+              create: [
+                {
+                  scholarId: scholar.id,
+                  authorOrder: 1,
+                },
+                ...extraAuthors,
+              ]
             }
           }
         })

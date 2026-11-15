@@ -13,7 +13,31 @@ export const TYPE_WEIGHTS = {
 };
 
 export const GRANT_WEIGHT = 8;
+export const GRANT_PI_WEIGHT = 10;
+export const GRANT_MEMBER_WEIGHT = 6;
 export const SUPERVISION_WEIGHT = 6;
+export const SUPERVISION_DSC_WEIGHT = 10;
+export const SUPERVISION_PHD_WEIGHT = 6;
+
+export function getGrantPoints(grant) {
+  const role = String(grant?.role || '').toLowerCase();
+  if (
+    role.includes('pi') ||
+    role.includes('rahbar') ||
+    role.includes('lead') ||
+    role.includes('руковод') ||
+    role.includes('head')
+  ) {
+    return GRANT_PI_WEIGHT;
+  }
+  return GRANT_MEMBER_WEIGHT;
+}
+
+export function getSupervisionPoints(sup) {
+  const deg = String(sup?.degreeType || '').toUpperCase();
+  if (deg === 'DSC') return SUPERVISION_DSC_WEIGHT;
+  return SUPERVISION_PHD_WEIGHT;
+}
 
 export const DEFAULT_SCORING_CONFIG = {
   scopusWeight: 10,
@@ -91,8 +115,11 @@ export function computeScoreBreakdown(
   }
 
   const citationsPoints = parseFloat((totalCitations * config.citationWeight).toFixed(2));
-  const grantsPoints = approvedGrants.length * GRANT_WEIGHT;
-  const supervisionsPoints = approvedSupervisions.length * SUPERVISION_WEIGHT;
+  const grantsPoints = approvedGrants.reduce((sum, g) => sum + getGrantPoints(g), 0);
+  const supervisionsPoints = approvedSupervisions.reduce(
+    (sum, s) => sum + getSupervisionPoints(s),
+    0
+  );
 
   const totalScore = parseFloat(
     (
