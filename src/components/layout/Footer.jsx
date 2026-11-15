@@ -1,7 +1,54 @@
 import Link from 'next/link';
 import { MapPin, Mail, Phone, Globe, Clock, BookOpen, Users, Award, ShieldCheck } from 'lucide-react';
 
-export default function Footer({ dict }) {
+const FOOTER_LABELS = {
+  uz: {
+    portalSubtitle: 'Ilmiy Salohiyat Portali',
+    portalHeading: 'Portal',
+    categoriesHeading: 'Ilmiy Kategoriyalar',
+    scopusWos: 'Scopus & Web of Science',
+    oakJournals: 'OAK Jurnallar',
+    monographs: 'Monografiya & Darsliklar',
+    patents: 'Patentlar & Guvohnomalar',
+    contactHeading: "Bog'lanish",
+    address: "Toshkent, Kichik Halqa yo'li 7",
+    hours: 'Du-Ju: 9:00 - 18:00',
+    rights: 'Barcha huquqlar himoyalangan.',
+    bottomTagline: 'TIU Scholars — Ilmiy Salohiyat Portali',
+  },
+  ru: {
+    portalSubtitle: 'Портал научного потенциала',
+    portalHeading: 'Портал',
+    categoriesHeading: 'Научные категории',
+    scopusWos: 'Scopus и Web of Science',
+    oakJournals: 'Журналы ВАК',
+    monographs: 'Монографии и учебники',
+    patents: 'Патенты и свидетельства',
+    contactHeading: 'Контакты',
+    address: 'Ташкент, ул. Малая Кольцевая, 7',
+    hours: 'Пн-Пт: 9:00 - 18:00',
+    rights: 'Все права защищены.',
+    bottomTagline: 'TIU Scholars — Портал научного потенциала',
+  },
+  en: {
+    portalSubtitle: 'Scientific Potential Portal',
+    portalHeading: 'Portal',
+    categoriesHeading: 'Scientific Categories',
+    scopusWos: 'Scopus & Web of Science',
+    oakJournals: 'HAC / OAK Journals',
+    monographs: 'Monographs & Textbooks',
+    patents: 'Patents & Certificates',
+    contactHeading: 'Contact',
+    address: '7 Kichik Halqa Yuli, Tashkent',
+    hours: 'Mon-Fri: 9:00 - 18:00',
+    rights: 'All rights reserved.',
+    bottomTagline: 'TIU Scholars — Scientific Potential Portal',
+  },
+};
+
+export default function Footer({ dict, currentLocale = 'uz' }) {
+  const f = FOOTER_LABELS[currentLocale] || FOOTER_LABELS.uz;
+
   return (
     <footer className="bg-slate-950 text-slate-400 py-14 border-t border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -19,7 +66,7 @@ export default function Footer({ dict }) {
                   {dict.brand}
                 </span>
                 <span className="text-[11px] text-slate-400 font-medium mt-1 block">
-                  Scholars Portal
+                  {f.portalSubtitle}
                 </span>
               </div>
             </div>
@@ -31,7 +78,7 @@ export default function Footer({ dict }) {
           {/* Portal Links */}
           <div className="md:col-span-2">
             <h4 className="text-white font-semibold text-xs uppercase tracking-wider mb-4">
-              Portal
+              {f.portalHeading}
             </h4>
             <ul className="space-y-2.5 text-sm">
               <li>
@@ -64,31 +111,31 @@ export default function Footer({ dict }) {
           {/* Scientific Categories */}
           <div className="md:col-span-3">
             <h4 className="text-white font-semibold text-xs uppercase tracking-wider mb-4">
-              Ilmiy Kategoriyalar
+              {f.categoriesHeading}
             </h4>
             <ul className="space-y-2.5 text-sm">
               <li>
                 <Link href="/publications?type=SCOPUS" className="hover:text-emerald-400 transition-colors flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  Scopus & Web of Science
+                  {f.scopusWos}
                 </Link>
               </li>
               <li>
                 <Link href="/publications?type=OAK" className="hover:text-blue-400 transition-colors flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                  OAK Jurnallar
+                  {f.oakJournals}
                 </Link>
               </li>
               <li>
                 <Link href="/publications?type=MONOGRAPH" className="hover:text-indigo-400 transition-colors flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                  Monografiya & Darsliklar
+                  {f.monographs}
                 </Link>
               </li>
               <li>
                 <Link href="/publications?type=PATENT" className="hover:text-amber-400 transition-colors flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                  Patentlar & Guvohnomalar
+                  {f.patents}
                 </Link>
               </li>
             </ul>
@@ -97,12 +144,12 @@ export default function Footer({ dict }) {
           {/* Contact with Icons */}
           <div className="md:col-span-3">
             <h4 className="text-white font-semibold text-xs uppercase tracking-wider mb-4">
-              Bog&apos;lanish
+              {f.contactHeading}
             </h4>
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                <span>Toshkent, Kichik Halqa yo&apos;li 7</span>
+                <span>{f.address}</span>
               </li>
               <li className="flex items-center gap-2.5">
                 <Phone className="w-4 h-4 text-blue-400 shrink-0" />
@@ -118,7 +165,7 @@ export default function Footer({ dict }) {
               </li>
               <li className="flex items-center gap-2.5">
                 <Clock className="w-4 h-4 text-blue-400 shrink-0" />
-                <span>Du-Ju: 9:00 - 18:00</span>
+                <span>{f.hours}</span>
               </li>
               <li className="flex items-center gap-2.5">
                 <Globe className="w-4 h-4 text-blue-400 shrink-0" />
@@ -131,8 +178,8 @@ export default function Footer({ dict }) {
         </div>
 
         <div className="pt-8 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500">
-          <p>© {new Date().getFullYear()} Tashkent International University. Barcha huquqlar himoyalangan.</p>
-          <p className="mt-2 sm:mt-0">TIU Scholars — Ilmiy Salohiyat Portali</p>
+          <p>© {new Date().getFullYear()} Tashkent International University. {f.rights}</p>
+          <p className="mt-2 sm:mt-0">{f.bottomTagline}</p>
         </div>
       </div>
     </footer>

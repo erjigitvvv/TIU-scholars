@@ -28,7 +28,7 @@ export default async function RootLayout({ children }) {
         <PageBackgroundShell>
           <Navbar dict={dict} currentLocale={locale} user={user} />
           <main className="flex-1">{children}</main>
-          <Footer dict={dict} />
+          <Footer dict={dict} currentLocale={locale} />
         </PageBackgroundShell>
       </body>
     </html>
