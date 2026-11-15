@@ -1,9 +1,20 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { notifyModerators } from '@/lib/notifications';
+import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
 
 export async function POST(request) {
   try {
+    const ip = getClientIp(request);
+    const rl = checkRateLimit(`register:${ip}`, 5, 15 * 60 * 1000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: `Too many registration attempts. Try again in ${rl.retryAfterSec}s.` },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const { email, password, fullName, phone, departmentId, academicDegree, academicTitle } = body;
 
@@ -69,6 +80,13 @@ export async function POST(request) {
       });
 
       return { user, profile };
+    });
+
+    await notifyModerators({
+      type: 'SCHOLAR_REGISTERED',
+      title: 'Yangi olim ro‘yxatdan o‘tdi',
+      message: `${result.profile.fullName} (${normalizedEmail}) tasdiqlash uchun ariza topshirdi.`,
+      link: '/admin/scholars',
     });
 
     return NextResponse.json({ success: true, userId: result.user.id }, { status: 201 });

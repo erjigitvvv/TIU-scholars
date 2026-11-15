@@ -13,6 +13,7 @@ import {
   Plus,
   UserCog,
   ArrowRight,
+  Megaphone,
 } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
@@ -158,13 +159,25 @@ export default async function DashboardOverview() {
     : null;
 
   if (!scholar) {
+    const isAdminRole = user?.role === 'MODERATOR' || user?.role === 'SUPER_ADMIN';
     return (
-      <div className="neu-card p-10 rounded-3xl text-center max-w-2xl mx-auto">
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{t.noProfileTitle}</h2>
+      <div className="neu-card p-10 rounded-3xl text-center max-w-2xl mx-auto space-y-4">
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t.noProfileTitle}</h2>
         <p className="text-slate-600 dark:text-slate-400 text-sm">{t.noProfileDesc}</p>
+        {isAdminRole && (
+          <Link href="/admin" className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0F294A] text-white text-xs font-bold">
+            Ilmiy bo?lim kabinetiga o?tish <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        )}
       </div>
     );
   }
+
+  const latestAnnouncements = await prisma.announcement.findMany({
+    where: { status: 'PUBLISHED' },
+    orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }],
+    take: 3,
+  });
 
   const pubs = scholar.publications.map((p) => p.publication);
   const approvedPubs = pubs.filter((p) => p.status === 'APPROVED');
@@ -485,6 +498,36 @@ export default async function DashboardOverview() {
           </div>
         )}
       </div>
+      {/* Latest Announcements */}
+      {latestAnnouncements.length > 0 && (
+        <div className="neu-card p-6 sm:p-7 rounded-3xl space-y-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Megaphone className="w-5 h-5 text-blue-600 dark:text-sky-400" />
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">So?nggi ilmiy e?lonlar</h3>
+            </div>
+            <Link href="/dashboard/announcements" className="text-xs font-bold text-blue-600 dark:text-sky-400 hover:underline inline-flex items-center gap-1">
+              {t.viewAll} <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {latestAnnouncements.map((ann) => (
+              <Link
+                key={ann.id}
+                href="/dashboard/announcements"
+                className="p-4 rounded-2xl bg-white/75 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/70 hover:border-blue-400 transition-all space-y-1.5"
+              >
+                <div className="flex items-center justify-between gap-2 text-[11px] font-mono text-slate-400">
+                  <span className="font-bold text-blue-700 dark:text-sky-400">{ann.category}</span>
+                  <span>{new Date(ann.createdAt).toLocaleDateString()}</span>
+                </div>
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1">{ann.title}</h4>
+                <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2">{ann.content}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

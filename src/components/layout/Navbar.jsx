@@ -402,71 +402,10 @@ export default function Navbar({ dict, currentLocale, user }) {
               )}
             </AnimatePresence>
           </div>
-
-          {/* Light / Dark Mode Toggle */}
-          <button
-            type="button"
-            onClick={toggleTheme}
-            aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-            title={darkMode ? 'Light mode' : 'Dark mode'}
-            className={`w-9 h-9 inline-flex items-center justify-center rounded-lg border transition-all ${
-              isTransparent
-                ? 'text-white bg-white/15 hover:bg-white/25 border-white/25'
-                : 'text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700'
-            }`}
-          >
-            {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
-          </button>
-
-          {user && (
-            <div className="flex items-center gap-2.5">
-              {(user.role === 'SUPER_ADMIN' || user.role === 'MODERATOR') && (
-                <a
-                  href={adminUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-[#0F294A] bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-all"
-                >
-                  <UserCheck className="w-4 h-4 text-[#0F294A]" />
-                  {authLabels.adminPanel}
-                </a>
-              )}
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition-all"
-              >
-                <LayoutDashboard className="w-4 h-4 text-slate-500" />
-                {authLabels.dashboard}
-              </Link>
-              <button
-                onClick={handleLogout}
-                className={`p-2 rounded-lg transition-colors ${
-                  isTransparent
-                    ? 'text-white/80 hover:text-red-300 hover:bg-white/10'
-                    : 'text-slate-500 hover:text-red-600 hover:bg-red-50'
-                }`}
-                title={authLabels.logout}
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Mobile Controls */}
         <div className="flex lg:hidden items-center gap-2">
-          <button
-            type="button"
-            onClick={toggleTheme}
-            aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-            className={`p-1.5 rounded-lg border transition-colors ${
-              isTransparent
-                ? 'bg-white/15 border-white/25 text-white'
-                : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'
-            }`}
-          >
-            {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
-          </button>
           <select
             aria-label="Language"
             value={currentLocale}
@@ -586,45 +525,6 @@ export default function Navbar({ dict, currentLocale, user }) {
                 </div>
               );
             })}
-
-            {user && (
-              <div
-                className={`pt-3 mt-2 border-t space-y-2 ${
-                  isTransparent ? 'border-white/15' : 'border-slate-200'
-                }`}
-              >
-                {(user.role === 'SUPER_ADMIN' || user.role === 'MODERATOR') && (
-                  <a
-                    href={adminUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-[#0F294A] bg-blue-50 rounded-lg"
-                  >
-                    <UserCheck className="w-4 h-4" />
-                    {authLabels.adminPanel}
-                  </a>
-                )}
-                <Link
-                  href="/dashboard"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-slate-700 bg-slate-100 rounded-lg"
-                >
-                  <LayoutDashboard className="w-4 h-4" />
-                  {authLabels.dashboard}
-                </Link>
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    handleLogout();
-                  }}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-red-600 bg-red-50 rounded-lg"
-                >
-                  <LogOut className="w-4 h-4" />
-                  {authLabels.logout}
-                </button>
-              </div>
-            )}
           </motion.div>
         )}
       </AnimatePresence>

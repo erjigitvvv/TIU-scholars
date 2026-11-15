@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
+import { requireModeratorOrAdmin } from '@/lib/auth';
 import { recalculateScholarMetrics } from '@/lib/scoring';
+import { notifyUser } from '@/lib/notifications';
 
 export async function GET(request) {
-  const user = await getCurrentUser();
-  if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'MODERATOR')) {
+  const user = await requireModeratorOrAdmin();
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -54,7 +55,7 @@ export async function GET(request) {
           include: { department: true },
         },
       },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { createdAt: 'desc' },
     });
   } else if (type === 'supervisions') {
     items = await prisma.supervision.findMany({
@@ -64,7 +65,7 @@ export async function GET(request) {
           include: { department: true },
         },
       },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -72,8 +73,8 @@ export async function GET(request) {
 }
 
 export async function PATCH(request) {
-  const user = await getCurrentUser();
-  if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'MODERATOR')) {
+  const user = await requireModeratorOrAdmin();
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -153,6 +154,39 @@ export async function PATCH(request) {
         details: JSON.stringify({ status, rejectionReason, pubType, quartile, citationsCount }),
       },
     });
+
+    // Notify submitting scholar(s)
+    const labelMap = { publications: 'Nashr', grants: 'Grant loyihasi', supervisions: 'Ilmiy rahbarlik' };
+    const linkMap = {
+      publications: '/dashboard/publications',
+      grants: '/dashboard/grants',
+      supervisions: '/dashboard/supervisions',
+    };
+    const itemLabel = labelMap[type] || 'Ilmiy ish';
+    const isApproved = status === 'APPROVED';
+    const targetUserIds = new Set();
+
+    if (type === 'publications') {
+      if (updatedItem.submittedById) targetUserIds.add(updatedItem.submittedById);
+    } else if (updatedItem.scholarId) {
+      const sp = await prisma.scholarProfile.findUnique({
+        where: { id: updatedItem.scholarId },
+        select: { userId: true },
+      });
+      if (sp?.userId) targetUserIds.add(sp.userId);
+    }
+
+    for (const targetUserId of targetUserIds) {
+      await notifyUser({
+        userId: targetUserId,
+        type: `${type.toUpperCase()}_${status}`,
+        title: `${itemLabel} ${isApproved ? 'tasdiqlandi' : 'rad etildi'}`,
+        message: isApproved
+          ? `"${updatedItem.title || itemLabel}" moderator tomonidan tasdiqlandi va reytingingiz yangilandi.`
+          : `"${updatedItem.title || itemLabel}" rad etildi. Sabab: ${rejectionReason}`,
+        link: linkMap[type] || '/dashboard',
+      });
+    }
 
     return NextResponse.json({ success: true, item: updatedItem });
   } catch (error) {

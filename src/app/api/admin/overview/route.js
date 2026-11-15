@@ -18,7 +18,6 @@ export async function GET() {
       approvedPublications,
       scopusWosCount,
       faculties,
-      recentAudits,
     ] = await Promise.all([
       prisma.user.count({ where: { role: 'SCHOLAR', accountStatus: 'PENDING' } }),
       prisma.user.count({ where: { role: 'SCHOLAR', accountStatus: 'ACTIVE' } }),
@@ -46,13 +45,6 @@ export async function GET() {
           },
         },
         orderBy: { nameUz: 'asc' },
-      }),
-      prisma.auditLog.findMany({
-        take: 10,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          actor: { select: { email: true, role: true } },
-        },
       }),
     ]);
 
@@ -87,7 +79,6 @@ export async function GET() {
         scopusWosCount,
       },
       facultyStats,
-      recentAudits,
     });
   } catch (error) {
     console.error('Admin overview error:', error);

@@ -18,8 +18,10 @@ import {
   X,
   PanelLeftClose,
   PanelLeftOpen,
+  Megaphone,
 } from 'lucide-react';
 import ScholarAvatar from '@/components/ui/ScholarAvatar';
+import NotificationBell from '@/components/shared/NotificationBell';
 
 const LABELS = {
   uz: {
@@ -28,6 +30,7 @@ const LABELS = {
     publications: 'Nashrlarim',
     grants: 'Grantlar va loyihalar',
     supervisions: 'Ilmiy rahbarlik',
+    announcements: "E'lonlar",
     profile: 'Profil sozlamalari',
     publicProfile: 'Ommaviy profil',
     publicPortal: 'Asosiy portal',
@@ -52,6 +55,7 @@ const LABELS = {
     publications: 'My Publications',
     grants: 'Grants & Projects',
     supervisions: 'PhD/DSc Supervisions',
+    announcements: 'Announcements',
     profile: 'Profile Settings',
     publicProfile: 'Public Profile',
     publicPortal: 'Public Portal',
@@ -85,6 +89,7 @@ export default function DashboardShell({ user, locale = 'uz', children }) {
     { href: '/dashboard/publications', label: t.publications, icon: BookOpen },
     { href: '/dashboard/grants', label: t.grants, icon: Briefcase },
     { href: '/dashboard/supervisions', label: t.supervisions, icon: GraduationCap },
+    { href: '/dashboard/announcements', label: t.announcements, icon: Megaphone },
     { href: '/dashboard/profile', label: t.profile, icon: User },
   ];
 
@@ -268,8 +273,10 @@ export default function DashboardShell({ user, locale = 'uz', children }) {
               {activeItem.label}
             </h1>
           </div>
-          <div className="relative shrink-0">
-            <button
+          <div className="flex items-center gap-2.5 shrink-0">
+            <NotificationBell locale={locale} />
+            <div className="relative shrink-0">
+              <button
               type="button"
               onClick={() => setLangOpen((v) => !v)}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 shadow-xs transition-all cursor-pointer"
@@ -311,6 +318,7 @@ export default function DashboardShell({ user, locale = 'uz', children }) {
                 </div>
               </>
             )}
+            </div>
           </div>
         </header>
 

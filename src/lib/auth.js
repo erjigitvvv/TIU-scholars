@@ -62,6 +62,14 @@ export function requireRole(user, allowedRoles) {
   return allowedRoles.includes(user.role);
 }
 
+export async function requireModeratorOrAdmin() {
+  const user = await getCurrentUser();
+  if (!user || !requireRole(user, ['MODERATOR', 'SUPER_ADMIN']) || user.accountStatus !== 'ACTIVE') {
+    return null;
+  }
+  return user;
+}
+
 export async function getActiveScholar() {
   const user = await getCurrentUser();
   if (!user || !user.scholarProfile || user.accountStatus !== 'ACTIVE') {

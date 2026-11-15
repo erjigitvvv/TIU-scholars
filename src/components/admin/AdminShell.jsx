@@ -19,7 +19,9 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ShieldCheck,
+  Megaphone,
 } from 'lucide-react';
+import NotificationBell from '@/components/shared/NotificationBell';
 
 const LABELS = {
   uz: {
@@ -27,6 +29,7 @@ const LABELS = {
     overview: 'Boshqaruv paneli',
     moderation: 'Moderatsiya navbati',
     scholars: 'Olimlar va arizalar',
+    announcements: 'E’lonlar',
     kpi: 'KPI maqsadlari',
     reports: 'Hisobotlar & Eksport',
     settings: 'Ball sozlamalari',
@@ -39,6 +42,7 @@ const LABELS = {
     overview: 'Панель управления',
     moderation: 'Очередь модерации',
     scholars: 'Учёные и заявки',
+    announcements: 'Объявления',
     kpi: 'Цели KPI',
     reports: 'Отчёты и экспорт',
     settings: 'Настройки баллов',
@@ -51,6 +55,7 @@ const LABELS = {
     overview: 'Overview',
     moderation: 'Moderation Queue',
     scholars: 'Scholars & Requests',
+    announcements: 'Announcements',
     kpi: 'KPI Targets',
     reports: 'Reports & Export',
     settings: 'Scoring Settings',
@@ -65,12 +70,23 @@ export default function AdminShell({ user, locale = 'uz', children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [langOpen, setLangOpen] = useState(false);
+  const [modOpen, setModOpen] = useState(pathname?.startsWith('/admin/moderation'));
   const t = LABELS[locale] || LABELS.uz;
 
   const navItems = [
     { href: '/admin', label: t.overview, icon: LayoutDashboard, exact: true },
-    { href: '/admin/moderation', label: t.moderation, icon: CheckSquare },
+    {
+      href: '/admin/moderation',
+      label: t.moderation,
+      icon: CheckSquare,
+      children: [
+        { href: '/admin/moderation?type=publications', label: locale === 'ru' ? 'Публикации' : locale === 'en' ? 'Publications' : 'Nashrlar' },
+        { href: '/admin/moderation?type=grants', label: locale === 'ru' ? 'Гранты' : locale === 'en' ? 'Grants' : 'Grantlar' },
+        { href: '/admin/moderation?type=supervisions', label: locale === 'ru' ? 'Руководство' : locale === 'en' ? 'Supervisions' : 'Ilmiy rahbarlik' },
+      ],
+    },
     { href: '/admin/scholars', label: t.scholars, icon: Users },
+    { href: '/admin/announcements', label: t.announcements, icon: Megaphone },
     { href: '/admin/kpi', label: t.kpi, icon: Target },
     { href: '/admin/reports', label: t.reports, icon: FileSpreadsheet },
     ...(user?.role === 'SUPER_ADMIN'
@@ -138,6 +154,41 @@ export default function AdminShell({ user, locale = 'uz', children }) {
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item);
+          if (item.children) {
+            return (
+              <div key={item.href} className="space-y-1">
+                <button
+                  type="button"
+                  onClick={() => setModOpen((v) => !v)}
+                  className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+                    active
+                      ? 'bg-gradient-to-r from-[#0F294A] to-[#1B4275] text-white shadow-md'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-white/75 dark:hover:bg-slate-800/70 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <span className="flex items-center gap-3 min-w-0">
+                    <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-blue-300' : 'text-slate-400'}`} />
+                    <span className="truncate">{item.label}</span>
+                  </span>
+                  <ChevronDown className={`w-4 h-4 shrink-0 transition-transform ${modOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {modOpen && (
+                  <div className="pl-7 pr-2 space-y-1">
+                    {item.children.map((sub) => (
+                      <Link
+                        key={sub.href}
+                        href={sub.href}
+                        onClick={() => isMobile && setMobileOpen(false)}
+                        className="block px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-white/80 dark:hover:bg-slate-800 hover:text-blue-900 dark:hover:text-white transition-colors"
+                      >
+                        {sub.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          }
           return (
             <Link
               key={item.href}
@@ -247,8 +298,10 @@ export default function AdminShell({ user, locale = 'uz', children }) {
             </h1>
           </div>
 
-          <div className="relative shrink-0">
-            <button
+          <div className="flex items-center gap-2.5 shrink-0">
+            <NotificationBell locale={locale} />
+            <div className="relative shrink-0">
+              <button
               type="button"
               onClick={() => setLangOpen((v) => !v)}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 shadow-xs transition-all cursor-pointer"
@@ -290,6 +343,7 @@ export default function AdminShell({ user, locale = 'uz', children }) {
                 </div>
               </>
             )}
+            </div>
           </div>
         </header>
 

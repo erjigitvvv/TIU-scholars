@@ -10,7 +10,6 @@ import {
   ArrowRight,
   Clock,
   Building2,
-  ShieldCheck,
 } from 'lucide-react';
 
 export default function AdminOverviewPage() {
@@ -44,7 +43,7 @@ export default function AdminOverviewPage() {
     return <div className="text-center py-12 text-slate-500">Ma’lumotlarni yuklashda xatolik.</div>;
   }
 
-  const { counts, facultyStats, recentAudits } = data;
+  const { counts, facultyStats } = data;
 
   return (
     <div className="space-y-8">
@@ -157,36 +156,6 @@ export default function AdminOverviewPage() {
               ))}
             </tbody>
           </table>
-        </div>
-      </div>
-
-      {/* Recent Audit Logs */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-emerald-600" />
-          <h3 className="font-bold text-slate-900 text-sm">Oxirgi moderatsiya va tizim amallari</h3>
-        </div>
-        <div className="divide-y divide-slate-100">
-          {recentAudits.length === 0 ? (
-            <div className="p-6 text-sm text-slate-500 text-center">Hozircha amallar yo‘q.</div>
-          ) : (
-            recentAudits.map((log) => (
-              <div
-                key={log.id}
-                className="px-6 py-3 flex flex-wrap items-center justify-between gap-2 text-xs"
-              >
-                <div className="flex items-center gap-2.5">
-                  <span className="font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
-                    {log.action}
-                  </span>
-                  <span className="text-slate-600">{log.actor?.email || 'System'}</span>
-                </div>
-                <span className="font-mono text-slate-400">
-                  {new Date(log.createdAt).toLocaleString()}
-                </span>
-              </div>
-            ))
-          )}
         </div>
       </div>
     </div>

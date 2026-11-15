@@ -78,11 +78,54 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 UNFOLD = {
-    "SITE_TITLE": "TIU Scholars Admin",
-    "SITE_HEADER": "TIU Scholars Control Panel",
-    "SITE_URL": "/",
+    "SITE_TITLE": "TIU Scholars ? Control Panel",
+    "SITE_HEADER": "TIU Scholars Admin",
+    "SITE_SUBHEADER": "Ilmiy salohiyat va ma'lumotlar bazasi boshqaruvi",
+    "SITE_URL": "http://localhost:3000/",
+    "THEME": "light",
+    "DASHBOARD_CALLBACK": "core.dashboard.dashboard_callback",
     "SIDEBAR": {
         "show_search": True,
-        "show_all_applications": True,
-    }
+        "show_all_applications": False,
+        "navigation": [
+            {
+                "title": "Umumiy",
+                "separator": True,
+                "items": [
+                    {"title": "Boshqaruv paneli", "icon": "dashboard", "link": "/admin/"},
+                ],
+            },
+            {
+                "title": "Foydalanuvchilar va Tuzilma",
+                "separator": True,
+                "items": [
+                    {"title": "Foydalanuvchilar (RBAC)", "icon": "manage_accounts", "link": "/admin/core/user/"},
+                    {"title": "Olimlar profillari", "icon": "school", "link": "/admin/core/scholarprofile/"},
+                    {"title": "Fakultetlar", "icon": "apartment", "link": "/admin/core/faculty/"},
+                    {"title": "Kafedralar", "icon": "domain", "link": "/admin/core/department/"},
+                ],
+            },
+            {
+                "title": "Ilmiy Faoliyat",
+                "separator": True,
+                "items": [
+                    {"title": "Nashrlar", "icon": "menu_book", "link": "/admin/core/publication/"},
+                    {"title": "Grant loyihalari", "icon": "work", "link": "/admin/core/grantproject/"},
+                    {"title": "Ilmiy rahbarlik", "icon": "supervisor_account", "link": "/admin/core/supervision/"},
+                    {"title": "KPI maqsadlari", "icon": "target", "link": "/admin/core/kpitarget/"},
+                ],
+            },
+            {
+                "title": "Kommunikatsiya va Tizim",
+                "separator": True,
+                "items": [
+                    {"title": "E?lonlar", "icon": "campaign", "link": "/admin/core/announcement/"},
+                    {"title": "Bildirishnomalar", "icon": "notifications", "link": "/admin/core/notification/"},
+                    {"title": "Ball sozlamalari", "icon": "tune", "link": "/admin/core/scoringconfig/"},
+                    {"title": "Audit jurnali", "icon": "history", "link": "/admin/core/auditlog/"},
+                    {"title": "Django Staff & Guruhlar", "icon": "admin_panel_settings", "link": "/admin/auth/user/"},
+                ],
+            },
+        ],
+    },
 }

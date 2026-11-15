@@ -1,0 +1,23 @@
+{% extends 'unfold/layouts/base_simple.html' %}
+{% load i18n unfold %}
+
+{% block breadcrumbs %}{% endblock %}
+
+{% block title %}
+  {{ title }} | {{ site_title|default:_('Django site admin') }}
+{% endblock %}
+
+{% block content %}
+  <div class="space-y-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {% for item in tiu_kpis %}
+        <a href="{{ item.url }}" class="block p-5 rounded-xl border border-slate-200 bg-white hover:border-blue-400 transition-all shadow-xs">
+          <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">{{ item.title }}</div>
+          <div class="text-2xl font-extrabold font-mono text-slate-900 mt-1">{{ item.value }}</div>
+        </a>
+      {% endfor %}
+    </div>
+
+    {% include 'unfold/helpers/app_list_default.html' %}
+  </div>
+{% endblock %}

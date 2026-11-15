@@ -9,6 +9,8 @@ import {
   AlertCircle,
   FileText,
   History,
+  ChevronDown,
+  Filter,
 } from 'lucide-react';
 
 const REJECT_TEMPLATES = [
@@ -47,6 +49,14 @@ export default function AdminModerationPage() {
       console.error('Failed to fetch moderation items', err);
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlType = params.get('type');
+    if (urlType && ['publications', 'grants', 'supervisions'].includes(urlType)) {
+      setTab(urlType);
     }
   }, []);
 
@@ -112,52 +122,41 @@ export default function AdminModerationPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Status Filter (Pending vs History) */}
-          <div className="flex bg-slate-200/80 p-1 rounded-xl text-xs font-semibold">
-            {[
-              { id: 'PENDING', label: 'Kutilmoqda' },
-              { id: 'APPROVED', label: 'Tasdiqlangan' },
-              { id: 'REJECTED', label: 'Rad etilgan' },
-            ].map((s) => (
-              <button
-                key={s.id}
-                onClick={() => setStatusFilter(s.id)}
-                className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 ${
-                  statusFilter === s.id
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                {s.id !== 'PENDING' && <History className="w-3 h-3" />}
-                {s.label}
-              </button>
-            ))}
+          {/* Status Filter Dropdown */}
+          <div className="relative">
+            <Filter className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              aria-label="Holat"
+              className="appearance-none pl-8 pr-8 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            >
+              <option value="PENDING">Holat: Kutilmoqda</option>
+              <option value="APPROVED">Holat: Tasdiqlangan</option>
+              <option value="REJECTED">Holat: Rad etilgan</option>
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
 
-          {/* Entity Tabs */}
-          <div className="flex bg-slate-200 p-1 rounded-xl">
-            {[
-              { id: 'publications', label: 'Nashrlar', count: counts.publications },
-              { id: 'grants', label: 'Grantlar', count: counts.grants },
-              { id: 'supervisions', label: 'Shogirdlar', count: counts.supervisions },
-            ].map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
-                  tab === t.id
-                    ? 'bg-white text-blue-900 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <span>{t.label}</span>
-                {t.count > 0 && (
-                  <span className="font-mono text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold">
-                    {t.count}
-                  </span>
-                )}
-              </button>
-            ))}
+          {/* Entity Type Dropdown */}
+          <div className="relative">
+            <select
+              value={tab}
+              onChange={(e) => setTab(e.target.value)}
+              aria-label="Moderatsiya bo‘limi"
+              className="appearance-none pl-3.5 pr-8 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-blue-900 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            >
+              <option value="publications">
+                Nashrlar {counts.publications > 0 ? `(${counts.publications})` : ''}
+              </option>
+              <option value="grants">
+                Grantlar {counts.grants > 0 ? `(${counts.grants})` : ''}
+              </option>
+              <option value="supervisions">
+                Shogirdlar {counts.supervisions > 0 ? `(${counts.supervisions})` : ''}
+              </option>
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
         </div>
       </div>

@@ -110,7 +110,7 @@ export default function HomeMetricsBento({
     'group neu-card rounded-3xl p-7 transition-all duration-300 flex flex-col justify-between gap-5 cursor-pointer h-full hover:-translate-y-0.5';
 
   return (
-    <section className="w-full min-h-[88vh] flex flex-col justify-center bg-transparent border-b border-white/40 dark:border-slate-800/60 py-16 md:py-20">
+    <section className="w-full min-h-[88vh] flex flex-col justify-center bg-transparent py-16 md:py-20">
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
         {/* Section Heading */}
         <motion.div
@@ -402,7 +402,7 @@ export default function HomeMetricsBento({
                   <div
                     key={i}
                     className={`rounded-sm ${
-                      i < filledBars ? 'bg-gradient-to-b from-blue-500 to-blue-700' : 'bg-slate-100'
+                      i < filledBars ? 'bg-gradient-to-b from-blue-500 to-blue-700' : 'bg-slate-100 dark:bg-slate-800'
                     }`}
                   />
                 ))}
@@ -419,7 +419,7 @@ export default function HomeMetricsBento({
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-slate-100 text-[#0F294A] flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-[#0F294A] dark:text-sky-300 flex items-center justify-center group-hover:scale-110 transition-transform">
                     <Building2 className="w-5 h-5" />
                   </div>
                   <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-900">
@@ -429,11 +429,11 @@ export default function HomeMetricsBento({
                 <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-blue-700 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {facultyShares.slice(0, 3).map((fac) => {
                   const pct = Math.max(12, Math.round((fac.score / maxFacultyScore) * 100));
                   return (
-                    <div key={fac.id} className="space-y-2">
+                    <div key={fac.id} className="p-4 rounded-2xl bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-2.5">
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-semibold text-slate-700 truncate max-w-[75%]">
                           {fac.name}
@@ -442,7 +442,7 @@ export default function HomeMetricsBento({
                           {Math.round(fac.score)}
                         </span>
                       </div>
-                      <div className="w-full h-2.5 rounded-full bg-slate-100 overflow-hidden">
+                      <div className="w-full h-2.5 rounded-full bg-slate-200/80 dark:bg-slate-700/80 overflow-hidden">
                         <motion.div
                           initial={{ width: 0 }}
                           whileInView={{ width: `${pct}%` }}

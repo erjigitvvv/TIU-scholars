@@ -200,3 +200,38 @@ class AuditLog(models.Model):
     class Meta:
         managed = False
         db_table = 'AuditLog'
+
+class Announcement(models.Model):
+    id = models.CharField(max_length=50, primary_key=True)
+    title = models.TextField()
+    content = models.TextField()
+    category = models.CharField(max_length=50, default="NEWS")
+    visibility = models.CharField(max_length=50, default="PUBLIC")
+    status = models.CharField(max_length=50, default="PUBLISHED")
+    isPinned = models.BooleanField(default=False)
+    deadline = models.DateTimeField(blank=True, null=True)
+    author = models.ForeignKey(User, on_delete=models.CASCADE, db_column='authorId', related_name='announcements')
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        managed = False
+        db_table = 'Announcement'
+
+    def __str__(self):
+        return self.title
+
+
+class Notification(models.Model):
+    id = models.CharField(max_length=50, primary_key=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, db_column='userId', related_name='notifications')
+    type = models.CharField(max_length=50, default="INFO")
+    title = models.TextField()
+    message = models.TextField()
+    link = models.TextField(blank=True, null=True)
+    isRead = models.BooleanField(default=False)
+    createdAt = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = False
+        db_table = 'Notification'

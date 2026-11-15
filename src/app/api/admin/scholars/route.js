@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
+import { requireModeratorOrAdmin } from '@/lib/auth';
+import { notifyUser } from '@/lib/notifications';
 
 export async function GET(request) {
-  const user = await getCurrentUser();
-  if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'MODERATOR')) {
+  const user = await requireModeratorOrAdmin();
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -44,8 +45,8 @@ export async function GET(request) {
 }
 
 export async function PATCH(request) {
-  const user = await getCurrentUser();
-  if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'MODERATOR')) {
+  const user = await requireModeratorOrAdmin();
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -116,6 +117,44 @@ export async function PATCH(request) {
         }),
       },
     });
+
+    if (accountStatus === 'ACTIVE') {
+      await notifyUser({
+        userId,
+        type: 'ACCOUNT_APPROVED',
+        title: 'Hisobingiz tasdiqlandi',
+        message: 'Ilmiy bo‘lim tomonidan arizangiz tasdiqlandi. Endi kabinetingizdan to‘liq foydalanishingiz mumkin.',
+        link: '/dashboard',
+      });
+    } else if (accountStatus === 'REJECTED') {
+      await notifyUser({
+        userId,
+        type: 'ACCOUNT_REJECTED',
+        title: 'Arizangiz rad etildi',
+        message: rejectionReason
+          ? `Sabab: ${rejectionReason}`
+          : 'Ro‘yxatdan o‘tish arizangiz ilmiy bo‘lim tomonidan rad etildi.',
+        link: '/dashboard/profile',
+      });
+    } else if (accountStatus === 'SUSPENDED') {
+      await notifyUser({
+        userId,
+        type: 'ACCOUNT_SUSPENDED',
+        title: 'Hisobingiz vaqtincha bloklandi',
+        message: rejectionReason
+          ? `Sabab: ${rejectionReason}`
+          : 'Hisobingiz moderator tomonidan vaqtincha to‘xtatildi.',
+        link: '/dashboard/profile',
+      });
+    } else if (Object.keys(profileUpdateData).length > 0) {
+      await notifyUser({
+        userId,
+        type: 'PROFILE_UPDATED',
+        title: 'Akademik ma’lumotlaringiz yangilandi',
+        message: 'Moderator tomonidan kafedra, ilmiy daraja yoki identifikator ma’lumotlaringiz yangilandi.',
+        link: '/dashboard/profile',
+      });
+    }
 
     return NextResponse.json({ success: true, user: updatedUser });
   } catch (error) {
