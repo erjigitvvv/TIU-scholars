@@ -190,7 +190,7 @@ export default function Navbar({ dict, currentLocale, user }) {
     // eslint-disable-next-line react-hooks/immutability
     document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000`;
     setLangOpen(false);
-    router.refresh();
+    window.location.reload();
   };
 
   const handleLogout = async () => {
@@ -406,22 +406,37 @@ export default function Navbar({ dict, currentLocale, user }) {
 
         {/* Mobile Controls */}
         <div className="flex lg:hidden items-center gap-2">
-          <select
-            aria-label="Language"
-            value={currentLocale}
-            onChange={(e) => handleLocaleChange(e.target.value)}
-            className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg border uppercase outline-none ${
-              isTransparent
-                ? 'bg-white/15 border-white/25 text-white'
-                : 'bg-slate-50 border-slate-200 text-slate-700'
-            }`}
-          >
-            {LANGUAGES.map((l) => (
-              <option key={l.code} value={l.code} className="text-slate-900">
-                {l.short}
-              </option>
-            ))}
-          </select>
+          <details className="relative group">
+            <summary
+              aria-label="Language"
+              className={`list-none cursor-pointer flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg border uppercase outline-none transition-colors ${
+                isTransparent
+                  ? "bg-white/15 border-white/25 text-white hover:bg-white/25"
+                  : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+              }`}
+            >
+              <Globe className="w-3.5 h-3.5" />
+              <span>{LANGUAGES.find((l) => l.code === currentLocale)?.short || currentLocale}</span>
+              <ChevronDown className="w-3 h-3 transition-transform group-open:rotate-180" />
+            </summary>
+            <div className="absolute right-0 mt-2 w-36 bg-white rounded-xl shadow-lg border border-slate-200/80 py-1.5 z-50">
+              {LANGUAGES.map((l) => (
+                <button
+                  key={l.code}
+                  type="button"
+                  onClick={() => handleLocaleChange(l.code)}
+                  className={`w-full flex items-center justify-between px-3.5 py-2 text-xs font-medium transition-colors ${
+                    currentLocale === l.code
+                      ? "bg-[#0b3d91]/10 text-[#0b3d91] font-semibold"
+                      : "text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  <span>{l.label}</span>
+                  <span className="uppercase text-[10px] text-slate-400">{l.short}</span>
+                </button>
+              ))}
+            </div>
+          </details>
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle Menu"

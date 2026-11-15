@@ -9,6 +9,22 @@
 
 {% block content %}
   <div class="space-y-6">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div class="text-sm font-semibold text-slate-500">
+        TIU Scholars — Ilmiy salohiyat va ma’lumotlar bazasi boshqaruvi
+      </div>
+      <div class="flex flex-wrap items-center gap-2.5">
+        <a href="/admin/export-excel/" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0F294A] hover:bg-blue-900 text-white text-xs font-bold shadow-xs transition-colors">
+          Excel Hisobot (.xlsx)
+        </a>
+        {% if request.user.is_superuser %}
+          <a href="/admin/download-backup/" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors">
+            DB Backup (.db)
+          </a>
+        {% endif %}
+      </div>
+    </div>
+
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {% for item in tiu_kpis %}
         <a href="{{ item.url }}" class="block p-5 rounded-xl border border-slate-200 bg-white hover:border-blue-400 transition-all shadow-xs">

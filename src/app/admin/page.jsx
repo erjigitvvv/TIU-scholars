@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  Users,
   CheckSquare,
   BookOpen,
   Award,
@@ -11,8 +10,80 @@ import {
   Clock,
   Building2,
 } from 'lucide-react';
+import { useLocale } from '@/lib/useLocale';
+
+const DICT = {
+  uz: {
+    loadError: 'Ma’lumotlarni yuklashda xatolik.',
+    title: 'Ilmiy Bo‘lim Boshqaruv Paneli',
+    subtitle: 'Moderatsiya navbati, olimlar faolligi va fakultetlar kesimida tezkor tahlil.',
+    modQueue: 'Moderatsiya navbati',
+    pub: 'Nashr',
+    grant: 'Grant',
+    sup: 'Shogird',
+    pendingApps: 'Kutilayotgan arizalar',
+    activeScholars: 'Faol olimlar',
+    scholarsUnit: 'nafar',
+    approvedPubs: 'Tasdiqlangan nashrlar',
+    unitTa: 'ta',
+    reportsExport: 'Hisobot & Eksport',
+    downloadCsv: 'Excel / CSV yuklash',
+    facultyScope: 'Fakultet va olimlar kesimida',
+    facultyBreakdown: 'Fakultetlar kesimidagi ko‘rsatkichlar',
+    faculty: 'Fakultet',
+    departments: 'Kafedralar',
+    publications: 'Nashrlar',
+    avgScore: 'O‘rtacha TIU Ball',
+  },
+  ru: {
+    loadError: 'Ошибка загрузки данных.',
+    title: 'Панель управления научного отдела',
+    subtitle: 'Очередь модерации, активность учёных и аналитика по факультетам.',
+    modQueue: 'Очередь модерации',
+    pub: 'Публ.',
+    grant: 'Грант',
+    sup: 'Рук.',
+    pendingApps: 'Ожидающие заявки',
+    activeScholars: 'Активные учёные',
+    scholarsUnit: 'чел.',
+    approvedPubs: 'Одобренные публикации',
+    unitTa: 'шт.',
+    reportsExport: 'Отчёты и экспорт',
+    downloadCsv: 'Скачать Excel / CSV',
+    facultyScope: 'По факультетам и учёным',
+    facultyBreakdown: 'Показатели по факультетам',
+    faculty: 'Факультет',
+    departments: 'Кафедры',
+    publications: 'Публикации',
+    avgScore: 'Средний балл TIU',
+  },
+  en: {
+    loadError: 'Failed to load data.',
+    title: 'Scientific Dept. Control Panel',
+    subtitle: 'Moderation queue, scholar activity, and faculty-level analytics.',
+    modQueue: 'Moderation Queue',
+    pub: 'Pubs',
+    grant: 'Grants',
+    sup: 'Sup.',
+    pendingApps: 'Pending Applications',
+    activeScholars: 'Active scholars',
+    scholarsUnit: '',
+    approvedPubs: 'Approved Publications',
+    unitTa: '',
+    reportsExport: 'Reports & Export',
+    downloadCsv: 'Download Excel / CSV',
+    facultyScope: 'By faculties & scholars',
+    facultyBreakdown: 'Faculty Breakdown',
+    faculty: 'Faculty',
+    departments: 'Departments',
+    publications: 'Publications',
+    avgScore: 'Avg TIU Score',
+  },
+};
 
 export default function AdminOverviewPage() {
+  const locale = useLocale('uz');
+  const t = DICT[locale] || DICT.uz;
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -40,7 +111,7 @@ export default function AdminOverviewPage() {
   }
 
   if (!data) {
-    return <div className="text-center py-12 text-slate-500">Ma’lumotlarni yuklashda xatolik.</div>;
+    return <div className="text-center py-12 text-slate-500">{t.loadError}</div>;
   }
 
   const { counts, facultyStats } = data;
@@ -48,10 +119,8 @@ export default function AdminOverviewPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-bold text-slate-900">Ilmiy Bo‘lim Boshqaruv Paneli</h2>
-        <p className="text-sm text-slate-500 mt-0.5">
-          Moderatsiya navbati, olimlar faolligi va fakultetlar kesimida tezkor tahlil.
-        </p>
+        <h2 className="text-2xl font-bold text-slate-900">{t.title}</h2>
+        <p className="text-sm text-slate-500 mt-0.5">{t.subtitle}</p>
       </div>
 
       {/* 4 KPI Cards */}
@@ -61,16 +130,14 @@ export default function AdminOverviewPage() {
           className="p-5 rounded-2xl bg-white border border-slate-200 hover:border-blue-400 shadow-xs transition-all space-y-2"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase">
-              Moderatsiya navbati
-            </span>
+            <span className="text-xs font-semibold text-slate-500 uppercase">{t.modQueue}</span>
             <CheckSquare className="w-4 h-4 text-amber-500" />
           </div>
           <div className="font-mono text-3xl font-extrabold text-slate-900">
             {counts.totalPendingQueue}
           </div>
           <div className="text-xs text-slate-500">
-            Nashr: {counts.pendingPublications} · Grant: {counts.pendingGrants} · Shogird:{' '}
+            {t.pub}: {counts.pendingPublications} · {t.grant}: {counts.pendingGrants} · {t.sup}:{' '}
             {counts.pendingSupervisions}
           </div>
         </Link>
@@ -80,31 +147,27 @@ export default function AdminOverviewPage() {
           className="p-5 rounded-2xl bg-white border border-slate-200 hover:border-blue-400 shadow-xs transition-all space-y-2"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase">
-              Kutilayotgan arizalar
-            </span>
+            <span className="text-xs font-semibold text-slate-500 uppercase">{t.pendingApps}</span>
             <Clock className="w-4 h-4 text-blue-600" />
           </div>
           <div className="font-mono text-3xl font-extrabold text-blue-700">
             {counts.pendingScholars}
           </div>
           <div className="text-xs text-slate-500">
-            Faol olimlar: {counts.activeScholars} nafar
+            {t.activeScholars}: {counts.activeScholars} {t.scholarsUnit}
           </div>
         </Link>
 
         <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase">
-              Tasdiqlangan nashrlar
-            </span>
+            <span className="text-xs font-semibold text-slate-500 uppercase">{t.approvedPubs}</span>
             <BookOpen className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="font-mono text-3xl font-extrabold text-emerald-700">
             {counts.approvedPublications}
           </div>
           <div className="text-xs text-slate-500">
-            Scopus / WoS: {counts.scopusWosCount} ta
+            Scopus / WoS: {counts.scopusWosCount} {t.unitTa}
           </div>
         </div>
 
@@ -113,15 +176,13 @@ export default function AdminOverviewPage() {
           className="p-5 rounded-2xl bg-[#0F294A] text-white shadow-xs hover:bg-blue-900 transition-colors space-y-2"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-blue-200 uppercase">
-              Hisobot & Eksport
-            </span>
+            <span className="text-xs font-semibold text-blue-200 uppercase">{t.reportsExport}</span>
             <Award className="w-4 h-4 text-amber-400" />
           </div>
           <div className="text-lg font-bold pt-1 flex items-center gap-2">
-            Excel / CSV yuklash <ArrowRight className="w-4 h-4" />
+            {t.downloadCsv} <ArrowRight className="w-4 h-4" />
           </div>
-          <div className="text-xs text-blue-200">Fakultet va olimlar kesimida</div>
+          <div className="text-xs text-blue-200">{t.facultyScope}</div>
         </Link>
       </div>
 
@@ -129,31 +190,34 @@ export default function AdminOverviewPage() {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
           <Building2 className="w-4 h-4 text-blue-600" />
-          <h3 className="font-bold text-slate-900 text-sm">Fakultetlar kesimidagi ko‘rsatkichlar</h3>
+          <h3 className="font-bold text-slate-900 text-sm">{t.facultyBreakdown}</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-mono uppercase text-slate-500">
-                <th className="py-3 px-6">Fakultet</th>
-                <th className="py-3 px-4">Kafedralar</th>
-                <th className="py-3 px-4">Faol olimlar</th>
-                <th className="py-3 px-4">Nashrlar</th>
-                <th className="py-3 px-6 text-right">O‘rtacha TIU Ball</th>
+                <th className="py-3 px-6">{t.faculty}</th>
+                <th className="py-3 px-4">{t.departments}</th>
+                <th className="py-3 px-4">{t.activeScholars}</th>
+                <th className="py-3 px-4">{t.publications}</th>
+                <th className="py-3 px-6 text-right">{t.avgScore}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
-              {facultyStats.map((f) => (
-                <tr key={f.id} className="hover:bg-slate-50/70">
-                  <td className="py-3.5 px-6 font-semibold text-slate-900">{f.nameUz}</td>
-                  <td className="py-3.5 px-4 font-mono">{f.departmentsCount}</td>
-                  <td className="py-3.5 px-4 font-mono">{f.scholarsCount}</td>
-                  <td className="py-3.5 px-4 font-mono">{f.publicationsCount}</td>
-                  <td className="py-3.5 px-6 font-mono font-bold text-blue-700 text-right">
-                    {f.avgScore}
-                  </td>
-                </tr>
-              ))}
+              {facultyStats.map((f) => {
+                const name = locale === 'ru' ? f.nameRu || f.nameUz : locale === 'en' ? f.nameEn || f.nameUz : f.nameUz;
+                return (
+                  <tr key={f.id} className="hover:bg-slate-50/70">
+                    <td className="py-3.5 px-6 font-semibold text-slate-900">{name}</td>
+                    <td className="py-3.5 px-4 font-mono">{f.departmentsCount}</td>
+                    <td className="py-3.5 px-4 font-mono">{f.scholarsCount}</td>
+                    <td className="py-3.5 px-4 font-mono">{f.publicationsCount}</td>
+                    <td className="py-3.5 px-6 font-mono font-bold text-blue-700 text-right">
+                      {f.avgScore}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

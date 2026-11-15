@@ -13,12 +13,85 @@ import {
   CheckCircle2,
   X,
 } from 'lucide-react';
+import { useLocale } from '@/lib/useLocale';
 
-const CATEGORY_LABELS = {
-  GRANT: { label: 'Grant', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  CONFERENCE: { label: 'Konferensiya', cls: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
-  DEADLINE: { label: 'Muddat / KPI', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
-  NEWS: { label: 'Ilmiy yangilik', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+const DICT = {
+  uz: {
+    title: 'Ilmiy e’lonlar va xabarnomalar',
+    subtitle: 'Olimlar va ommaviy portal uchun grant, konferensiya va KPI muddatlari e’lonlarini boshqarish.',
+    newBtn: 'Yangi e’lon',
+    empty: 'Hozircha e’lonlar yaratilmagan.',
+    pinned: 'Qadalgan',
+    internal: 'Faqat olimlar',
+    public: 'Ommaviy',
+    deadline: 'Muddat',
+    editTitle: 'E’lonni tahrirlash',
+    createTitle: 'Yangi ilmiy e’lon yaratish',
+    fieldTitle: 'Sarlavha *',
+    fieldCategory: 'Kategoriya',
+    fieldVisibility: 'Ko‘rinishi',
+    fieldDeadline: 'Dedlayn (ixtiyoriy)',
+    fieldContent: 'E’lon matni *',
+    pinCheck: 'Yuqoriga qadab qo‘yish (Pin)',
+    notifyCheck: 'Barcha faol olimlarga bildirishnoma yuborish',
+    cancel: 'Bekor qilish',
+    save: 'Saqlash',
+    saving: 'Saqlanmoqda...',
+    categories: { GRANT: 'Grant', CONFERENCE: 'Konferensiya', DEADLINE: 'Muddat / KPI', NEWS: 'Ilmiy yangilik' },
+  },
+  ru: {
+    title: 'Научные объявления и уведомления',
+    subtitle: 'Управление объявлениями о грантах, конференциях и сроках KPI.',
+    newBtn: 'Новое объявление',
+    empty: 'Объявления пока не созданы.',
+    pinned: 'Закреплено',
+    internal: 'Только учёным',
+    public: 'Публичное',
+    deadline: 'Дедлайн',
+    editTitle: 'Редактировать объявление',
+    createTitle: 'Создать научное объявление',
+    fieldTitle: 'Заголовок *',
+    fieldCategory: 'Категория',
+    fieldVisibility: 'Видимость',
+    fieldDeadline: 'Дедлайн (опционально)',
+    fieldContent: 'Текст объявления *',
+    pinCheck: 'Закрепить вверху (Pin)',
+    notifyCheck: 'Отправить уведомление всем активным учёным',
+    cancel: 'Отмена',
+    save: 'Сохранить',
+    saving: 'Сохранение...',
+    categories: { GRANT: 'Грант', CONFERENCE: 'Конференция', DEADLINE: 'Сроки / KPI', NEWS: 'Научная новость' },
+  },
+  en: {
+    title: 'Scientific Announcements',
+    subtitle: 'Manage grant calls, conferences, and KPI deadline announcements.',
+    newBtn: 'New Announcement',
+    empty: 'No announcements created yet.',
+    pinned: 'Pinned',
+    internal: 'Scholars only',
+    public: 'Public',
+    deadline: 'Deadline',
+    editTitle: 'Edit Announcement',
+    createTitle: 'Create Announcement',
+    fieldTitle: 'Title *',
+    fieldCategory: 'Category',
+    fieldVisibility: 'Visibility',
+    fieldDeadline: 'Deadline (optional)',
+    fieldContent: 'Content *',
+    pinCheck: 'Pin to top',
+    notifyCheck: 'Send notification to all active scholars',
+    cancel: 'Cancel',
+    save: 'Save',
+    saving: 'Saving...',
+    categories: { GRANT: 'Grant', CONFERENCE: 'Conference', DEADLINE: 'Deadline / KPI', NEWS: 'Scientific News' },
+  },
+};
+
+const CATEGORY_CLS = {
+  GRANT: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  CONFERENCE: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  DEADLINE: 'bg-amber-50 text-amber-700 border-amber-200',
+  NEWS: 'bg-blue-50 text-blue-700 border-blue-200',
 };
 
 const EMPTY_FORM = {
@@ -34,6 +107,8 @@ const EMPTY_FORM = {
 };
 
 export default function AdminAnnouncementsPage() {
+  const locale = useLocale('uz');
+  const t = DICT[locale] || DICT.uz;
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -93,17 +168,13 @@ export default function AdminAnnouncementsPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        if (res.status === 401) {
-          setError('Moderator sessiyasi faol emas (boshqa oynada olim hisobiga kirilgan bo‘lishi mumkin). Iltimos, moderator sifatida qayta kiring.');
-        } else {
-          setError(data.error || 'Saqlashda xatolik');
-        }
+        setError(res.status === 401 ? 'Moderator sessiyasi faol emas.' : (data.error || 'Error'));
         return;
       }
       setModalOpen(false);
       await loadData();
     } catch {
-      setError('Tarmoq xatoligi');
+      setError('Network error');
     } finally {
       setSaving(false);
     }
@@ -129,7 +200,7 @@ export default function AdminAnnouncementsPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Ushbu e’lonni o‘chirishni tasdiqlaysizmi?')) return;
+    if (!confirm('Delete?')) return;
     await fetch(`/api/admin/announcements?id=${id}`, { method: 'DELETE' });
     loadData();
   };
@@ -138,17 +209,15 @@ export default function AdminAnnouncementsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Ilmiy e’lonlar va xabarnomalar</h2>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Olimlar va ommaviy portal uchun grant, konferensiya va KPI muddatlari e’lonlarini boshqarish.
-          </p>
+          <h2 className="text-2xl font-bold text-slate-900">{t.title}</h2>
+          <p className="text-sm text-slate-500 mt-0.5">{t.subtitle}</p>
         </div>
         <button
           type="button"
           onClick={openCreate}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0F294A] hover:bg-blue-900 text-white text-sm font-bold shadow-sm transition-colors cursor-pointer"
         >
-          <Plus className="w-4 h-4" /> Yangi e’lon
+          <Plus className="w-4 h-4" /> {t.newBtn}
         </button>
       </div>
 
@@ -161,107 +230,66 @@ export default function AdminAnnouncementsPage() {
       ) : items.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-2">
           <Megaphone className="w-8 h-8 text-slate-300 mx-auto" />
-          <div className="text-sm font-semibold text-slate-600">Hozircha e’lonlar yaratilmagan.</div>
+          <div className="text-sm font-semibold text-slate-600">{t.empty}</div>
         </div>
       ) : (
         <div className="space-y-3">
-          {items.map((item) => {
-            const cat = CATEGORY_LABELS[item.category] || CATEGORY_LABELS.NEWS;
-            return (
-              <div
-                key={item.id}
-                className={`bg-white rounded-2xl border p-5 shadow-xs transition-all ${
-                  item.isPinned ? 'border-blue-300 ring-1 ring-blue-100' : 'border-slate-200'
-                }`}
-              >
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="space-y-2 flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      {item.isPinned && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-600 text-white text-[11px] font-bold">
-                          <Pin className="w-3 h-3" /> Qadalgan
-                        </span>
-                      )}
-                      <span className={`px-2 py-0.5 rounded-md border text-[11px] font-bold ${cat.cls}`}>
-                        {cat.label}
+          {items.map((item) => (
+            <div
+              key={item.id}
+              className={`bg-white rounded-2xl border p-5 shadow-xs transition-all ${
+                item.isPinned ? 'border-blue-300 ring-1 ring-blue-100' : 'border-slate-200'
+              }`}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="space-y-2 flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {item.isPinned && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-600 text-white text-[11px] font-bold">
+                        <Pin className="w-3 h-3" /> {t.pinned}
                       </span>
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-semibold">
-                        <Eye className="w-3 h-3" />
-                        {item.visibility === 'INTERNAL' ? 'Faqat olimlar' : 'Ommaviy'}
+                    )}
+                    <span className={`px-2 py-0.5 rounded-md border text-[11px] font-bold ${CATEGORY_CLS[item.category] || CATEGORY_CLS.NEWS}`}>
+                      {t.categories[item.category] || item.category}
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-semibold">
+                      <Eye className="w-3 h-3" />
+                      {item.visibility === 'INTERNAL' ? t.internal : t.public}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700">
+                      {item.status}
+                    </span>
+                    {item.deadline && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-mono text-rose-600 font-semibold">
+                        <Calendar className="w-3 h-3" />
+                        {t.deadline}: {new Date(item.deadline).toLocaleDateString()}
                       </span>
-                      <span
-                        className={`px-2 py-0.5 rounded-md text-[11px] font-bold ${
-                          item.status === 'PUBLISHED'
-                            ? 'bg-emerald-50 text-emerald-700'
-                            : item.status === 'ARCHIVED'
-                            ? 'bg-slate-100 text-slate-500'
-                            : 'bg-amber-50 text-amber-700'
-                        }`}
-                      >
-                        {item.status}
-                      </span>
-                      {item.deadline && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-mono text-rose-600 font-semibold">
-                          <Calendar className="w-3 h-3" />
-                          Muddat: {new Date(item.deadline).toLocaleDateString()}
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="text-base font-bold text-slate-900">{item.title}</h3>
-                    <p className="text-sm text-slate-600 whitespace-pre-line line-clamp-3">
-                      {item.content}
-                    </p>
-                    <div className="text-[11px] font-mono text-slate-400">
-                      {item.author?.email} · {new Date(item.createdAt).toLocaleString()}
-                    </div>
+                    )}
                   </div>
-
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => togglePin(item)}
-                      title="Qadash / Yechish"
-                      className={`p-2 rounded-lg border transition-colors cursor-pointer ${
-                        item.isPinned
-                          ? 'bg-blue-50 border-blue-200 text-blue-700'
-                          : 'border-slate-200 text-slate-500 hover:bg-slate-50'
-                      }`}
-                    >
-                      <Pin className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => openEdit(item)}
-                      title="Tahrirlash"
-                      className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => toggleArchive(item)}
-                      title={item.status === 'ARCHIVED' ? 'Faollashtirish' : 'Arxivlash'}
-                      className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer"
-                    >
-                      {item.status === 'ARCHIVED' ? (
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      ) : (
-                        <Archive className="w-4 h-4" />
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(item.id)}
-                      title="O‘chirish"
-                      className="p-2 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 cursor-pointer"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                  <h3 className="text-base font-bold text-slate-900">{item.title}</h3>
+                  <p className="text-sm text-slate-600 whitespace-pre-line line-clamp-3">{item.content}</p>
+                  <div className="text-[11px] font-mono text-slate-400">
+                    {item.author?.email} · {new Date(item.createdAt).toLocaleString()}
                   </div>
                 </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button type="button" onClick={() => togglePin(item)} className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 cursor-pointer">
+                    <Pin className="w-4 h-4" />
+                  </button>
+                  <button type="button" onClick={() => openEdit(item)} className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer">
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+                  <button type="button" onClick={() => toggleArchive(item)} className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer">
+                    {item.status === 'ARCHIVED' ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <Archive className="w-4 h-4" />}
+                  </button>
+                  <button type="button" onClick={() => handleDelete(item.id)} className="p-2 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 cursor-pointer">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       )}
 
@@ -269,14 +297,8 @@ export default function AdminAnnouncementsPage() {
         <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-xl overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-bold text-slate-900">
-                {form.id ? 'E’lonni tahrirlash' : 'Yangi ilmiy e’lon yaratish'}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setModalOpen(false)}
-                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 cursor-pointer"
-              >
+              <h3 className="font-bold text-slate-900">{form.id ? t.editTitle : t.createTitle}</h3>
+              <button type="button" onClick={() => setModalOpen(false)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -287,44 +309,42 @@ export default function AdminAnnouncementsPage() {
                 </div>
               )}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Sarlavha *</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">{t.fieldTitle}</label>
                 <input
                   type="text"
                   required
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                   className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Masalan: 2026-yilgi xalqaro ilmiy grant tanlovi"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Kategoriya</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fieldCategory}</label>
                   <select
                     value={form.category}
                     onChange={(e) => setForm({ ...form, category: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white"
                   >
-                    <option value="NEWS">Ilmiy yangilik</option>
-                    <option value="GRANT">Grant</option>
-                    <option value="CONFERENCE">Konferensiya</option>
-                    <option value="DEADLINE">Muddat / KPI</option>
+                    {Object.entries(t.categories).map(([k, v]) => (
+                      <option key={k} value={k}>{v}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Ko‘rinishi</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fieldVisibility}</label>
                   <select
                     value={form.visibility}
                     onChange={(e) => setForm({ ...form, visibility: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white"
                   >
-                    <option value="PUBLIC">Ommaviy (hamma)</option>
-                    <option value="INTERNAL">Ichki (faqat olimlar)</option>
+                    <option value="PUBLIC">{t.public}</option>
+                    <option value="INTERNAL">{t.internal}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Dedlayn (ixtiyoriy)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.fieldDeadline}</label>
                   <input
                     type="date"
                     value={form.deadline}
@@ -335,14 +355,13 @@ export default function AdminAnnouncementsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">E’lon matni *</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">{t.fieldContent}</label>
                 <textarea
                   rows={5}
                   required
                   value={form.content}
                   onChange={(e) => setForm({ ...form, content: e.target.value })}
                   className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Batafsil ma’lumot, shartlar va havolalar..."
                 />
               </div>
 
@@ -354,7 +373,7 @@ export default function AdminAnnouncementsPage() {
                     onChange={(e) => setForm({ ...form, isPinned: e.target.checked })}
                     className="rounded border-slate-300"
                   />
-                  Yuqoriga qadab qo‘yish (Pin)
+                  {t.pinCheck}
                 </label>
                 {!form.id && (
                   <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
@@ -364,7 +383,7 @@ export default function AdminAnnouncementsPage() {
                       onChange={(e) => setForm({ ...form, notifyScholars: e.target.checked })}
                       className="rounded border-slate-300"
                     />
-                    Barcha faol olimlarga bildirishnoma yuborish
+                    {t.notifyCheck}
                   </label>
                 )}
               </div>
@@ -375,14 +394,14 @@ export default function AdminAnnouncementsPage() {
                   onClick={() => setModalOpen(false)}
                   className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
                 >
-                  Bekor qilish
+                  {t.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
                   className="px-5 py-2 rounded-xl bg-[#0F294A] hover:bg-blue-900 text-white text-sm font-bold disabled:opacity-50 cursor-pointer"
                 >
-                  {saving ? 'Saqlanmoqda...' : 'Saqlash'}
+                  {saving ? t.saving : t.save}
                 </button>
               </div>
             </form>

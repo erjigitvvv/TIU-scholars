@@ -1,5 +1,6 @@
 'use client';
 
+import { useLocale } from '@/lib/useLocale';
 import { useState, useEffect, useCallback, startTransition } from 'react';
 import {
   CheckCircle2,
@@ -20,7 +21,136 @@ const REJECT_TEMPLATES = [
   'Ma’lumotlar to‘liq emas',
 ];
 
+const DICT = {
+  uz: {
+    title: 'Moderatsiya navbati',
+    subtitle: 'Nashrlar, grantlar va ilmiy rahbarliklarni tekshirish, kvartilni aniqlashtirish va tasdiqlash.',
+    pending: 'Kutilmoqda',
+    approved: 'Tasdiqlangan',
+    rejected: 'Rad etilgan',
+    publications: 'Nashrlar',
+    grants: 'Grantlar',
+    supervisions: 'Shogirdlar',
+    loading: 'Yuklanmoqda...',
+    emptyTitle: 'Ro?yxat bo?sh!',
+    emptyDesc: 'Tanlangan holat bo?yicha elementlar topilmadi.',
+    openPdf: 'PDF faylni ochish',
+    link: 'Havola',
+    authors: 'Mualliflar:',
+    submittedBy: 'Yubordi:',
+    type: 'Tur:',
+    quartile: 'Kvartil:',
+    citations: 'Iqtibos:',
+    grantProject: 'Grant loyihasi',
+    role: 'Roli:',
+    present: 'Hozirgacha',
+    scholar: 'Olim:',
+    supervisionSuffix: 'Rahbarlik',
+    student: 'Shogird:',
+    supervisor: 'Ilmiy rahbar:',
+    rejectReasonLabel: 'Rad etish sababi:',
+    approve: 'Tasdiqlash',
+    reject: 'Rad etish',
+    rejectModalTitle: 'Rad etish sababi',
+    rejectModalDesc: 'Olim tuzatib qayta yuborishi uchun aniq sababni kiriting yoki tayyor shablonni tanlang.',
+    reasonPlaceholder: 'Sababni kiriting...',
+    cancel: 'Bekor qilish',
+    confirmReject: 'Rad etishni tasdiqlash',
+    rejectTemplates: [
+      'DOI yoki bibliografik havola tasdiqlanmadi',
+      'PDF fayl sifatsiz yoki mos emas',
+      'Kvartil va jurnal indeksi noto?g?ri ko?rsatilgan',
+      'Mualliflik ulushi yoki affilatsiya TIU ga mos emas',
+    ],
+  },
+  ru: {
+    title: '??????? ?????????',
+    subtitle: '???????? ??????????, ??????? ? ???????? ???????????, ????????? ???????? ? ?????????????.',
+    pending: '?????????',
+    approved: '??????????',
+    rejected: '???????????',
+    publications: '??????????',
+    grants: '??????',
+    supervisions: '???????',
+    loading: '????????...',
+    emptyTitle: '?????? ????!',
+    emptyDesc: '???????? ?? ?????????? ??????? ?? ???????.',
+    openPdf: '??????? PDF',
+    link: '??????',
+    authors: '??????:',
+    submittedBy: '????????:',
+    type: '???:',
+    quartile: '????????:',
+    citations: '???????????:',
+    grantProject: '????????? ??????',
+    role: '????:',
+    present: '?? ????????? ?????',
+    scholar: '??????:',
+    supervisionSuffix: '???????????',
+    student: '??????:',
+    supervisor: '??????? ????????????:',
+    rejectReasonLabel: '??????? ??????????:',
+    approve: '????????',
+    reject: '?????????',
+    rejectModalTitle: '??????? ??????????',
+    rejectModalDesc: '??????? ?????? ??????? ??? ???????? ??????? ?????? ??? ??????????? ??????.',
+    reasonPlaceholder: '??????? ???????...',
+    cancel: '??????',
+    confirmReject: '??????????? ??????????',
+    rejectTemplates: [
+      'DOI ??? ????????????????? ?????? ?? ????????????',
+      'PDF-???? ??????? ???????? ??? ?? ?????????????',
+      '???????? ? ?????? ??????? ??????? ???????',
+      '?????????? ?? ????????????? TIU',
+    ],
+  },
+  en: {
+    title: 'Moderation Queue',
+    subtitle: 'Review publications, grants, and supervisions, verify quartiles, and approve submissions.',
+    pending: 'Pending',
+    approved: 'Approved',
+    rejected: 'Rejected',
+    publications: 'Publications',
+    grants: 'Grants',
+    supervisions: 'Supervisions',
+    loading: 'Loading...',
+    emptyTitle: 'Queue is empty!',
+    emptyDesc: 'No items found for the selected status.',
+    openPdf: 'Open PDF',
+    link: 'Link',
+    authors: 'Authors:',
+    submittedBy: 'Submitted by:',
+    type: 'Type:',
+    quartile: 'Quartile:',
+    citations: 'Citations:',
+    grantProject: 'Grant Project',
+    role: 'Role:',
+    present: 'Present',
+    scholar: 'Scholar:',
+    supervisionSuffix: 'Supervision',
+    student: 'Student:',
+    supervisor: 'Supervisor:',
+    rejectReasonLabel: 'Rejection reason:',
+    approve: 'Approve',
+    reject: 'Reject',
+    rejectModalTitle: 'Rejection Reason',
+    rejectModalDesc: 'Enter a clear reason or pick a template so the scholar can fix and resubmit.',
+    reasonPlaceholder: 'Enter reason...',
+    cancel: 'Cancel',
+    confirmReject: 'Confirm Rejection',
+    rejectTemplates: [
+      'DOI or bibliographic link could not be verified',
+      'PDF file is unreadable or mismatched',
+      'Journal quartile or index is incorrect',
+      'Affiliation does not match TIU',
+    ],
+  },
+};
+
 export default function AdminModerationPage() {
+  const locale = useLocale('uz');
+  const t = DICT[locale] || DICT.uz;
+
   const [tab, setTab] = useState('publications'); // publications | grants | supervisions
   const [statusFilter, setStatusFilter] = useState('PENDING'); // PENDING | APPROVED | REJECTED
   const [items, setItems] = useState([]);
@@ -115,62 +245,41 @@ export default function AdminModerationPage() {
     <div className="space-y-6">
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 font-heading">Moderatsiya navbati</h2>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Nashrlar, grantlar va ilmiy rahbarliklarni tekshirish, kvartilni aniqlashtirish va tasdiqlash.
-          </p>
+          <h2 className="text-2xl font-bold text-slate-900 font-heading">{t.title}</h2>
+          <p className="text-sm text-slate-500 mt-0.5">{t.subtitle}</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Status Filter Dropdown */}
-          <div className="relative">
-            <Filter className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              aria-label="Holat"
-              className="appearance-none pl-8 pr-8 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-            >
-              <option value="PENDING">Holat: Kutilmoqda</option>
-              <option value="APPROVED">Holat: Tasdiqlangan</option>
-              <option value="REJECTED">Holat: Rad etilgan</option>
-            </select>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700"
+          >
+            <option value="PENDING">{t.pending}</option>
+            <option value="APPROVED">{t.approved}</option>
+            <option value="REJECTED">{t.rejected}</option>
+          </select>
 
-          {/* Entity Type Dropdown */}
-          <div className="relative">
-            <select
-              value={tab}
-              onChange={(e) => setTab(e.target.value)}
-              aria-label="Moderatsiya bo‘limi"
-              className="appearance-none pl-3.5 pr-8 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-blue-900 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-            >
-              <option value="publications">
-                Nashrlar {counts.publications > 0 ? `(${counts.publications})` : ''}
-              </option>
-              <option value="grants">
-                Grantlar {counts.grants > 0 ? `(${counts.grants})` : ''}
-              </option>
-              <option value="supervisions">
-                Shogirdlar {counts.supervisions > 0 ? `(${counts.supervisions})` : ''}
-              </option>
-            </select>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
+          <select
+            value={tab}
+            onChange={(e) => setTab(e.target.value)}
+            className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700"
+          >
+            <option value="publications">{t.publications}</option>
+            <option value="grants">{t.grants}</option>
+            <option value="supervisions">{t.supervisions}</option>
+          </select>
         </div>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-slate-500">Yuklanmoqda...</div>
+          <div className="p-12 text-center text-slate-500">{t.loading}</div>
         ) : items.length === 0 ? (
           <div className="p-16 text-center text-slate-500 flex flex-col items-center">
             <ShieldCheck className="w-12 h-12 text-emerald-500 mb-3 opacity-80" />
-            <h3 className="text-base font-bold text-slate-800">Ro‘yxat bo‘sh!</h3>
-            <p className="text-sm text-slate-500 mt-1">
-              Tanlangan holat bo‘yicha {tab} topilmadi.
-            </p>
+            <h3 className="text-base font-bold text-slate-800">{t.emptyTitle}</h3>
+            <p className="text-sm text-slate-500 mt-1">{t.emptyDesc}</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
@@ -215,24 +324,24 @@ export default function AdminModerationPage() {
                               className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold hover:bg-emerald-100"
                             >
                               <FileText className="w-3 h-3" />
-                              {isLocalPdf ? 'PDF faylni ochish' : 'Havola'}
+                              {isLocalPdf ? t.openPdf : t.link}
                             </a>
                           )}
                         </div>
                         <h3 className="text-base font-bold text-slate-900">{item.title}</h3>
                         <p className="text-sm text-slate-600">{item.journalOrPublisher}</p>
                         <div className="text-xs text-slate-500">
-                          Mualliflar:{' '}
+                          {t.authors}{' '}
                           <span className="font-semibold text-slate-700">
                             {item.authors?.map((a) => a.scholar?.fullName).join(', ')}
                           </span>
-                          {' • '}Yubordi: {item.submittedBy?.email}
+                          {' ? '}{t.submittedBy} {item.submittedBy?.email}
                         </div>
 
                         {statusFilter === 'PENDING' && (
                           <div className="flex flex-wrap items-center gap-3 pt-2">
                             <label className="text-xs text-slate-500 flex items-center gap-1.5">
-                              Tur:
+                              {t.type}
                               <select
                                 value={e.pubType}
                                 onChange={(ev) => setEditField(item, 'pubType', ev.target.value)}
@@ -250,7 +359,7 @@ export default function AdminModerationPage() {
                               </select>
                             </label>
                             <label className="text-xs text-slate-500 flex items-center gap-1.5">
-                              Kvartil:
+                              {t.quartile}
                               <select
                                 value={e.quartile}
                                 onChange={(ev) => setEditField(item, 'quartile', ev.target.value)}
@@ -264,7 +373,7 @@ export default function AdminModerationPage() {
                               </select>
                             </label>
                             <label className="text-xs text-slate-500 flex items-center gap-1.5">
-                              Iqtibos:
+                              {t.citations}
                               <input
                                 type="number"
                                 min="0"
@@ -283,15 +392,15 @@ export default function AdminModerationPage() {
                     {tab === 'grants' && (
                       <>
                         <span className="px-2.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-md text-xs font-bold">
-                          Grant loyihasi
+                          {t.grantProject}
                         </span>
                         <h3 className="text-base font-bold text-slate-900">{item.title}</h3>
                         <p className="text-sm text-slate-600">
-                          {item.fundingSource} • Roli: {item.role} ({item.startYear}–
-                          {item.endYear || 'Hozirgacha'})
+                          {item.fundingSource} ? {t.role} {item.role} ({item.startYear}?
+                          {item.endYear || t.present})
                         </p>
                         <div className="text-xs text-slate-500">
-                          Olim:{' '}
+                          {t.scholar}{' '}
                           <span className="font-semibold text-slate-700">
                             {item.scholar?.fullName}
                           </span>
@@ -302,14 +411,14 @@ export default function AdminModerationPage() {
                     {tab === 'supervisions' && (
                       <>
                         <span className="px-2.5 py-0.5 bg-purple-50 text-purple-700 border border-purple-200 rounded-md text-xs font-bold">
-                          {item.degreeType} Rahbarlik ({item.year})
+                          {item.degreeType} {t.supervisionSuffix} ({item.year})
                         </span>
                         <h3 className="text-base font-bold text-slate-900">
-                          Shogird: {item.studentName}
+                          {t.student} {item.studentName}
                         </h3>
                         <p className="text-sm text-slate-600">{item.dissertationTitle}</p>
                         <div className="text-xs text-slate-500">
-                          Ilmiy rahbar:{' '}
+                          {t.supervisor}{' '}
                           <span className="font-semibold text-slate-700">
                             {item.scholar?.fullName}
                           </span>
@@ -319,7 +428,7 @@ export default function AdminModerationPage() {
 
                     {item.status === 'REJECTED' && item.rejectionReason && (
                       <div className="text-xs text-red-700 bg-red-50 border border-red-200 px-3 py-1.5 rounded-lg inline-block">
-                        Rad etish sababi: {item.rejectionReason}
+                        {t.rejectReasonLabel} {item.rejectionReason}
                       </div>
                     )}
                   </div>
@@ -331,14 +440,14 @@ export default function AdminModerationPage() {
                         className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors shadow-xs"
                       >
                         <CheckCircle2 className="w-4 h-4" />
-                        Tasdiqlash
+                        {t.approve}
                       </button>
                       <button
                         onClick={() => setRejectModalItem(item)}
                         className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold border border-red-200 transition-colors"
                       >
                         <XCircle className="w-4 h-4" />
-                        Rad etish
+                        {t.reject}
                       </button>
                     </div>
                   )}
@@ -355,13 +464,11 @@ export default function AdminModerationPage() {
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200 space-y-4">
             <div className="flex items-center gap-2 text-red-600">
               <AlertCircle className="w-5 h-5" />
-              <h3 className="font-bold text-lg text-slate-900">Rad etish sababi</h3>
+              <h3 className="font-bold text-lg text-slate-900">{t.rejectModalTitle}</h3>
             </div>
-            <p className="text-xs text-slate-500">
-              Olim tuzatib qayta yuborishi uchun aniq sababni kiriting yoki tayyor shablonni tanlang.
-            </p>
+            <p className="text-xs text-slate-500">{t.rejectModalDesc}</p>
             <div className="flex flex-wrap gap-1.5">
-              {REJECT_TEMPLATES.map((tpl) => (
+              {t.rejectTemplates.map((tpl) => (
                 <button
                   key={tpl}
                   type="button"
@@ -375,7 +482,7 @@ export default function AdminModerationPage() {
             <textarea
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
-              placeholder="Sababni kiriting..."
+              placeholder={t.reasonPlaceholder}
               rows={3}
               className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -387,14 +494,14 @@ export default function AdminModerationPage() {
                 }}
                 className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
               >
-                Bekor qilish
+                {t.cancel}
               </button>
               <button
                 disabled={!rejectionReason.trim()}
                 onClick={() => handleAction(rejectModalItem, 'REJECTED', rejectionReason.trim())}
                 className="px-4 py-2 text-xs font-semibold bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg"
               >
-                Rad etishni tasdiqlash
+                {t.confirmReject}
               </button>
             </div>
           </div>

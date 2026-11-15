@@ -15,8 +15,144 @@ import {
   Save,
   X,
 } from 'lucide-react';
+import { useLocale } from '@/lib/useLocale';
+
+const DICT = {
+  uz: {
+    title: 'Olimlar va ro‘yxatdan o‘tish arizalari',
+    subtitle:
+      'Yangi arizalarni to‘liq maʼlumotlari bilan tekshirish, tasdiqlash va akademik maʼlumotlarni boshqarish.',
+    searchPlaceholder: 'Ism, email yoki kafedra...',
+    tabPending: 'Kutilayotgan arizalar',
+    tabAll: 'Barcha olimlar',
+    loading: 'Yuklanmoqda...',
+    empty: 'Tanlangan bo‘limda olimlar topilmadi.',
+    colScholar: 'Olim & Email',
+    colDepartment: 'Kafedra',
+    colStatus: 'Holati',
+    colDegree: 'Daraja / Unvon',
+    colActions: 'Amallar',
+    details: 'Batafsil',
+    approve: 'Tasdiqlash',
+    reject: 'Rad etish',
+    suspend: 'Bloklash',
+    activate: 'Faollashtirish',
+    loginLabel: 'Login:',
+    publicEmailLabel: 'Ommaviy email:',
+    protectedTitle: 'Tizim tomonidan himoyalangan (Moderator o‘zgartira olmaydi)',
+    tiuScore: 'TIU Ball',
+    hIndex: 'H-Index',
+    citations: 'Iqtiboslar',
+    statusLabel: 'Holat',
+    bioLabel: 'Bio:',
+    editableTitle: 'Moderator tahrirlashi mumkin bo‘lgan akademik maʼlumotlar',
+    departmentLabel: 'Kafedra',
+    degreeLabel: 'Ilmiy daraja',
+    titleLabel: 'Ilmiy unvon',
+    positionLabel: 'Maʼmuriy lavozim (Oʻzbekcha)',
+    positionPlaceholder: 'Masalan: Kafedra mudiri',
+    roleLabel: 'Tizim Roli (Faqat Super Admin uchun)',
+    approveApp: 'Arizani tasdiqlash',
+    close: 'Yopish',
+    save: 'Saqlash',
+    rejectModalTitle: 'Arizani rad etish',
+    rejectModalDesc: 'Olim qayta tuzatib yuborishi uchun rad etish sababini kiriting:',
+    rejectPlaceholder: 'Masalan: Kafedra yoki ORCID maʼlumotlari tasdiqlanmadi...',
+    cancel: 'Bekor qilish',
+    confirmReject: 'Rad etishni tasdiqlash',
+  },
+  ru: {
+    title: 'Учёные и заявки на регистрацию',
+    subtitle:
+      'Проверка новых заявок с полными данными, подтверждение и управление академической информацией.',
+    searchPlaceholder: 'Имя, email или кафедра...',
+    tabPending: 'Ожидающие заявки',
+    tabAll: 'Все учёные',
+    loading: 'Загрузка...',
+    empty: 'В выбранном разделе учёные не найдены.',
+    colScholar: 'Учёный и Email',
+    colDepartment: 'Кафедра',
+    colStatus: 'Статус',
+    colDegree: 'Степень / Звание',
+    colActions: 'Действия',
+    details: 'Подробнее',
+    approve: 'Одобрить',
+    reject: 'Отклонить',
+    suspend: 'Заблокировать',
+    activate: 'Активировать',
+    loginLabel: 'Логин:',
+    publicEmailLabel: 'Публичный email:',
+    protectedTitle: 'Защищено системой (Модератор не может изменить)',
+    tiuScore: 'Балл TIU',
+    hIndex: 'H-Index',
+    citations: 'Цитирования',
+    statusLabel: 'Статус',
+    bioLabel: 'Био:',
+    editableTitle: 'Академические данные, доступные модератору для редактирования',
+    departmentLabel: 'Кафедра',
+    degreeLabel: 'Учёная степень',
+    titleLabel: 'Учёное звание',
+    positionLabel: 'Административная должность (Узб.)',
+    positionPlaceholder: 'Например: Заведующий кафедрой',
+    roleLabel: 'Системная роль (Только для Super Admin)',
+    approveApp: 'Одобрить заявку',
+    close: 'Закрыть',
+    save: 'Сохранить',
+    rejectModalTitle: 'Отклонить заявку',
+    rejectModalDesc: 'Укажите причину отклонения, чтобы учёный мог исправить данные и отправить снова:',
+    rejectPlaceholder: 'Например: Кафедра или ORCID не подтверждены...',
+    cancel: 'Отмена',
+    confirmReject: 'Подтвердить отклонение',
+  },
+  en: {
+    title: 'Scholars & Registration Applications',
+    subtitle:
+      'Review new applications with full details, approve accounts, and manage academic profiles.',
+    searchPlaceholder: 'Name, email or department...',
+    tabPending: 'Pending Applications',
+    tabAll: 'All Scholars',
+    loading: 'Loading...',
+    empty: 'No scholars found in the selected section.',
+    colScholar: 'Scholar & Email',
+    colDepartment: 'Department',
+    colStatus: 'Status',
+    colDegree: 'Degree / Title',
+    colActions: 'Actions',
+    details: 'Details',
+    approve: 'Approve',
+    reject: 'Reject',
+    suspend: 'Suspend',
+    activate: 'Activate',
+    loginLabel: 'Login:',
+    publicEmailLabel: 'Public email:',
+    protectedTitle: 'System-protected (Moderator cannot edit)',
+    tiuScore: 'TIU Score',
+    hIndex: 'H-Index',
+    citations: 'Citations',
+    statusLabel: 'Status',
+    bioLabel: 'Bio:',
+    editableTitle: 'Academic details editable by Moderator',
+    departmentLabel: 'Department',
+    degreeLabel: 'Academic Degree',
+    titleLabel: 'Academic Title',
+    positionLabel: 'Administrative Position (Uzbek)',
+    positionPlaceholder: 'e.g., Head of Department',
+    roleLabel: 'System Role (Super Admin only)',
+    approveApp: 'Approve Application',
+    close: 'Close',
+    save: 'Save',
+    rejectModalTitle: 'Reject Application',
+    rejectModalDesc: 'Enter a rejection reason so the scholar can correct and resubmit:',
+    rejectPlaceholder: 'e.g., Department or ORCID details could not be verified...',
+    cancel: 'Cancel',
+    confirmReject: 'Confirm Rejection',
+  },
+};
 
 export default function AdminScholarsPage() {
+  const locale = useLocale('uz');
+  const t = DICT[locale] || DICT.uz;
+
   const [scholars, setScholars] = useState([]);
   const [faculties, setFaculties] = useState([]);
   const [currentRole, setCurrentRole] = useState('MODERATOR');
@@ -128,8 +264,23 @@ export default function AdminScholarsPage() {
     );
   });
 
+  const getDeptName = (d) =>
+    locale === 'ru'
+      ? d?.nameRu || d?.nameUz || d?.nameEn
+      : locale === 'en'
+      ? d?.nameEn || d?.nameUz
+      : d?.nameUz || d?.nameEn;
+
   const allDepartments = faculties.flatMap((f) =>
-    (f.departments || []).map((d) => ({ ...d, facultyName: f.nameUz }))
+    (f.departments || []).map((d) => ({
+      ...d,
+      facultyName:
+        locale === 'ru'
+          ? f.nameRu || f.nameUz
+          : locale === 'en'
+          ? f.nameEn || f.nameUz
+          : f.nameUz,
+    }))
   );
 
   return (
@@ -137,11 +288,9 @@ export default function AdminScholarsPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white font-heading">
-            Olimlar va ro‘yxatdan o‘tish arizalari
+            {t.title}
           </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Yangi arizalarni to‘liq maʼlumotlari bilan tekshirish, tasdiqlash va akademik maʼlumotlarni boshqarish.
-          </p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{t.subtitle}</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -151,7 +300,7 @@ export default function AdminScholarsPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Ism, email yoki kafedra..."
+              placeholder={t.searchPlaceholder}
               className="pl-9 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -164,7 +313,7 @@ export default function AdminScholarsPage() {
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
-              Kutilayotgan arizalar
+              {t.tabPending}
             </button>
             <button
               onClick={() => setTab('ALL')}
@@ -174,7 +323,7 @@ export default function AdminScholarsPage() {
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
-              Barcha olimlar
+              {t.tabAll}
             </button>
           </div>
         </div>
@@ -182,21 +331,19 @@ export default function AdminScholarsPage() {
 
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-slate-500 text-sm">Yuklanmoqda...</div>
+          <div className="p-8 text-center text-slate-500 text-sm">{t.loading}</div>
         ) : filteredScholars.length === 0 ? (
-          <div className="p-12 text-center text-slate-400 text-sm">
-            Tanlangan bo‘limda olimlar topilmadi.
-          </div>
+          <div className="p-12 text-center text-slate-400 text-sm">{t.empty}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-sm">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  <th className="py-3 px-6">Olim & Email</th>
-                  <th className="py-3 px-6">Kafedra</th>
-                  <th className="py-3 px-6">Holati</th>
-                  <th className="py-3 px-6">Daraja / Unvon</th>
-                  <th className="py-3 px-6 text-right">Amallar</th>
+                  <th className="py-3 px-6">{t.colScholar}</th>
+                  <th className="py-3 px-6">{t.colDepartment}</th>
+                  <th className="py-3 px-6">{t.colStatus}</th>
+                  <th className="py-3 px-6">{t.colDegree}</th>
+                  <th className="py-3 px-6 text-right">{t.colActions}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -210,7 +357,7 @@ export default function AdminScholarsPage() {
                       <div className="text-xs text-slate-500">{s.user?.email}</div>
                     </td>
                     <td className="py-4 px-6 text-slate-600 dark:text-slate-300">
-                      {s.department?.nameUz || s.department?.nameEn}
+                      {getDeptName(s.department)}
                     </td>
                     <td className="py-4 px-6">
                       <span
@@ -237,7 +384,7 @@ export default function AdminScholarsPage() {
                         className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition-colors"
                       >
                         <Eye className="w-3.5 h-3.5" />
-                        Batafsil
+                        {t.details}
                       </button>
 
                       {s.user?.accountStatus === 'PENDING' && (
@@ -247,14 +394,14 @@ export default function AdminScholarsPage() {
                             className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors"
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" />
-                            Tasdiqlash
+                            {t.approve}
                           </button>
                           <button
                             onClick={() => setRejectModalUserId(s.user.id)}
                             className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold border border-red-200 transition-colors"
                           >
                             <XCircle className="w-3.5 h-3.5" />
-                            Rad etish
+                            {t.reject}
                           </button>
                         </>
                       )}
@@ -265,7 +412,7 @@ export default function AdminScholarsPage() {
                           className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-semibold border border-amber-200 transition-colors"
                         >
                           <ShieldAlert className="w-3.5 h-3.5" />
-                          Bloklash
+                          {t.suspend}
                         </button>
                       )}
 
@@ -276,7 +423,7 @@ export default function AdminScholarsPage() {
                           className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold border border-blue-200 transition-colors"
                         >
                           <UserCheck className="w-3.5 h-3.5" />
-                          Faollashtirish
+                          {t.activate}
                         </button>
                       )}
                     </td>
@@ -299,10 +446,13 @@ export default function AdminScholarsPage() {
                 </h3>
                 <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-1">
                   <span className="inline-flex items-center gap-1">
-                    <Mail className="w-3.5 h-3.5" /> Login: <b>{selectedScholar.user?.email}</b>
+                    <Mail className="w-3.5 h-3.5" /> {t.loginLabel}{' '}
+                    <b>{selectedScholar.user?.email}</b>
                   </span>
                   {selectedScholar.publicEmail && (
-                    <span>Ommaviy email: {selectedScholar.publicEmail}</span>
+                    <span>
+                      {t.publicEmailLabel} {selectedScholar.publicEmail}
+                    </span>
                   )}
                   <span className="inline-flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5" />
@@ -318,33 +468,33 @@ export default function AdminScholarsPage() {
               </button>
             </div>
 
-            {/* Locked / Read-Only Info (Moderator CANNOT edit directly) */}
+            {/* Locked / Read-Only Info */}
             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 space-y-2">
               <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase">
                 <Lock className="w-3.5 h-3.5 text-amber-500" />
-                Tizim tomonidan himoyalangan (Moderator o‘zgartira olmaydi)
+                {t.protectedTitle}
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                 <div>
-                  <span className="text-slate-400 block">TIU Ball</span>
+                  <span className="text-slate-400 block">{t.tiuScore}</span>
                   <span className="font-mono font-bold text-slate-900 dark:text-white">
                     {selectedScholar.tiuScore}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block">H-Index</span>
+                  <span className="text-slate-400 block">{t.hIndex}</span>
                   <span className="font-mono font-bold text-slate-900 dark:text-white">
                     {selectedScholar.hIndex}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block">Iqtiboslar</span>
+                  <span className="text-slate-400 block">{t.citations}</span>
                   <span className="font-mono font-bold text-slate-900 dark:text-white">
                     {selectedScholar.totalCitations}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block">Holat</span>
+                  <span className="text-slate-400 block">{t.statusLabel}</span>
                   <span className="font-bold text-blue-700 dark:text-sky-400">
                     {selectedScholar.user?.accountStatus}
                   </span>
@@ -352,7 +502,7 @@ export default function AdminScholarsPage() {
               </div>
               {selectedScholar.bioUz && (
                 <p className="text-xs text-slate-600 dark:text-slate-300 pt-1">
-                  <b>Bio:</b> {selectedScholar.bioUz}
+                  <b>{t.bioLabel}</b> {selectedScholar.bioUz}
                 </p>
               )}
               <div className="flex flex-wrap gap-2 pt-1">
@@ -379,16 +529,16 @@ export default function AdminScholarsPage() {
               </div>
             </div>
 
-            {/* Editable Academic Fields (Moderator CAN edit) */}
+            {/* Editable Academic Fields */}
             <form onSubmit={handleSaveAcademicDetails} className="space-y-4">
               <div className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase">
-                Moderator tahrirlashi mumkin bo‘lgan akademik maʼlumotlar
+                {t.editableTitle}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
                 <div className="sm:col-span-2">
                   <label className="block font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                    Kafedra
+                    {t.departmentLabel}
                   </label>
                   <select
                     value={editForm.departmentId}
@@ -397,7 +547,7 @@ export default function AdminScholarsPage() {
                   >
                     {allDepartments.map((d) => (
                       <option key={d.id} value={d.id}>
-                        {d.nameUz} ({d.facultyName})
+                        {getDeptName(d)} ({d.facultyName})
                       </option>
                     ))}
                   </select>
@@ -405,7 +555,7 @@ export default function AdminScholarsPage() {
 
                 <div>
                   <label className="block font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                    Ilmiy daraja
+                    {t.degreeLabel}
                   </label>
                   <select
                     value={editForm.academicDegree}
@@ -420,7 +570,7 @@ export default function AdminScholarsPage() {
 
                 <div>
                   <label className="block font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                    Ilmiy unvon
+                    {t.titleLabel}
                   </label>
                   <select
                     value={editForm.academicTitle}
@@ -436,13 +586,13 @@ export default function AdminScholarsPage() {
 
                 <div className="sm:col-span-2">
                   <label className="block font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                    Maʼmuriy lavozim (Oʻzbekcha)
+                    {t.positionLabel}
                   </label>
                   <input
                     type="text"
                     value={editForm.positionUz}
                     onChange={(e) => setEditForm({ ...editForm, positionUz: e.target.value })}
-                    placeholder="Masalan: Kafedra mudiri"
+                    placeholder={t.positionPlaceholder}
                     className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl"
                   />
                 </div>
@@ -475,7 +625,7 @@ export default function AdminScholarsPage() {
                 {currentRole === 'SUPER_ADMIN' && (
                   <div className="sm:col-span-2">
                     <label className="block font-semibold text-purple-700 dark:text-purple-300 mb-1">
-                      Tizim Roli (Faqat Super Admin uchun)
+                      {t.roleLabel}
                     </label>
                     <select
                       value={editForm.role}
@@ -499,7 +649,7 @@ export default function AdminScholarsPage() {
                         onClick={() => handleStatusChange(selectedScholar.user.id, 'ACTIVE')}
                         className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold"
                       >
-                        Arizani tasdiqlash
+                        {t.approveApp}
                       </button>
                       <button
                         type="button"
@@ -508,7 +658,7 @@ export default function AdminScholarsPage() {
                         }}
                         className="px-3.5 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-semibold"
                       >
-                        Rad etish
+                        {t.reject}
                       </button>
                     </>
                   )}
@@ -520,14 +670,14 @@ export default function AdminScholarsPage() {
                     onClick={() => setSelectedScholar(null)}
                     className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
                   >
-                    Yopish
+                    {t.close}
                   </button>
                   <button
                     type="submit"
                     disabled={savingEdit}
                     className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0F294A] hover:bg-blue-900 text-white text-xs font-semibold"
                   >
-                    <Save className="w-3.5 h-3.5" /> Saqlash
+                    <Save className="w-3.5 h-3.5" /> {t.save}
                   </button>
                 </div>
               </div>
@@ -540,14 +690,14 @@ export default function AdminScholarsPage() {
       {rejectModalUserId && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200 dark:border-slate-800 space-y-4">
-            <h3 className="font-bold text-lg text-slate-900 dark:text-white">Arizani rad etish</h3>
-            <p className="text-xs text-slate-500">
-              Olim qayta tuzatib yuborishi uchun rad etish sababini kiriting:
-            </p>
+            <h3 className="font-bold text-lg text-slate-900 dark:text-white">
+              {t.rejectModalTitle}
+            </h3>
+            <p className="text-xs text-slate-500">{t.rejectModalDesc}</p>
             <textarea
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
-              placeholder="Masalan: Kafedra yoki ORCID maʼlumotlari tasdiqlanmadi..."
+              placeholder={t.rejectPlaceholder}
               rows={3}
               className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -559,7 +709,7 @@ export default function AdminScholarsPage() {
                 }}
                 className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
               >
-                Bekor qilish
+                {t.cancel}
               </button>
               <button
                 disabled={!rejectionReason.trim()}
@@ -568,7 +718,7 @@ export default function AdminScholarsPage() {
                 }
                 className="px-4 py-2 text-xs font-semibold bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg"
               >
-                Rad etishni tasdiqlash
+                {t.confirmReject}
               </button>
             </div>
           </div>

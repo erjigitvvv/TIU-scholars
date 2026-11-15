@@ -1,6 +1,7 @@
 from django.contrib import admin, messages
-from unfold.admin import ModelAdmin
+from unfold.admin import ModelAdmin, TabularInline
 from import_export.admin import ImportExportModelAdmin
+import bcrypt
 from .models import (
     User, Faculty, Department, ScholarProfile, Publication,
     PublicationAuthor, GrantProject, Supervision, KpiTarget,
@@ -85,6 +86,25 @@ def make_moderator(modeladmin, request, queryset):
         u.save()
         _create_audit(request, "ADMIN_MAKE_MODERATOR", "User", u.id, {"email": u.email})
     modeladmin.message_user(request, "Tanlangan foydalanuvchilar Moderator etib belgilandi.")
+
+
+@admin.action(description="Vaqtinchalik parol o'rnatish (TiuTemp2026!)")
+def reset_password_temp(modeladmin, request, queryset):
+    hashed = bcrypt.hashpw(b"TiuTemp2026!", bcrypt.gensalt(rounds=10)).decode("utf-8")
+    count = 0
+    for u in queryset:
+        u.passwordHash = hashed
+        u.save()
+        _notify(
+            u,
+            "INFO",
+            "Parolingiz tiklandi",
+            "Administrator tomonidan vaqtinchalik parol (TiuTemp2026!) o'rnatildi. Tizimga kirgach uni almashtiring.",
+            "/dashboard/profile",
+        )
+        _create_audit(request, "ADMIN_RESET_PASSWORD", "User", u.id, {"email": u.email})
+        count += 1
+    modeladmin.message_user(request, f"{count} ta hisob uchun vaqtinchalik parol (TiuTemp2026!) o'rnatildi.")
 
 
 @admin.action(description="Tanlangan olimlarni tasdiqlash (ACTIVE)")
@@ -247,7 +267,7 @@ class UserAdmin(ModelAdmin):
     ordering = ("-createdAt",)
     list_per_page = 30
     readonly_fields = ("id", "createdAt", "updatedAt")
-    actions = [activate_users, suspend_users, make_moderator]
+    actions = [activate_users, suspend_users, make_moderator, reset_password_temp]
 
     def save_model(self, request, obj, form, change):
         if change and obj.pk:
@@ -261,12 +281,27 @@ class UserAdmin(ModelAdmin):
         _create_audit(request, "ADMIN_SAVE_USER", "User", obj.id, {"role": obj.role, "accountStatus": obj.accountStatus})
 
 
+class DepartmentInline(TabularInline):
+    model = Department
+    extra = 0
+    fields = ("nameUz", "nameRu", "nameEn")
+
+
 @admin.register(Faculty)
 class FacultyAdmin(ModelAdmin):
     list_display = ("code", "nameUz", "nameEn", "createdAt")
     search_fields = ("code", "nameEn", "nameUz")
     ordering = ("nameUz",)
     readonly_fields = ("id", "createdAt", "updatedAt")
+    inlines = [DepartmentInline]
+
+    def save_formset(self, request, form, formset, change):
+        instances = formset.save(commit=False)
+        for obj in instances:
+            if not obj.id:
+                obj.id = str(uuid.uuid4())
+            obj.save()
+        formset.save_m2m()
 
     def save_model(self, request, obj, form, change):
         if not obj.id:
@@ -309,6 +344,24 @@ class DepartmentAdmin(ModelAdmin):
             self.delete_model(request, obj)
 
 
+class GrantProjectInline(TabularInline):
+    model = GrantProject
+    extra = 0
+    fields = ("title", "role", "fundingSource", "startYear", "status")
+
+
+class SupervisionInline(TabularInline):
+    model = Supervision
+    extra = 0
+    fields = ("studentName", "degreeType", "year", "status")
+
+
+class KpiTargetInline(TabularInline):
+    model = KpiTarget
+    extra = 0
+    fields = ("year", "targetPublications", "targetScopus", "targetScore")
+
+
 @admin.register(ScholarProfile)
 class ScholarProfileAdmin(ImportExportModelAdmin, ModelAdmin):
     list_display = ("fullName", "department", "academicDegree", "academicTitle", "hIndex", "tiuScore")
@@ -317,7 +370,16 @@ class ScholarProfileAdmin(ImportExportModelAdmin, ModelAdmin):
     search_fields = ("fullName", "publicEmail", "orcidId", "scopusId", "user__email")
     ordering = ("-tiuScore",)
     list_per_page = 30
+    inlines = [GrantProjectInline, SupervisionInline, KpiTargetInline]
     actions = [approve_scholars, reject_scholars, recalculate_selected_scores]
+
+    def save_formset(self, request, form, formset, change):
+        instances = formset.save(commit=False)
+        for obj in instances:
+            if not obj.id:
+                obj.id = str(uuid.uuid4())
+            obj.save()
+        formset.save_m2m()
 
 
 @admin.register(Publication)
