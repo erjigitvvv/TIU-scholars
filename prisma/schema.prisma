@@ -65,7 +65,16 @@ model ScholarProfile {
   publicEmail        String?
   orcidId            String?
   scopusId           String?
+  positionUz         String?
+  positionRu         String?
+  positionEn         String?
+  educationUz        String?
+  educationRu        String?
+  educationEn        String?
   googleScholarUrl   String?
+  linkedinUrl        String?
+  telegramUrl        String?
+  researchGateUrl    String?
   hIndex             Int                 @default(0)
   totalCitations     Int                 @default(0)
   tiuScore           Float               @default(0)

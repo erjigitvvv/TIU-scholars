@@ -22,114 +22,11 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { getDictionary } from '@/lib/i18n';
+import { INTEREST_TRANSLATIONS } from '@/lib/interests';
 import CustomSelect from '@/components/ui/CustomSelect';
 import ScholarAvatar from '@/components/ui/ScholarAvatar';
 
 const PAGE_SIZE = 12;
-
-// Ilmiy yo'nalishlarning 3 tildagi tarjima lug'ati
-const INTEREST_TRANSLATIONS = {
-  'Makroiqtisodiy tahlil': {
-    uz: 'Makroiqtisodiy tahlil',
-    ru: 'Макроэкономический анализ',
-    en: 'Macroeconomic Analysis',
-  },
-  'Korporativ moliya': {
-    uz: 'Korporativ moliya',
-    ru: 'Корпоративные финансы',
-    en: 'Corporate Finance',
-  },
-  'Yashil iqtisodiyot': {
-    uz: 'Yashil iqtisodiyot',
-    ru: 'Зеленая экономика',
-    en: 'Green Economy',
-  },
-  'FinTech va bank ishi': {
-    uz: 'FinTech va bank ishi',
-    ru: 'FinTech и банковское дело',
-    en: 'FinTech & Banking',
-  },
-  'Qiyosiy tilshunoslik': {
-    uz: 'Qiyosiy tilshunoslik',
-    ru: 'Сравнительное языкознание',
-    en: 'Comparative Linguistics',
-  },
-  'Akademik ingliz tili': {
-    uz: 'Akademik ingliz tili',
-    ru: 'Академический английский язык',
-    en: 'Academic English (ESP)',
-  },
-  Tarjimashunoslik: {
-    uz: 'Tarjimashunoslik',
-    ru: 'Переводоведение',
-    en: 'Translation Studies',
-  },
-  'Korpus lingvistikasi': {
-    uz: 'Korpus lingvistikasi',
-    ru: 'Корпусная лингвистика',
-    en: 'Corpus Linguistics',
-  },
-  'Sun’iy intellekt': {
-    uz: 'Sun’iy intellekt',
-    ru: 'Искусственный интеллект',
-    en: 'Artificial Intelligence',
-  },
-  Kiberxavfsizlik: {
-    uz: 'Kiberxavfsizlik',
-    ru: 'Кибербезопасность',
-    en: 'Cybersecurity',
-  },
-  'Ma’lumotlar tahlili': {
-    uz: 'Ma’lumotlar tahlili',
-    ru: 'Анализ данных',
-    en: 'Data Analytics',
-  },
-  'Bulutli hisoblash': {
-    uz: 'Bulutli hisoblash',
-    ru: 'Облачные вычисления',
-    en: 'Cloud Computing',
-  },
-  'Oliy ta’lim menejmenti': {
-    uz: 'Oliy ta’lim menejmenti',
-    ru: 'Менеджмент высшего образования',
-    en: 'Higher Education Management',
-  },
-  'Raqamli pedagogika': {
-    uz: 'Raqamli pedagogika',
-    ru: 'Цифровая педагогика',
-    en: 'Digital Pedagogy',
-  },
-  'Ta’lim sifati': {
-    uz: 'Ta’lim sifati',
-    ru: 'Качество образования',
-    en: 'Education Quality Assurance',
-  },
-  'Kognitiv psixologiya': {
-    uz: 'Kognitiv psixologiya',
-    ru: 'Когнитивная психология',
-    en: 'Cognitive Psychology',
-  },
-  'Xalqaro xususiy huquq': {
-    uz: 'Xalqaro xususiy huquq',
-    ru: 'Международное частное право',
-    en: 'Private International Law',
-  },
-  'Konstitutsiyaviy huquq': {
-    uz: 'Konstitutsiyaviy huquq',
-    ru: 'Конституционное право',
-    en: 'Constitutional Law',
-  },
-  'Raqamli huquq va arbitraj': {
-    uz: 'Raqamli huquq va arbitraj',
-    ru: 'Цифровое право и арбитраж',
-    en: 'Digital Law & Arbitration',
-  },
-  'Fuqarolik huquqi': {
-    uz: 'Fuqarolik huquqi',
-    ru: 'Гражданское право',
-    en: 'Civil Law',
-  },
-};
 
 const DEGREE_RING_STYLES = {
   DSC: 'ring-[3px] ring-amber-400 dark:ring-amber-400 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 shadow-[0_0_14px_rgba(245,158,11,0.28)]',
@@ -294,6 +191,8 @@ export default function ScholarsDirectoryPage() {
     const targetUrl = queryStr ? `${pathname}?${queryStr}` : pathname;
     router.replace(targetUrl, { scroll: false });
 
+    const controller = new AbortController();
+
     async function fetchScholars() {
       setLoading(true);
       try {
@@ -305,7 +204,9 @@ export default function ScholarsDirectoryPage() {
         if (title && title !== 'all') apiParams.set('title', title.toUpperCase());
         apiParams.set('sort', sort);
 
-        const res = await fetch(`/api/scholars?${apiParams.toString()}`);
+        const res = await fetch(`/api/scholars?${apiParams.toString()}`, {
+          signal: controller.signal,
+        });
         const data = await res.json();
         if (data.scholars) {
           startTransition(() => {
@@ -314,15 +215,20 @@ export default function ScholarsDirectoryPage() {
           });
         }
       } catch (err) {
-        console.error(err);
+        if (err.name !== 'AbortError') {
+          console.error(err);
+        }
       } finally {
-        startTransition(() => {
-          setLoading(false);
-        });
+        if (!controller.signal.aborted) {
+          startTransition(() => {
+            setLoading(false);
+          });
+        }
       }
     }
 
     fetchScholars();
+    return () => controller.abort();
   }, [q, facultyId, departmentId, degree, title, sort, viewMode, pathname, router]);
 
   const selectedFaculty = faculties.find((f) => f.id === facultyId) || null;
@@ -828,7 +734,12 @@ export default function ScholarsDirectoryPage() {
         /* 3 ustun (desktop), 2 ustun (planshet), 1 ustun (telefon) */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {visibleScholars.map((scholar, idx) => {
-            const approvedPubsCount = (scholar.publications || []).length;
+            const pubsList = scholar.publications || [];
+            const approvedPubsCount = pubsList.length;
+            const scopusWosCount = pubsList.filter(
+              (pa) => pa.publication?.type === 'SCOPUS' || pa.publication?.type === 'WOS'
+            ).length;
+            const hasVerifiedId = Boolean(scholar.orcidId || scholar.scopusId);
             const pureName = getPureFullName(scholar.fullName);
             const degreeLabel =
               scholar.academicDegree === 'DSC'
@@ -838,11 +749,17 @@ export default function ScholarsDirectoryPage() {
                 : '';
             const ringStyle =
               DEGREE_RING_STYLES[scholar.academicDegree] || DEGREE_RING_STYLES.NONE;
-            const badgeStyle =
-              DEGREE_BADGE_STYLES[scholar.academicDegree] ||
-              'bg-slate-200 text-slate-800 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
             const localizedDeptName = getLocalizedName(scholar.department);
-            const tags = parseResearchTags(scholar.researchInterests, locale).slice(0, 2);
+            const allTags = parseResearchTags(scholar.researchInterests, locale);
+            const tags = allTags.slice(0, 2);
+            const extraTagsCount = Math.max(0, allTags.length - 2);
+            const localizedFacultyName = getLocalizedName(scholar.department?.faculty);
+            const localizedPosition =
+              locale === 'ru'
+                ? scholar.positionRu || scholar.positionUz || scholar.positionEn
+                : locale === 'en'
+                ? scholar.positionEn || scholar.positionUz || scholar.positionRu
+                : scholar.positionUz || scholar.positionEn || scholar.positionRu;
 
             return (
               <div key={scholar.id} className="h-full">
@@ -872,12 +789,27 @@ export default function ScholarsDirectoryPage() {
                         )}
                       </div>
 
-                      <div className="text-right bg-slate-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-200/70 dark:border-slate-700">
-                        <div className="font-mono text-sm font-extrabold text-[#0F294A] dark:text-sky-300 tabular-nums">
-                          {Math.round(scholar.tiuScore || 0)}
-                        </div>
-                        <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
-                          {dict.home.tiuScore}
+                      <div className="flex items-center gap-2">
+                        {scholar.universityRank && scholar.universityRank <= 3 && (
+                          <span
+                            className={`font-mono text-[11px] font-extrabold px-2 py-1 rounded-lg border ${
+                              scholar.universityRank === 1
+                                ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700'
+                                : scholar.universityRank === 2
+                                ? 'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600'
+                                : 'bg-orange-50 text-orange-700 border-orange-300 dark:bg-orange-950/60 dark:text-orange-300 dark:border-orange-700'
+                            }`}
+                          >
+                            #{scholar.universityRank}
+                          </span>
+                        )}
+                        <div className="text-right bg-slate-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-200/70 dark:border-slate-700">
+                          <div className="font-mono text-sm font-extrabold text-[#0F294A] dark:text-sky-300 tabular-nums">
+                            {Math.round(scholar.tiuScore || 0)}
+                          </div>
+                          <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+                            {dict.home.tiuScore}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -888,25 +820,28 @@ export default function ScholarsDirectoryPage() {
                         {pureName}
                       </h3>
 
-                      <div className="flex flex-wrap items-center gap-2">
-                        {degreeLabel && (
-                          <span
-                            className={`font-mono px-2.5 py-1 text-xs font-extrabold rounded-lg border ${badgeStyle}`}
-                          >
-                            {degreeLabel}
-                          </span>
-                        )}
+                      <div className="flex flex-wrap items-center gap-1.5">
                         <span className="px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200/70 dark:border-slate-700">
                           {getLocalizedTitle(scholar.academicTitle)}
                         </span>
+                        {localizedPosition && (
+                          <span className="px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-sky-950/50 text-blue-700 dark:text-sky-300 border border-blue-200/70 dark:border-sky-800/60 text-[11px] font-semibold truncate max-w-[160px]">
+                            {localizedPosition}
+                          </span>
+                        )}
+                        {hasVerifiedId && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 text-[11px] font-semibold">
+                            {scholar.orcidId ? "ORCID" : "Scopus"}
+                          </span>
+                        )}
                       </div>
 
-                      {localizedDeptName && (
+                      {(localizedDeptName || localizedFacultyName) && (
                         <p
-                          title={localizedDeptName}
+                          title={[localizedFacultyName, localizedDeptName].filter(Boolean).join(" ? ")}
                           className="text-xs text-slate-500 dark:text-slate-400 truncate pt-0.5"
                         >
-                          {localizedDeptName}
+                          {[localizedFacultyName, localizedDeptName].filter(Boolean).join(" ? ")}
                         </p>
                       )}
                     </div>
@@ -922,13 +857,18 @@ export default function ScholarsDirectoryPage() {
                             {tag}
                           </span>
                         ))}
+                        {extraTagsCount > 0 && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-lg bg-slate-100/70 dark:bg-slate-800/70 text-slate-500 dark:text-slate-400 border border-slate-200/60 dark:border-slate-700/70 text-[11px] font-mono font-semibold">
+                            +{extraTagsCount}
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
 
-                  {/* 4. Metrikalar va Yengil (outline) tugma */}
+                  {/* 4. 3 ustunli Metrikalar (Balanced + Impact) va Yengil tugma */}
                   <div className="space-y-3.5 pt-3 border-t border-slate-100 dark:border-slate-800">
-                    <div className="grid grid-cols-2 gap-2 py-2 px-3 bg-slate-50/90 dark:bg-slate-800/60 rounded-xl text-center">
+                    <div className="grid grid-cols-3 gap-2 py-2 px-2.5 bg-slate-50/90 dark:bg-slate-800/60 rounded-xl text-center">
                       <div>
                         <div className="text-[11px] text-slate-400 font-medium">
                           {dict.home.hIndex}
@@ -945,12 +885,27 @@ export default function ScholarsDirectoryPage() {
                           {approvedPubsCount}
                         </div>
                       </div>
+                      <div className="border-l border-slate-200/80 dark:border-slate-700">
+                        <div className="text-[11px] text-slate-400 font-medium">
+                          {locale === 'ru' ? '??????' : locale === 'en' ? 'Citations' : 'Iqtibos'}
+                        </div>
+                        <div className="font-mono text-sm font-extrabold text-slate-900 dark:text-white tabular-nums">
+                          {scholar.totalCitations ?? 0}
+                        </div>
+                      </div>
                     </div>
 
                     <div className="flex items-center justify-between text-xs pt-0.5">
-                      <span className="font-mono inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 tabular-nums">
-                        <Eye className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{scholar.totalCitations ?? 0}</span>
+                      <span className="font-mono inline-flex items-center gap-1 text-[11px] font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
+                        {scopusWosCount > 0
+                          ? `Scopus/WoS: ${scopusWosCount}`
+                          : scholar.latestPubYear
+                          ? `${locale === 'ru' ? '????. ????.' : locale === 'en' ? 'Latest' : 'Oxirgi'}: ${scholar.latestPubYear}`
+                          : locale === 'ru'
+                          ? '???????'
+                          : locale === 'en'
+                          ? 'Active'
+                          : 'Faol'}
                       </span>
 
                       <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 group-hover:border-blue-500 group-hover:text-blue-600 dark:group-hover:border-sky-400 dark:group-hover:text-sky-300 group-hover:bg-blue-50/50 dark:group-hover:bg-sky-950/30 transition-all">

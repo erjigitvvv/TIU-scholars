@@ -1,22 +1,12 @@
-import { prisma } from '@/lib/prisma'
-
-const TYPE_WEIGHTS = {
-  SCOPUS: 10,
-  WOS: 10,
-  OAK: 5,
-  INTERNATIONAL_JOURNAL: 6,
-  LOCAL_JOURNAL: 3,
-  CONFERENCE: 2,
-  MONOGRAPH: 7,
-  TEXTBOOK: 6,
-  PATENT: 6,
-}
+import { prisma } from '@/lib/prisma';
+import { computeScoreBreakdown } from '@/lib/scoring';
+import { parseRawInterests } from '@/lib/interests';
 
 export async function GET(request, { params }) {
   try {
-    const { id } = await params
+    const { id } = await params;
 
-    const [scholar, scoringConfig] = await Promise.all([
+    const [scholar, scoringConfig, activeScores] = await Promise.all([
       prisma.scholarProfile.findUnique({
         where: { id },
         include: {
@@ -31,7 +21,10 @@ export async function GET(request, { params }) {
                   authors: {
                     include: {
                       scholar: {
-                        include: { department: true },
+                        include: {
+                          department: true,
+                          user: { select: { accountStatus: true } },
+                        },
                       },
                     },
                   },
@@ -44,78 +37,58 @@ export async function GET(request, { params }) {
         },
       }),
       prisma.scoringConfig.findFirst(),
-    ])
+      prisma.scholarProfile.findMany({
+        where: { user: { accountStatus: 'ACTIVE' } },
+        select: { id: true, tiuScore: true },
+        orderBy: [{ tiuScore: 'desc' }, { hIndex: 'desc' }],
+      }),
+    ]);
 
     if (!scholar || scholar.user.accountStatus !== 'ACTIVE') {
-      return Response.json({ error: 'Scholar not found or inactive' }, { status: 404 })
+      return Response.json({ error: 'Scholar not found or inactive' }, { status: 404 });
     }
 
-    const config = scoringConfig || {
-      scopusWeight: 10,
-      q1Q2Bonus: 5,
-      wosWeight: 10,
-      oakWeight: 5,
-      monographWeight: 7,
-      patentWeight: 6,
-      conferenceWeight: 2,
-      citationWeight: 0.2,
-    }
-
-    // Filter strictly APPROVED records
     const approvedPublications = scholar.publications
       .map((pa) => pa.publication)
       .filter((p) => p && p.status === 'APPROVED')
-      .sort((a, b) => (b.year || 0) - (a.year || 0))
+      .sort((a, b) => (b.year || 0) - (a.year || 0));
 
-    const approvedGrants = scholar.grantProjects.filter((g) => g.status === 'APPROVED')
-    const approvedSupervisions = scholar.supervisions.filter((s) => s.status === 'APPROVED')
+    const approvedGrants = scholar.grantProjects.filter((g) => g.status === 'APPROVED');
+    const approvedSupervisions = scholar.supervisions.filter((s) => s.status === 'APPROVED');
 
-    // Transparent Score Breakdown (Variant D)
-    let scopusWosPoints = 0
-    let scopusWosCount = 0
-    let oakPoints = 0
-    let oakCount = 0
-    let otherPubPoints = 0
-    let totalCitations = 0
+    const { hIndex, totalCitations, scopusWosCount, scoreBreakdown, tiuScore } =
+      computeScoreBreakdown(
+        { approvedPublications, approvedGrants, approvedSupervisions },
+        scoringConfig
+      );
 
+    // University rank among active scholars
+    const rankIndex = activeScores.findIndex((s) => s.id === scholar.id);
+    const universityRank = rankIndex >= 0 ? rankIndex + 1 : null;
+    const totalActiveScholars = activeScores.length;
+
+    // Yearly publications & citations analytics + Publication Mix (typeStats)
+    const yearMap = new Map();
+    const quartileStats = { Q1: 0, Q2: 0, Q3: 0, Q4: 0 };
+    const typeStats = {};
     for (const pub of approvedPublications) {
-      totalCitations += pub.citationsCount || 0
-      const bonus = pub.quartile === 'Q1' || pub.quartile === 'Q2' ? config.q1Q2Bonus : 0
-
-      if (pub.type === 'SCOPUS' || pub.type === 'WOS') {
-        scopusWosCount += 1
-        const w = pub.type === 'SCOPUS' ? config.scopusWeight : config.wosWeight
-        scopusWosPoints += w + bonus
-      } else if (pub.type === 'OAK') {
-        oakCount += 1
-        oakPoints += config.oakWeight + bonus
-      } else {
-        let w = TYPE_WEIGHTS[pub.type] || 3
-        if (pub.type === 'MONOGRAPH') w = config.monographWeight
-        if (pub.type === 'PATENT') w = config.patentWeight
-        if (pub.type === 'CONFERENCE') w = config.conferenceWeight
-        otherPubPoints += w + bonus
+      if (pub.year) {
+        const cur = yearMap.get(pub.year) || { year: pub.year, count: 0, citations: 0 };
+        cur.count += 1;
+        cur.citations += pub.citationsCount || 0;
+        yearMap.set(pub.year, cur);
+      }
+      if (pub.quartile && quartileStats[pub.quartile] !== undefined) {
+        quartileStats[pub.quartile] += 1;
+      }
+      if (pub.type) {
+        typeStats[pub.type] = (typeStats[pub.type] || 0) + 1;
       }
     }
+    const yearlyStats = Array.from(yearMap.values()).sort((a, b) => a.year - b.year);
 
-    const citationsPoints = parseFloat((totalCitations * config.citationWeight).toFixed(2))
-    const grantsPoints = approvedGrants.length * 8
-    const supervisionsPoints = approvedSupervisions.length * 6
-
-    const scoreBreakdown = {
-      scopusWos: { count: scopusWosCount, points: parseFloat(scopusWosPoints.toFixed(1)) },
-      oak: { count: oakCount, points: parseFloat(oakPoints.toFixed(1)) },
-      otherPubs: {
-        count: approvedPublications.length - scopusWosCount - oakCount,
-        points: parseFloat(otherPubPoints.toFixed(1)),
-      },
-      citations: { count: totalCitations, points: citationsPoints },
-      grants: { count: approvedGrants.length, points: grantsPoints },
-      supervisions: { count: approvedSupervisions.length, points: supervisionsPoints },
-    }
-
-    // Derive Co-Authors from shared approved publications
-    const coAuthorMap = new Map()
+    // Derive Co-Authors from shared approved publications with shared publication count
+    const coAuthorMap = new Map();
     for (const pub of approvedPublications) {
       if (pub.authors) {
         for (const auth of pub.authors) {
@@ -124,26 +97,47 @@ export async function GET(request, { params }) {
             auth.scholarId !== scholar.id &&
             auth.scholar.user?.accountStatus === 'ACTIVE'
           ) {
-            coAuthorMap.set(auth.scholar.id, auth.scholar)
+            const existing = coAuthorMap.get(auth.scholar.id);
+            if (existing) {
+              existing.sharedCount += 1;
+            } else {
+              coAuthorMap.set(auth.scholar.id, {
+                ...auth.scholar,
+                sharedCount: 1,
+              });
+            }
           }
         }
       }
     }
-    const coAuthors = Array.from(coAuthorMap.values())
+    const coAuthors = Array.from(coAuthorMap.values()).sort(
+      (a, b) => b.sharedCount - a.sharedCount
+    );
+
+    const parsedInterests = parseRawInterests(scholar.researchInterests, scholar.department);
 
     return Response.json({
       scholar: {
         ...scholar,
+        hIndex,
+        totalCitations,
+        tiuScore,
+        universityRank,
+        totalActiveScholars,
+        researchInterests: JSON.stringify(parsedInterests),
         publications: approvedPublications,
         grantProjects: approvedGrants,
         supervisions: approvedSupervisions,
         coAuthors,
         scopusWosCount,
         scoreBreakdown,
+        yearlyStats,
+        quartileStats,
+        typeStats,
       },
-    })
+    });
   } catch (error) {
-    console.error('API GET /api/scholars/[id] error:', error)
-    return Response.json({ error: error.message }, { status: 500 })
+    console.error('API GET /api/scholars/[id] error:', error);
+    return Response.json({ error: error.message }, { status: 500 });
   }
 }

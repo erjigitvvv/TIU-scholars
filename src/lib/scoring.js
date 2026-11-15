@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma';
 
-const prisma = new PrismaClient()
-
-const TYPE_WEIGHTS = {
+export const TYPE_WEIGHTS = {
   SCOPUS: 10,
   WOS: 10,
   OAK: 5,
@@ -12,87 +10,157 @@ const TYPE_WEIGHTS = {
   MONOGRAPH: 7,
   TEXTBOOK: 6,
   PATENT: 6,
+};
+
+export const GRANT_WEIGHT = 8;
+export const SUPERVISION_WEIGHT = 6;
+
+export const DEFAULT_SCORING_CONFIG = {
+  scopusWeight: 10,
+  q1Q2Bonus: 5,
+  wosWeight: 10,
+  oakWeight: 5,
+  monographWeight: 7,
+  patentWeight: 6,
+  conferenceWeight: 2,
+  citationWeight: 0.2,
+};
+
+function getPublicationWeight(type, config) {
+  switch (type) {
+    case 'SCOPUS':
+      return config.scopusWeight;
+    case 'WOS':
+      return config.wosWeight;
+    case 'OAK':
+      return config.oakWeight;
+    case 'MONOGRAPH':
+      return config.monographWeight;
+    case 'PATENT':
+      return config.patentWeight;
+    case 'CONFERENCE':
+      return config.conferenceWeight;
+    default:
+      return TYPE_WEIGHTS[type] || 3;
+  }
+}
+
+export function computeHIndex(publications = []) {
+  const citationCounts = publications
+    .map((p) => p.citationsCount || 0)
+    .sort((a, b) => b - a);
+
+  let hIndex = 0;
+  for (let i = 0; i < citationCounts.length; i++) {
+    if (citationCounts[i] >= i + 1) {
+      hIndex = i + 1;
+    } else {
+      break;
+    }
+  }
+  return hIndex;
+}
+
+export function computeScoreBreakdown(
+  { approvedPublications = [], approvedGrants = [], approvedSupervisions = [] },
+  scoringConfig = null
+) {
+  const config = scoringConfig || DEFAULT_SCORING_CONFIG;
+
+  let scopusWosPoints = 0;
+  let scopusWosCount = 0;
+  let oakPoints = 0;
+  let oakCount = 0;
+  let otherPubPoints = 0;
+  let totalCitations = 0;
+
+  for (const pub of approvedPublications) {
+    totalCitations += pub.citationsCount || 0;
+    const bonus = pub.quartile === 'Q1' || pub.quartile === 'Q2' ? config.q1Q2Bonus : 0;
+    const weight = getPublicationWeight(pub.type, config);
+
+    if (pub.type === 'SCOPUS' || pub.type === 'WOS') {
+      scopusWosCount += 1;
+      scopusWosPoints += weight + bonus;
+    } else if (pub.type === 'OAK') {
+      oakCount += 1;
+      oakPoints += weight + bonus;
+    } else {
+      otherPubPoints += weight + bonus;
+    }
+  }
+
+  const citationsPoints = parseFloat((totalCitations * config.citationWeight).toFixed(2));
+  const grantsPoints = approvedGrants.length * GRANT_WEIGHT;
+  const supervisionsPoints = approvedSupervisions.length * SUPERVISION_WEIGHT;
+
+  const totalScore = parseFloat(
+    (
+      scopusWosPoints +
+      oakPoints +
+      otherPubPoints +
+      citationsPoints +
+      grantsPoints +
+      supervisionsPoints
+    ).toFixed(2)
+  );
+
+  return {
+    hIndex: computeHIndex(approvedPublications),
+    totalCitations,
+    tiuScore: totalScore,
+    scopusWosCount,
+    scoreBreakdown: {
+      scopusWos: { count: scopusWosCount, points: parseFloat(scopusWosPoints.toFixed(1)) },
+      oak: { count: oakCount, points: parseFloat(oakPoints.toFixed(1)) },
+      otherPubs: {
+        count: approvedPublications.length - scopusWosCount - oakCount,
+        points: parseFloat(otherPubPoints.toFixed(1)),
+      },
+      citations: { count: totalCitations, points: citationsPoints },
+      grants: { count: approvedGrants.length, points: grantsPoints },
+      supervisions: { count: approvedSupervisions.length, points: supervisionsPoints },
+    },
+  };
 }
 
 export async function recalculateScholarMetrics(scholarId) {
   try {
-    // 1. Load ScoringConfig or defaults
-    let config = await prisma.scoringConfig.findFirst()
-    if (!config) {
-      config = {
-        scopusWeight: 10,
-        q1Q2Bonus: 5,
-        wosWeight: 10,
-        oakWeight: 5,
-        monographWeight: 7,
-        patentWeight: 6,
-        conferenceWeight: 2,
-        citationWeight: 0.2,
-      }
-    }
+    const [config, pubAuthors, approvedGrants, approvedSupervisions] = await Promise.all([
+      prisma.scoringConfig.findFirst(),
+      prisma.publicationAuthor.findMany({
+        where: { scholarId },
+        include: { publication: true },
+      }),
+      prisma.grantProject.findMany({
+        where: { scholarId, status: 'APPROVED' },
+      }),
+      prisma.supervision.findMany({
+        where: { scholarId, status: 'APPROVED' },
+      }),
+    ]);
 
-    // 2. Query APPROVED publications via PublicationAuthor
-    const pubAuthors = await prisma.publicationAuthor.findMany({
-      where: { scholarId },
-      include: {
-        publication: true,
-      },
-    })
+    const approvedPublications = pubAuthors
+      .map((pa) => pa.publication)
+      .filter((p) => p && p.status === 'APPROVED');
 
-    const approvedPubs = pubAuthors
-      .map(pa => pa.publication)
-      .filter(p => p && p.status === 'APPROVED')
+    const { hIndex, totalCitations, tiuScore } = computeScoreBreakdown(
+      { approvedPublications, approvedGrants, approvedSupervisions },
+      config
+    );
 
-    // 3. Compute H-index, totalCitations, and tiuScore
-    let totalCitations = 0
-    const citationCounts = approvedPubs.map(p => p.citationsCount || 0).sort((a, b) => b - a)
-
-    // H-index calculation: h publications with at least h citations
-    let hIndex = 0
-    for (let i = 0; i < citationCounts.length; i++) {
-      if (citationCounts[i] >= i + 1) {
-        hIndex = i + 1
-      } else {
-        break
-      }
-    }
-
-    let rawScoreSum = 0
-    for (const pub of approvedPubs) {
-      totalCitations += (pub.citationsCount || 0)
-
-      let baseWeight = TYPE_WEIGHTS[pub.type] || 3
-      // Override with config if present
-      if (pub.type === 'SCOPUS') baseWeight = config.scopusWeight
-      if (pub.type === 'WOS') baseWeight = config.wosWeight
-      if (pub.type === 'OAK') baseWeight = config.oakWeight
-      if (pub.type === 'MONOGRAPH') baseWeight = config.monographWeight
-      if (pub.type === 'PATENT') baseWeight = config.patentWeight
-      if (pub.type === 'CONFERENCE') baseWeight = config.conferenceWeight
-
-      let bonus = 0
-      if (pub.quartile === 'Q1' || pub.quartile === 'Q2') {
-        bonus = config.q1Q2Bonus
-      }
-
-      rawScoreSum += (baseWeight + bonus)
-    }
-
-    const tiuScore = rawScoreSum + (totalCitations * config.citationWeight)
-
-    // 4. Update ScholarProfile
     const updated = await prisma.scholarProfile.update({
       where: { id: scholarId },
       data: {
         hIndex,
         totalCitations,
-        tiuScore: parseFloat(tiuScore.toFixed(2)),
+        tiuScore,
       },
-    })
+    });
 
-    return updated
+    return updated;
   } catch (error) {
-    console.error('Error in recalculateScholarMetrics:', error)
-    throw error
+    console.error('Error in recalculateScholarMetrics:', error);
+    throw error;
   }
 }
