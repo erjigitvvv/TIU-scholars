@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { prisma } from '@/lib/prisma'
-import { getCurrentUser } from '@/lib/auth'
+import { getActiveScholar } from '@/lib/auth'
 import { recalculateScholarMetrics, TYPE_WEIGHTS } from '@/lib/scoring'
 import { fetchByDoi } from '@/lib/crossref'
 import { parseBibtex } from '@/lib/bibtex'
@@ -22,11 +22,6 @@ function estimatePubPoints(pub) {
   return base + qBonus
 }
 
-async function getActiveScholar() {
-  const user = await getCurrentUser()
-  if (!user || !user.scholarProfile) return null
-  return user.scholarProfile
-}
 
 export async function GET(request) {
   try {

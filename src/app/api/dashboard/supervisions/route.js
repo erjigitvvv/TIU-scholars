@@ -1,11 +1,6 @@
 import { prisma } from '@/lib/prisma'
-import { getCurrentUser } from '@/lib/auth'
+import { getActiveScholar } from '@/lib/auth'
 
-async function getActiveScholar() {
-  const user = await getCurrentUser()
-  if (!user || !user.scholarProfile) return null
-  return user.scholarProfile
-}
 
 export async function GET(request) {
   try {

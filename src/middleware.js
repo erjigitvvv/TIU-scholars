@@ -9,7 +9,10 @@ const getJwtSecretKey = () => {
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
 
-  const isProtectedPath = pathname.startsWith('/dashboard') || pathname.startsWith('/admin') || pathname.startsWith('/pending-approval');
+  const isProtectedPath =
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/pending-approval');
 
   if (!isProtectedPath) {
     return NextResponse.next();
@@ -26,6 +29,10 @@ export async function middleware(request) {
   try {
     const verified = await jwtVerify(token, getJwtSecretKey());
     const { role } = verified.payload;
+
+    if (pathname.startsWith('/admin') && role !== 'SUPER_ADMIN' && role !== 'MODERATOR') {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
 
     return NextResponse.next();
   } catch (err) {

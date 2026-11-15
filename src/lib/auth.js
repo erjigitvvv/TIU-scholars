@@ -61,3 +61,11 @@ export function requireRole(user, allowedRoles) {
   if (user.role === 'SUPER_ADMIN') return true;
   return allowedRoles.includes(user.role);
 }
+
+export async function getActiveScholar() {
+  const user = await getCurrentUser();
+  if (!user || !user.scholarProfile || user.accountStatus !== 'ACTIVE') {
+    return null;
+  }
+  return { ...user.scholarProfile, accountEmail: user.email || '' };
+}

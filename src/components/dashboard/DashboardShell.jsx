@@ -12,6 +12,7 @@ import {
   User,
   LogOut,
   Globe,
+  ChevronDown,
   ExternalLink,
   Menu,
   X,
@@ -75,6 +76,7 @@ export default function DashboardShell({ user, locale = 'uz', children }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [langOpen, setLangOpen] = useState(false);
   const t = LABELS[locale] || LABELS.uz;
   const scholar = user?.scholarProfile;
 
@@ -266,33 +268,49 @@ export default function DashboardShell({ user, locale = 'uz', children }) {
               {activeItem.label}
             </h1>
           </div>
-          <div className="flex items-center gap-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/80 p-1 shrink-0">
-            <Globe className="w-3.5 h-3.5 text-slate-400 ml-1.5 mr-0.5 hidden sm:block" />
-            {[
-              { code: 'uz', label: 'UZ' },
-              { code: 'ru', label: 'RU' },
-              { code: 'en', label: 'EN' },
-            ].map((item) => {
-              const isActive = locale === item.code;
-              return (
-                <button
-                  key={item.code}
-                  type="button"
-                  onClick={() => {
-                    if (isActive) return;
-                    document.cookie = `NEXT_LOCALE=${item.code}; path=/; max-age=31536000`;
-                    window.location.reload();
-                  }}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                    isActive
-                      ? 'bg-[#0F1E3C] text-white shadow-sm'
-                      : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700'
-                  }`}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setLangOpen((v) => !v)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 shadow-xs transition-all cursor-pointer"
+            >
+              <Globe className="w-3.5 h-3.5 text-blue-600 dark:text-sky-400" />
+              <span className="uppercase">{locale}</span>
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${langOpen ? "rotate-180" : ""}`} />
+            </button>
+            {langOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setLangOpen(false)} />
+                <div className="absolute right-0 mt-1.5 w-32 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-lg py-1 z-50">
+                  {[
+                    { code: 'uz', label: 'O?zbekcha (UZ)' },
+                    { code: 'ru', label: '??????? (RU)' },
+                    { code: 'en', label: 'English (EN)' },
+                  ].map((item) => {
+                    const isActive = locale === item.code;
+                    return (
+                      <button
+                        key={item.code}
+                        type="button"
+                        onClick={() => {
+                          setLangOpen(false);
+                          if (isActive) return;
+                          document.cookie = `NEXT_LOCALE=${item.code}; path=/; max-age=31536000`;
+                          window.location.reload();
+                        }}
+                        className={`w-full text-left px-3 py-2 text-xs font-semibold transition-colors cursor-pointer ${
+                          isActive
+                            ? 'bg-blue-50 dark:bg-sky-950/60 text-blue-700 dark:text-sky-300'
+                            : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         </header>
 

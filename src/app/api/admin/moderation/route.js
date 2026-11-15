@@ -11,34 +11,64 @@ export async function GET(request) {
 
   const { searchParams } = new URL(request.url);
   const type = searchParams.get('type') || 'publications'; // publications, grants, supervisions
+  const statusParam = (searchParams.get('status') || 'PENDING').toUpperCase();
+  const statusFilter =
+    statusParam === 'ALL'
+      ? { in: ['PENDING', 'APPROVED', 'REJECTED'] }
+      : statusParam;
 
+  const [pendingPubs, pendingGrants, pendingSupervisions] = await Promise.all([
+    prisma.publication.count({ where: { status: 'PENDING' } }),
+    prisma.grantProject.count({ where: { status: 'PENDING' } }),
+    prisma.supervision.count({ where: { status: 'PENDING' } }),
+  ]);
+
+  const counts = {
+    publications: pendingPubs,
+    grants: pendingGrants,
+    supervisions: pendingSupervisions,
+    totalPending: pendingPubs + pendingGrants + pendingSupervisions,
+  };
+
+  let items = [];
   if (type === 'publications') {
-    const items = await prisma.publication.findMany({
-      where: { status: 'PENDING' },
+    items = await prisma.publication.findMany({
+      where: { status: statusFilter },
       include: {
         submittedBy: { select: { email: true } },
-        authors: { include: { scholar: true } },
+        authors: {
+          include: {
+            scholar: {
+              include: { department: true },
+            },
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { updatedAt: 'desc' },
     });
-    return NextResponse.json(items);
   } else if (type === 'grants') {
-    const items = await prisma.grantProject.findMany({
-      where: { status: 'PENDING' },
-      include: { scholar: true },
-      orderBy: { createdAt: 'desc' },
+    items = await prisma.grantProject.findMany({
+      where: { status: statusFilter },
+      include: {
+        scholar: {
+          include: { department: true },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
     });
-    return NextResponse.json(items);
   } else if (type === 'supervisions') {
-    const items = await prisma.supervision.findMany({
-      where: { status: 'PENDING' },
-      include: { scholar: true },
-      orderBy: { createdAt: 'desc' },
+    items = await prisma.supervision.findMany({
+      where: { status: statusFilter },
+      include: {
+        scholar: {
+          include: { department: true },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
     });
-    return NextResponse.json(items);
   }
 
-  return NextResponse.json([]);
+  return NextResponse.json({ items, counts });
 }
 
 export async function PATCH(request) {
@@ -48,7 +78,16 @@ export async function PATCH(request) {
   }
 
   try {
-    const { id, type, status, rejectionReason } = await request.json();
+    const {
+      id,
+      type,
+      status,
+      rejectionReason,
+      pubType,
+      quartile,
+      citationsCount,
+    } = await request.json();
+
     if (!id || !type || !status) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
@@ -59,19 +98,27 @@ export async function PATCH(request) {
 
     let updatedItem;
     if (type === 'publications') {
+      const updateData = {
+        status,
+        rejectionReason: status === 'REJECTED' ? rejectionReason : null,
+      };
+      if (pubType) updateData.type = pubType;
+      if (quartile) updateData.quartile = quartile;
+      if (citationsCount !== undefined && citationsCount !== null && citationsCount !== '') {
+        const parsed = parseInt(citationsCount, 10);
+        if (!Number.isNaN(parsed) && parsed >= 0) {
+          updateData.citationsCount = parsed;
+        }
+      }
+
       updatedItem = await prisma.publication.update({
         where: { id },
-        data: {
-          status,
-          rejectionReason: status === 'REJECTED' ? rejectionReason : null,
-        },
+        data: updateData,
         include: { authors: true },
       });
 
-      if (status === 'APPROVED') {
-        for (const author of updatedItem.authors) {
-          await recalculateScholarMetrics(author.scholarId);
-        }
+      for (const author of updatedItem.authors) {
+        await recalculateScholarMetrics(author.scholarId);
       }
     } else if (type === 'grants') {
       updatedItem = await prisma.grantProject.update({
@@ -81,6 +128,9 @@ export async function PATCH(request) {
           rejectionReason: status === 'REJECTED' ? rejectionReason : null,
         },
       });
+      if (updatedItem.scholarId) {
+        await recalculateScholarMetrics(updatedItem.scholarId);
+      }
     } else if (type === 'supervisions') {
       updatedItem = await prisma.supervision.update({
         where: { id },
@@ -89,6 +139,9 @@ export async function PATCH(request) {
           rejectionReason: status === 'REJECTED' ? rejectionReason : null,
         },
       });
+      if (updatedItem.scholarId) {
+        await recalculateScholarMetrics(updatedItem.scholarId);
+      }
     }
 
     await prisma.auditLog.create({
@@ -97,7 +150,7 @@ export async function PATCH(request) {
         action: `MODERATE_${type.toUpperCase()}_${status}`,
         entityType: type,
         entityId: id,
-        details: JSON.stringify({ status, rejectionReason }),
+        details: JSON.stringify({ status, rejectionReason, pubType, quartile, citationsCount }),
       },
     });
 
