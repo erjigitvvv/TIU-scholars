@@ -98,6 +98,7 @@ model Publication {
   doi                String?             @unique
   url                String?
   isbnOrPatentNo     String?
+  coverImageUrl      String?             // Maqola muqovasi yoki grafik abstrakt (Graphical Abstract) rasmi
   quartile           String              @default("NONE") // Q1, Q2, Q3, Q4, NONE
   citationsCount     Int                 @default(0)
   status             String              @default("PENDING") // PENDING, APPROVED, REJECTED
@@ -108,6 +109,8 @@ model Publication {
   updatedAt          DateTime            @updatedAt
 
   authors            PublicationAuthor[]
+  supervisions       SupervisionPublication[]
+  qualityCheck       ModeratorQualityCheck?
 }
 
 model PublicationAuthor {
@@ -136,16 +139,130 @@ model GrantProject {
 }
 
 model Supervision {
-  id                String         @id @default(cuid())
-  scholarId         String
-  scholar           ScholarProfile @relation(fields: [scholarId], references: [id], onDelete: Cascade)
-  studentName       String
-  degreeType        String         @default("PHD")
-  dissertationTitle String
-  year              Int
-  status            String         @default("PENDING")
-  rejectionReason   String?
-  createdAt         DateTime       @default(now())
+  id                 String         @id @default(cuid())
+  scholarId          String
+  scholar            ScholarProfile @relation(fields: [scholarId], references: [id], onDelete: Cascade)
+  
+  // Shogird ma'lumotlari
+  studentName        String
+  studentEmail       String?
+  studentPhone       String?
+  degreeType         String         @default("PHD") // MASTER, PHD, DSC, INDEPENDENT_RESEARCHER
+  specialtyCode      String?        // Masalan: "05.01.05"
+  specialtyName      String?
+  dissertationTitle  String
+  year               Int            @default(2026)  // Boshlanish yoki bazaviy yil (legacy moslik)
+
+  // Bosqich va Moderatsiya
+  stage              String         @default("A_DRAFT") 
+  // A_DRAFT, A_SUBMITTED_DEPARTMENT, A_DEPARTMENT_APPROVED, B_ACTIVE_RESEARCH, C_PUBLICATIONS_READY, D_PRE_DEFENSE, E_COMPLETED, ON_HOLD, TERMINATED
+  
+  status             String         @default("PENDING") // PENDING, APPROVED, REJECTED (Reyting kodi shunga tayanadi)
+  rejectionReason    String?
+
+  // Qonuniy buyruq
+  orderNumber        String?        // Rektor buyrug'i raqami
+  orderDate          DateTime?      // Buyruq sanasi
+  orderFileUrl       String?        // PDF buyruq nusxasi
+  
+  // Muddatlar
+  startDate          DateTime?      // Buyruq chiqqan sana
+  expectedDefenseDate DateTime?     // Rejalashtirilgan himoya sanasi
+  actualDefenseDate  DateTime?      // Haqiqiy himoya sanasi
+  defenseCouncilNo   String?        // Kengash raqami (masalan: DSc.03/30.12.2021.T.02.05)
+  diplomaNumber      String?        // OAK diplomi raqami
+  diplomaFileUrl     String?
+  
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @default(now()) @updatedAt
+
+  // Munosabatlar
+  milestones         SupervisionMilestone[]
+  meetings           SupervisionMeeting[]
+  reports            SupervisionReport[]
+  publications       SupervisionPublication[]
+  checklist          SupervisionChecklist?
+  documents          DocumentVersion[]
+
+  @@index([scholarId])
+  @@index([stage])
+  @@index([status])
+}
+
+model SupervisionMilestone {
+  id             String      @id @default(cuid())
+  supervisionId  String
+  supervision    Supervision @relation(fields: [supervisionId], references: [id], onDelete: Cascade)
+  title          String      // masalan: "1-yilgi Qishki Attestatsiya"
+  stage          String      // Qaysi bosqichga tegishliligi
+  dueDate        DateTime    // Belgilangan oxirgi muddat
+  completedDate  DateTime?   // Haqiqiy bajarilgan sana
+  isCompleted    Boolean     @default(false)
+  isOverdue      Boolean     @default(false)
+  notes          String?
+  createdAt      DateTime    @default(now())
+
+  @@index([supervisionId])
+  @@index([dueDate])
+}
+
+model SupervisionMeeting {
+  id              String      @id @default(cuid())
+  supervisionId   String
+  supervision     Supervision @relation(fields: [supervisionId], references: [id], onDelete: Cascade)
+  meetingDate     DateTime    @default(now())
+  topicsCovered   String      // Muhokama qilingan masalalar
+  tasksAssigned   String      // Shogirdga berilgan topshiriqlar
+  nextMeetingDate DateTime?
+  notes           String?
+  createdAt       DateTime    @default(now())
+
+  @@index([supervisionId])
+}
+
+model SupervisionReport {
+  id             String      @id @default(cuid())
+  supervisionId  String
+  supervision    Supervision @relation(fields: [supervisionId], references: [id], onDelete: Cascade)
+  periodName     String      // masalan: "2026/2027 1-yarim yillik"
+  submittedAt    DateTime    @default(now())
+  content        String      // Bajarilgan ishlar hisoboti
+  fileUrl        String?     // PDF hisobot fayli
+  status         String      @default("PENDING") // PENDING, ACCEPTED, NEEDS_REVISION
+  feedback       String?
+  reviewedAt     DateTime?
+  reviewedBy     String?
+
+  @@index([supervisionId])
+}
+
+model SupervisionPublication {
+  id             String      @id @default(cuid())
+  supervisionId  String
+  supervision    Supervision @relation(fields: [supervisionId], references: [id], onDelete: Cascade)
+  publicationId  String
+  publication    Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  addedAt        DateTime    @default(now())
+
+  @@unique([supervisionId, publicationId])
+  @@index([supervisionId])
+}
+
+model SupervisionChecklist {
+  id                  String      @id @default(cuid())
+  supervisionId       String      @unique
+  supervision         Supervision @relation(fields: [supervisionId], references: [id], onDelete: Cascade)
+  dissertationFileUrl String?
+  isDissertationReady Boolean     @default(false)
+  autoreferatFileUrl  String?
+  isAutoreferatReady  Boolean     @default(false)
+  seminarProtocolUrl  String?
+  isSeminarApproved   Boolean     @default(false)
+  plagiarismReportUrl String?
+  plagiarismPercent   Float?      // Masalan: 88.5%
+  isPlagiarismPassed  Boolean     @default(false)
+  allRequirementsMet  Boolean     @default(false)
+  updatedAt           DateTime    @updatedAt
 }
 
 model KpiTarget {
@@ -209,4 +326,52 @@ model Notification {
   link      String?
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model DocumentVersion {
+  id              String      @id @default(cuid())
+  supervisionId   String
+  supervision     Supervision @relation(fields: [supervisionId], references: [id], onDelete: Cascade)
+  documentType    String      // DISSERTATION, AUTOREFERAT, REPORT, SYLLABUS, ARTICLE
+  versionNumber   Int         // 1, 2, 3 ...
+  fileUrl         String
+  fileName        String
+  fileSize        Int?        // Hajmi baytlarda
+  uploaderNotes   String?     // Izlanuvchi izohi
+  uploadedById    String
+  createdAt       DateTime    @default(now())
+
+  // Rahbar qarori
+  reviewDecision  String?     // APPROVED, NEEDS_REVISION, REJECTED
+  reviewComment   String?
+  reviewedAt      DateTime?
+
+  @@index([supervisionId, documentType])
+}
+
+model ModeratorQualityCheck {
+  id                  String       @id @default(cuid())
+  publicationId       String       @unique
+  publication         Publication  @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  
+  // 1. Plagiat
+  plagiarismPercent   Float?
+  plagiarismReportUrl String?
+  isPlagiarismPassed  Boolean      @default(false)
+
+  // 2. Iqtibos formati
+  citationFormatStyle String?      // APA, IEEE, HARVARD, OTHER
+  isCitationValid     Boolean      @default(false)
+
+  // 3. DOI Haqiqiyligi
+  isDoiVerified       Boolean      @default(false)
+  crossrefRawData     String?      // JSON string
+
+  // 4. Grammatika va til
+  languageQuality     String?      // EXCELLENT, ACCEPTABLE, NEEDS_EDITING
+  languageNotes       String?
+
+  moderatorId         String?
+  checkedAt           DateTime?
+  createdAt           DateTime     @default(now())
 }

@@ -199,19 +199,19 @@ export default function RegisterPage() {
             <div className="px-3.5 py-2.5 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 text-xs text-blue-800 dark:text-blue-300 font-medium">
               {t.sentToEmail} <span className="font-bold">{formData.email}</span>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 max-w-sm mx-auto">
               <Link
                 href="/login"
-                className="flex-1 py-2.5 px-4 bg-blue-900 hover:bg-blue-800 text-white font-semibold rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 text-xs sm:text-sm whitespace-nowrap"
+                className="w-full py-2 px-3 bg-blue-900 hover:bg-blue-800 text-white font-medium rounded-lg shadow-xs transition-all flex items-center justify-center gap-1.5 text-xs truncate"
               >
-                {t.goLogin}
-                <ArrowRight className="w-4 h-4" />
+                <span>{t.goLogin}</span>
+                <ArrowRight className="w-3.5 h-3.5 shrink-0" />
               </Link>
               <Link
                 href="/"
-                className="flex-1 py-2.5 px-4 bg-white/90 hover:bg-white dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-semibold rounded-xl shadow-sm transition-all flex items-center justify-center text-xs sm:text-sm whitespace-nowrap"
+                className="w-full py-2 px-3 bg-white/90 hover:bg-white dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-medium rounded-lg shadow-xs transition-all flex items-center justify-center text-xs truncate"
               >
-                {t.goHome}
+                <span>{t.goHome}</span>
               </Link>
             </div>
           </div>

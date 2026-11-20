@@ -51,6 +51,7 @@ export async function POST(request) {
       departmentId,
       scholarId,
       targetPublications,
+      targetScopus,
       targetScopusWos,
       targetScore,
     } = await request.json();
@@ -68,7 +69,7 @@ export async function POST(request) {
         departmentId: departmentId || null,
         scholarId: scholarId || null,
         targetPublications: parseInt(targetPublications || 0, 10),
-        targetScopusWos: parseInt(targetScopusWos || 0, 10),
+        targetScopus: parseInt(targetScopus ?? targetScopusWos ?? 0, 10),
         targetScore: parseFloat(targetScore || 0),
       },
     });

@@ -350,27 +350,45 @@ export default async function PublicationDetailPage({ params }) {
             />
           </div>
 
-          <div className="lg:col-span-4 p-5 rounded-2xl neu-card-sm space-y-3">
-            <h2 className="text-sm font-bold text-[#0F294A] dark:text-white flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-blue-600 dark:text-sky-400" />
-              {L.keywordsTitle}
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {keywords.length > 0 ? (
-                keywords.map((kw, i) => (
-                  <Link
-                    key={i}
-                    href={`/publications?q=${encodeURIComponent(kw)}`}
-                    className="px-3 py-1 rounded-xl glass-btn text-xs font-medium text-slate-700 dark:text-slate-200 hover:text-blue-700 dark:hover:text-sky-300"
-                  >
-                    {kw}
-                  </Link>
-                ))
-              ) : (
-                <span className="px-3 py-1 rounded-xl glass-btn text-xs font-medium text-slate-600 dark:text-slate-300">
-                  {typeLabel}
-                </span>
-              )}
+          <div className="lg:col-span-4 space-y-4">
+            {pub.coverImageUrl && (
+              <div className="p-5 rounded-2xl neu-card-sm space-y-2">
+                <h2 className="text-sm font-bold text-[#0F294A] dark:text-white flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <span>Graphical Abstract / Muqova</span>
+                </h2>
+                <div className="rounded-xl overflow-hidden border border-slate-200/80 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
+                  <img
+                    src={pub.coverImageUrl}
+                    alt={cleanedTitle}
+                    className="w-full h-auto max-h-64 object-contain mx-auto"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="p-5 rounded-2xl neu-card-sm space-y-3">
+              <h2 className="text-sm font-bold text-[#0F294A] dark:text-white flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-blue-600 dark:text-sky-400" />
+                {L.keywordsTitle}
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {keywords.length > 0 ? (
+                  keywords.map((kw, i) => (
+                    <Link
+                      key={i}
+                      href={`/publications?q=${encodeURIComponent(kw)}`}
+                      className="px-3 py-1 rounded-xl glass-btn text-xs font-medium text-slate-700 dark:text-slate-200 hover:text-blue-700 dark:hover:text-sky-300"
+                    >
+                      {kw}
+                    </Link>
+                  ))
+                ) : (
+                  <span className="px-3 py-1 rounded-xl glass-btn text-xs font-medium text-slate-600 dark:text-slate-300">
+                    {typeLabel}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -168,10 +168,12 @@ export default async function Home() {
     _count: { id: true },
     orderBy: { year: 'asc' },
   });
-  const yearlyBars = yearlyCountsRaw.slice(-5).map((r) => ({
-    year: r.year,
-    count: r._count.id,
-  }));
+  const currentYear = new Date().getFullYear();
+  const yearlyCountMap = new Map(yearlyCountsRaw.map((r) => [r.year, r._count.id]));
+  const yearlyBars = Array.from({ length: 5 }, (_, idx) => {
+    const year = currentYear - 4 + idx;
+    return { year, count: yearlyCountMap.get(year) || 0 };
+  });
 
   return (
     <div className="bg-transparent">
@@ -203,24 +205,13 @@ export default async function Home() {
         locale={locale}
         topScholars={topScholars}
         facultyShares={facultyShares}
-        yearlyBars={
-          yearlyBars.length > 0
-            ? yearlyBars
-            : [
-                { year: 2022, count: 4 },
-                { year: 2023, count: 7 },
-                { year: 2024, count: 10 },
-                { year: 2025, count: 14 },
-                { year: 2026, count: approvedPubsCount || 8 },
-              ]
-        }
+        yearlyBars={yearlyBars}
       />
 
       {/* 3 & 4. Combined Full-Layout: Top Scholars Carousel & Faculties */}
       <HomeScholarsAndFaculties
         locale={locale}
         topScholars={(() => {
-          const currentYear = new Date().getFullYear();
           const parseTags = (raw) => {
             if (!raw) return [];
             try {

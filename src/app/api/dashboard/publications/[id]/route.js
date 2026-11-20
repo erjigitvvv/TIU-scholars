@@ -37,6 +37,7 @@ export async function PUT(request, { params }) {
         doi: body.doi || null,
         url: body.url || null,
         isbnOrPatentNo: body.isbnOrPatentNo || null,
+        coverImageUrl: body.coverImageUrl !== undefined ? body.coverImageUrl : undefined,
         quartile: body.quartile || 'NONE',
         citationsCount: parseInt(body.citationsCount, 10) || 0,
         status: 'PENDING', // Resubmit sets back to PENDING

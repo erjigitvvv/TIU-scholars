@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from './prisma.js';
 
 export const TYPE_WEIGHTS = {
   SCOPUS: 10,
@@ -67,6 +67,14 @@ function getPublicationWeight(type, config) {
     default:
       return TYPE_WEIGHTS[type] || 3;
   }
+}
+
+export function getPublicationPoints(pub, scoringConfig = null) {
+  if (!pub) return 0;
+  const config = scoringConfig || DEFAULT_SCORING_CONFIG;
+  const weight = getPublicationWeight(pub.type, config);
+  const bonus = pub.quartile === 'Q1' || pub.quartile === 'Q2' ? config.q1Q2Bonus : 0;
+  return parseFloat((weight + bonus).toFixed(2));
 }
 
 export function computeHIndex(publications = []) {

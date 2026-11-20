@@ -2,7 +2,7 @@
 
 import { useState, useEffect, startTransition } from 'react'
 import Link from 'next/link'
-import { Plus, BookOpen, CheckCircle, Clock, XCircle, Trash2, Edit, Eye, Award, Search } from 'lucide-react'
+import { Plus, BookOpen, CheckCircle, Clock, XCircle, Trash2, Edit, Eye, Award, Search, RefreshCw, Sparkles, Image as ImageIcon, X } from 'lucide-react'
 
 export default function PublicationsPage() {
   const [publications, setPublications] = useState([])
@@ -25,6 +25,7 @@ export default function PublicationsPage() {
     doi: '',
     url: '',
     isbnOrPatentNo: '',
+    coverImageUrl: '',
     quartile: 'NONE',
     citationsCount: 0,
   })
@@ -32,6 +33,32 @@ export default function PublicationsPage() {
   const [errorMsg, setErrorMsg] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
   const [uploadingPdf, setUploadingPdf] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [syncOrcidLoading, setSyncOrcidLoading] = useState(false)
+
+  const handleSyncOrcid = async () => {
+    setErrorMsg('')
+    setSuccessMsg('')
+    setSyncOrcidLoading(true)
+    try {
+      const res = await fetch('/api/dashboard/publications/sync-orcid', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setErrorMsg(data.error || 'ORCID sinxronizatsiyasida xatolik yuz berdi.')
+        return
+      }
+      setSuccessMsg(data.message || 'ORCID dan nashrlar muvaffaqiyatli tortildi!')
+      fetchPublications()
+    } catch {
+      setErrorMsg('ORCID serveriga ulanishda xatolik yuz berdi.')
+    } finally {
+      setSyncOrcidLoading(false)
+    }
+  }
 
   const handlePdfUpload = async (e) => {
     const file = e.target.files?.[0]
@@ -56,6 +83,32 @@ export default function PublicationsPage() {
       setErrorMsg('PDF yuklashda xatolik')
     } finally {
       setUploadingPdf(false)
+    }
+  }
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setErrorMsg('')
+    setUploadingImage(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/dashboard/publications/upload-image', {
+        method: 'POST',
+        body: fd,
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setErrorMsg(data.error || 'Rasm yuklashda xatolik yuz berdi')
+        return
+      }
+      setManualForm((prev) => ({ ...prev, coverImageUrl: data.url }))
+      setSuccessMsg('Maqola rasmi muvaffaqiyatli yuklandi!')
+    } catch {
+      setErrorMsg('Rasm yuklashda xatolik yuz berdi')
+    } finally {
+      setUploadingImage(false)
     }
   }
 
@@ -104,6 +157,7 @@ export default function PublicationsPage() {
       doi: '',
       url: '',
       isbnOrPatentNo: '',
+      coverImageUrl: '',
       quartile: 'NONE',
       citationsCount: 0,
     })
@@ -123,6 +177,7 @@ export default function PublicationsPage() {
       doi: pub.doi || '',
       url: pub.url || '',
       isbnOrPatentNo: pub.isbnOrPatentNo || '',
+      coverImageUrl: pub.coverImageUrl || '',
       quartile: pub.quartile || 'NONE',
       citationsCount: pub.citationsCount || 0,
     })
@@ -150,7 +205,12 @@ export default function PublicationsPage() {
         return
       }
 
-      const payload = { mode, pdfUrl: manualForm.url || '', coAuthorIds }
+      const payload = {
+        mode,
+        pdfUrl: manualForm.url || '',
+        coverImageUrl: manualForm.coverImageUrl || '',
+        coAuthorIds,
+      }
       if (mode === 'doi') payload.doi = doiInput
       if (mode === 'bibtex') payload.bibContent = bibInput
       if (mode === 'manual') payload.manualData = manualForm
@@ -212,12 +272,23 @@ export default function PublicationsPage() {
             Scopus, Web of Science, OAK maqolalari, monografiyalar va PDF fayllarni boshqaring.
           </p>
         </div>
-        <button
-          onClick={openAddModal}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-[#0F294A] to-[#1B4275] hover:from-[#163660] hover:to-[#21508C] text-white shadow-md transition-all whitespace-nowrap shrink-0"
-        >
-          <Plus className="w-4 h-4" /> Nashr qo&apos;shish
-        </button>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            onClick={handleSyncOrcid}
+            disabled={syncOrcidLoading}
+            className="inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-xs transition-all whitespace-nowrap shrink-0 disabled:opacity-50"
+            title="ORCID profilidan maqolalar va iqtiboslarni avtomatik import qilish"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 ${syncOrcidLoading ? 'animate-spin' : ''}`} />
+            <span>{syncOrcidLoading ? 'Sinxronlanmoqda...' : 'ORCID dan tortish'}</span>
+          </button>
+          <button
+            onClick={openAddModal}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-[#0F294A] to-[#1B4275] hover:from-[#163660] hover:to-[#21508C] text-white shadow-md transition-all whitespace-nowrap shrink-0"
+          >
+            <Plus className="w-4 h-4" /> Nashr qo&apos;shish
+          </button>
+        </div>
       </div>
 
       {errorMsg && (
@@ -526,6 +597,58 @@ export default function PublicationsPage() {
                     />
                   </label>
                 </div>
+              </div>
+
+              {/* Cover Image / Graphical Abstract Upload */}
+              <div className="space-y-2 pt-2 border-t border-neutral-100">
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm font-medium text-neutral-700">
+                    Maqola rasmi / Graphical Abstract (ixtiyoriy)
+                  </label>
+                  <span className="text-[11px] text-slate-400">JPG, PNG, WebP (max 10MB)</span>
+                </div>
+
+                {manualForm.coverImageUrl ? (
+                  <div className="relative inline-block rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-2">
+                    <img
+                      src={manualForm.coverImageUrl}
+                      alt="Publication cover preview"
+                      className="h-28 w-auto max-w-full object-contain rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setManualForm((prev) => ({ ...prev, coverImageUrl: '' }))}
+                      className="absolute top-3 right-3 p-1 rounded-full bg-rose-600 text-white shadow-xs hover:bg-rose-700 transition"
+                      title="Rasmni o‘chirish"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      placeholder="https://... rasm havolasi yoki o‘ngdagi tugma orqali rasm yuklang"
+                      value={manualForm.coverImageUrl || ''}
+                      onChange={(e) => setManualForm({ ...manualForm, coverImageUrl: e.target.value })}
+                      className="flex-1 px-4 py-2 border rounded-xl outline-none text-sm"
+                    />
+                    <label className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-xs font-semibold text-blue-700 cursor-pointer shrink-0 transition">
+                      <ImageIcon className="w-3.5 h-3.5" />
+                      <span>{uploadingImage ? 'Yuklanmoqda...' : 'Rasm yuklash'}</span>
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg,image/webp"
+                        onChange={handleImageUpload}
+                        disabled={uploadingImage}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                )}
+                <p className="text-[11px] text-neutral-500">
+                  Maqolaning grafik abstrakti, ilmiy diagrammasi yoki jurnal muqovasi portalda va ijtimoiy tarmoqlarda ko‘rinadi.
+                </p>
               </div>
 
               {!editingPubId && allScholars.length > 0 && (

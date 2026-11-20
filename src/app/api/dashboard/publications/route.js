@@ -2,7 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import { prisma } from '@/lib/prisma'
 import { getActiveScholar } from '@/lib/auth'
-import { recalculateScholarMetrics, TYPE_WEIGHTS } from '@/lib/scoring'
+import { recalculateScholarMetrics, getPublicationPoints } from '@/lib/scoring'
 import { fetchByDoi } from '@/lib/crossref'
 import { parseBibtex } from '@/lib/bibtex'
 
@@ -16,12 +16,6 @@ function getFeedbackMap() {
   }
 }
 
-function estimatePubPoints(pub) {
-  const base = TYPE_WEIGHTS[pub.type] || 3
-  const qBonus = pub.quartile === 'Q1' || pub.quartile === 'Q2' ? 5 : 0
-  return base + qBonus
-}
-
 
 export async function GET(request) {
   try {
@@ -30,19 +24,22 @@ export async function GET(request) {
       return Response.json({ error: 'Unauthorized or no scholar profile' }, { status: 401 })
     }
 
-    const pubAuthors = await prisma.publicationAuthor.findMany({
-      where: { scholarId: scholar.id },
-      include: {
-        publication: {
-          include: {
-            authors: {
-              include: { scholar: true }
+    const [pubAuthors, scoringConfig] = await Promise.all([
+      prisma.publicationAuthor.findMany({
+        where: { scholarId: scholar.id },
+        include: {
+          publication: {
+            include: {
+              authors: {
+                include: { scholar: true }
+              }
             }
           }
-        }
-      },
-      orderBy: { publication: { createdAt: 'desc' } }
-    })
+        },
+        orderBy: { publication: { createdAt: 'desc' } }
+      }),
+      prisma.scoringConfig.findFirst(),
+    ])
 
     const feedbackMap = getFeedbackMap()
     const publications = pubAuthors.map(pa => ({
@@ -52,7 +49,7 @@ export async function GET(request) {
       commentsCount: Array.isArray(feedbackMap[pa.publication.id]?.comments)
         ? feedbackMap[pa.publication.id].comments.length
         : 0,
-      tiuScoreValue: estimatePubPoints(pa.publication),
+      tiuScoreValue: getPublicationPoints(pa.publication, scoringConfig),
     }))
 
     const allScholars = await prisma.scholarProfile.findMany({
@@ -79,7 +76,7 @@ export async function POST(request) {
     }
 
     const body = await request.json()
-    const { mode, doi, bibContent, manualData, pdfUrl, coAuthorIds } = body
+    const { mode, doi, bibContent, manualData, pdfUrl, coAuthorIds, coverImageUrl } = body
 
     let targetPubs = []
 
@@ -104,6 +101,7 @@ export async function POST(request) {
         doi: manualData.doi ? manualData.doi.trim() : null,
         url: manualData.url || null,
         isbnOrPatentNo: manualData.isbnOrPatentNo || null,
+        coverImageUrl: manualData.coverImageUrl || null,
         quartile: manualData.quartile || 'NONE',
         citationsCount: parseInt(manualData.citationsCount, 10) || 0,
       })
@@ -168,6 +166,7 @@ export async function POST(request) {
             doi: pubData.doi || null,
             url: pdfUrl || pubData.url || null,
             isbnOrPatentNo: pubData.isbnOrPatentNo || null,
+            coverImageUrl: coverImageUrl || pubData.coverImageUrl || null,
             quartile: pubData.quartile || 'NONE',
             citationsCount: pubData.citationsCount || 0,
             status: 'PENDING',

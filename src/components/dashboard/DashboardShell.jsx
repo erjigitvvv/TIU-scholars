@@ -290,8 +290,8 @@ export default function DashboardShell({ user, locale = 'uz', children }) {
                 <div className="fixed inset-0 z-40" onClick={() => setLangOpen(false)} />
                 <div className="absolute right-0 mt-1.5 w-32 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-lg py-1 z-50">
                   {[
-                    { code: 'uz', label: 'O?zbekcha (UZ)' },
-                    { code: 'ru', label: '??????? (RU)' },
+                    { code: 'uz', label: "O'zbekcha (UZ)" },
+                    { code: 'ru', label: 'Русский (RU)' },
                     { code: 'en', label: 'English (EN)' },
                   ].map((item) => {
                     const isActive = locale === item.code;

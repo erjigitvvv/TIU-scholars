@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import { getPublicationPoints } from '@/lib/scoring';
 import ScholarAvatar from '@/components/ui/ScholarAvatar';
 
 const COPY = {
@@ -53,6 +54,8 @@ const COPY = {
     statusApproved: 'Tasdiqlangan',
     statusPending: 'Kutilmoqda',
     statusRejected: 'Rad etilgan',
+    adminPortalBtn: 'Ilmiy bo‘lim kabinetiga o‘tish',
+    latestAnnouncements: 'So‘nggi ilmiy e’lonlar',
   },
   ru: {
     welcome: 'Добро пожаловать',
@@ -87,6 +90,8 @@ const COPY = {
     statusApproved: 'Одобрено',
     statusPending: 'На проверке',
     statusRejected: 'Отклонено',
+    adminPortalBtn: 'Перейти в кабинет научного отдела',
+    latestAnnouncements: 'Последние научные объявления',
   },
   en: {
     welcome: 'Welcome back',
@@ -121,6 +126,8 @@ const COPY = {
     statusApproved: 'Approved',
     statusPending: 'Pending',
     statusRejected: 'Rejected',
+    adminPortalBtn: 'Go to Scientific Dept. Cabinet',
+    latestAnnouncements: 'Latest Scientific Announcements',
   },
 };
 
@@ -142,21 +149,29 @@ export default async function DashboardOverview() {
   const t = COPY[locale] || COPY.uz;
 
   const user = await getCurrentUser();
-  const scholar = user?.scholarProfile
-    ? await prisma.scholarProfile.findUnique({
-        where: { id: user.scholarProfile.id },
-        include: {
-          department: { include: { faculty: true } },
-          publications: {
-            include: { publication: true },
-            orderBy: { publication: { createdAt: 'desc' } },
+  const [scholar, scoringConfig] = await Promise.all([
+    user?.scholarProfile
+      ? prisma.scholarProfile.findUnique({
+          where: { id: user.scholarProfile.id },
+          include: {
+            department: {
+              include: {
+                faculty: true,
+                kpiTargets: { orderBy: { year: 'desc' } },
+              },
+            },
+            publications: {
+              include: { publication: true },
+              orderBy: { publication: { createdAt: 'desc' } },
+            },
+            grantProjects: true,
+            supervisions: true,
+            kpiTargets: { orderBy: { year: 'desc' } },
           },
-          grantProjects: true,
-          supervisions: true,
-          kpiTargets: true,
-        },
-      })
-    : null;
+        })
+      : null,
+    prisma.scoringConfig.findFirst(),
+  ]);
 
   if (!scholar) {
     const isAdminRole = user?.role === 'MODERATOR' || user?.role === 'SUPER_ADMIN';
@@ -166,7 +181,7 @@ export default async function DashboardOverview() {
         <p className="text-slate-600 dark:text-slate-400 text-sm">{t.noProfileDesc}</p>
         {isAdminRole && (
           <Link href="/admin" className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0F294A] text-white text-xs font-bold">
-            Ilmiy bo?lim kabinetiga o?tish <ArrowRight className="w-3.5 h-3.5" />
+            {t.adminPortalBtn} <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         )}
       </div>
@@ -189,9 +204,17 @@ export default async function DashboardOverview() {
   const approvedSupervisions = scholar.supervisions.filter((s) => s.status === 'APPROVED').length;
 
   const currentYear = new Date().getFullYear();
+  const deptTargets = scholar.department?.kpiTargets || [];
   const kpiTarget =
     scholar.kpiTargets.find((k) => k.year === currentYear) ||
-    scholar.kpiTargets[0] || { targetPublications: 5, targetScopus: 2, targetScore: 25 };
+    deptTargets.find((k) => k.year === currentYear) ||
+    scholar.kpiTargets[0] ||
+    deptTargets[0] || {
+      year: currentYear,
+      targetPublications: 5,
+      targetScopus: 2,
+      targetScore: 25,
+    };
 
   const pubProgress = Math.min(100, Math.round((approvedCount / (kpiTarget.targetPublications || 1)) * 100));
   const scopusProgress = Math.min(100, Math.round((scopusWosCount / (kpiTarget.targetScopus || 1)) * 100));
@@ -491,7 +514,7 @@ export default async function DashboardOverview() {
                   </p>
                 </div>
                 <div className="text-xs font-bold text-slate-700 dark:text-slate-300 shrink-0">
-                  +{pub.tiuScoreValue} ball
+                  +{getPublicationPoints(pub, scoringConfig)} ball
                 </div>
               </div>
             ))}
@@ -504,7 +527,7 @@ export default async function DashboardOverview() {
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Megaphone className="w-5 h-5 text-blue-600 dark:text-sky-400" />
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">So?nggi ilmiy e?lonlar</h3>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">{t.latestAnnouncements}</h3>
             </div>
             <Link href="/dashboard/announcements" className="text-xs font-bold text-blue-600 dark:text-sky-400 hover:underline inline-flex items-center gap-1">
               {t.viewAll} <ArrowRight className="w-3.5 h-3.5" />
