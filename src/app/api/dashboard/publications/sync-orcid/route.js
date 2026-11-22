@@ -3,7 +3,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { fetchOrcidWorks } from '@/lib/orcid';
 import { fetchByDoi } from '@/lib/crossref';
-import { recalculateScholarScores } from '@/lib/scoring';
+import { recalculateScholarMetrics } from '@/lib/scoring';
 
 export async function POST(request) {
   try {
@@ -127,7 +127,7 @@ export async function POST(request) {
     }
 
     // Recalculate TIU score & citations
-    await recalculateScholarScores(scholar.id);
+    await recalculateScholarMetrics(scholar.id);
 
     return NextResponse.json({
       success: true,

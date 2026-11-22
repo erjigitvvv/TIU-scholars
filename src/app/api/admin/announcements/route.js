@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireModeratorOrAdmin } from '@/lib/auth';
 import { notifyActiveScholars } from '@/lib/notifications';
+import { broadcastAnnouncementToTelegram } from '@/lib/telegram';
 
 const VALID_CATEGORIES = ['GRANT', 'CONFERENCE', 'DEADLINE', 'NEWS'];
 const VALID_VISIBILITIES = ['PUBLIC', 'INTERNAL'];
@@ -77,6 +78,10 @@ export async function POST(request) {
         title: `Yangi e'lon: ${announcement.title}`,
         message: announcement.content.slice(0, 140) + (announcement.content.length > 140 ? '...' : ''),
         link: '/dashboard/announcements',
+      });
+      // Telegram Bot orqali barcha ulangan olimlarga xabar yuborish
+      await broadcastAnnouncementToTelegram(announcement).catch((err) => {
+        console.warn('Telegram broadcast warning:', err);
       });
     }
 

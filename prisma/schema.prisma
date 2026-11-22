@@ -80,6 +80,10 @@ model ScholarProfile {
   hIndex             Int                 @default(0)
   totalCitations     Int                 @default(0)
   tiuScore           Float               @default(0)
+  telegramChatId     String?             @unique
+  telegramUsername   String?
+  telegramConnectedAt DateTime?
+  isTelegramConnected Boolean            @default(false)
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 
@@ -87,6 +91,7 @@ model ScholarProfile {
   grantProjects      GrantProject[]
   supervisions       Supervision[]
   kpiTargets         KpiTarget[]
+  telegramAuthCodes  TelegramAuthCode[]
 }
 
 model Publication {
@@ -374,4 +379,16 @@ model ModeratorQualityCheck {
   moderatorId         String?
   checkedAt           DateTime?
   createdAt           DateTime     @default(now())
+}
+
+model TelegramAuthCode {
+  id         String         @id @default(cuid())
+  scholarId  String
+  scholar    ScholarProfile @relation(fields: [scholarId], references: [id], onDelete: Cascade)
+  code       String         @unique
+  expiresAt  DateTime
+  createdAt  DateTime       @default(now())
+
+  @@index([code])
+  @@index([scholarId])
 }
