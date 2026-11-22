@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint src",
+    "bot": "node scripts/telegram-bot-runner.mjs",
     "db:backup": "node scripts/backup-db.js"
   },
   "dependencies": {
