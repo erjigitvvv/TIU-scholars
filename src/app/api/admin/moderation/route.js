@@ -20,17 +20,19 @@ export async function GET(request) {
       ? { in: ['PENDING', 'SUBMITTED_INTERNAL'] }
       : statusParam;
 
-  const [pendingPubs, pendingGrants, pendingSupervisions] = await Promise.all([
+  const [pendingPubs, pendingGrants, pendingSupervisions, pendingProjects] = await Promise.all([
     prisma.publication.count({ where: { status: 'PENDING' } }),
     prisma.grantProject.count({ where: { status: { in: ['PENDING', 'SUBMITTED_INTERNAL'] } } }),
     prisma.supervision.count({ where: { status: 'PENDING' } }),
+    prisma.academicProject.count({ where: { status: { in: ['IN_REVIEW', 'SUBMITTED', 'PENDING'] } } }),
   ]);
 
   const counts = {
     publications: pendingPubs,
     grants: pendingGrants,
     supervisions: pendingSupervisions,
-    totalPending: pendingPubs + pendingGrants + pendingSupervisions,
+    academicProjects: pendingProjects,
+    totalPending: pendingPubs + pendingGrants + pendingSupervisions + pendingProjects,
   };
 
   let items = [];
@@ -68,6 +70,36 @@ export async function GET(request) {
         },
       },
       orderBy: { createdAt: 'desc' },
+    });
+  } else if (type === 'academic-projects') {
+    const projectFilter =
+      statusParam === 'ALL'
+        ? undefined
+        : statusParam === 'PENDING'
+        ? { in: ['IN_REVIEW', 'SUBMITTED', 'PENDING'] }
+        : statusParam;
+
+    items = await prisma.academicProject.findMany({
+      where: projectFilter ? { status: projectFilter } : {},
+      include: {
+        creator: {
+          select: {
+            id: true,
+            email: true,
+            scholarProfile: {
+              select: {
+                id: true,
+                fullName: true,
+                academicDegree: true,
+                department: { select: { nameUz: true } },
+                telegramChatId: true,
+              },
+            },
+          },
+        },
+        collaborators: true,
+      },
+      orderBy: { updatedAt: 'desc' },
     });
   }
 
@@ -145,6 +177,21 @@ export async function PATCH(request) {
       if (updatedItem.scholarId) {
         await recalculateScholarMetrics(updatedItem.scholarId);
       }
+    } else if (type === 'academic-projects') {
+      updatedItem = await prisma.academicProject.update({
+        where: { id },
+        data: {
+          status: status === 'APPROVED' ? 'APPROVED' : 'REVISION',
+        },
+        include: {
+          creator: {
+            include: { scholarProfile: true },
+          },
+        },
+      });
+      if (updatedItem.creatorId) {
+        targetUserIds.add(updatedItem.creatorId);
+      }
     }
 
     await prisma.auditLog.create({
@@ -158,11 +205,17 @@ export async function PATCH(request) {
     });
 
     // Notify submitting scholar(s)
-    const labelMap = { publications: 'Nashr', grants: 'Grant loyihasi', supervisions: 'Ilmiy rahbarlik' };
+    const labelMap = {
+      publications: 'Nashr',
+      grants: 'Grant loyihasi',
+      supervisions: 'Ilmiy rahbarlik',
+      'academic-projects': 'Ilmiy loyiha',
+    };
     const linkMap = {
       publications: '/dashboard/publications',
       grants: '/dashboard/grants',
       supervisions: '/dashboard/supervisions',
+      'academic-projects': '/dashboard/academic-projects',
     };
     const itemLabel = labelMap[type] || 'Ilmiy ish';
     const isApproved = status === 'APPROVED';

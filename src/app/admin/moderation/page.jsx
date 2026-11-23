@@ -266,6 +266,7 @@ export default function AdminModerationPage() {
             className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700"
           >
             <option value="publications">{t.publications}</option>
+            <option value="academic-projects">Ilmiy Loyihalar (Maqola, Dissertatsiya, Tezis)</option>
             <option value="grants">{t.grants}</option>
             <option value="supervisions">{t.supervisions}</option>
           </select>
@@ -466,6 +467,58 @@ export default function AdminModerationPage() {
                             {item.scholar?.fullName}
                           </span>
                         </div>
+                      </>
+                    )}
+
+                    {tab === 'academic-projects' && (
+                      <>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="px-2.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md text-xs font-bold">
+                            {item.type}
+                          </span>
+                          <span className="px-2 py-0.5 bg-slate-100 text-slate-700 border border-slate-200 rounded-md text-xs font-mono font-bold">
+                            {item.code}
+                          </span>
+                          <span
+                            className={`px-2 py-0.5 rounded-md text-xs font-bold ${
+                              item.status === 'APPROVED' || item.status === 'PUBLISHED'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : 'bg-amber-50 text-amber-700 border border-amber-200'
+                            }`}
+                          >
+                            {item.status}
+                          </span>
+                        </div>
+                        <h3 className="text-base font-bold text-slate-900">{item.title}</h3>
+                        <div className="text-xs text-slate-500">
+                          Muallif:{' '}
+                          <strong className="text-slate-700">
+                            {item.creator?.scholarProfile?.fullName || item.creator?.email}
+                          </strong>
+                          {item.creator?.scholarProfile?.department?.nameUz && (
+                            <span> • {item.creator.scholarProfile.department.nameUz}</span>
+                          )}
+                        </div>
+                        {(item.targetJournal || item.targetConference || item.grantFunder) && (
+                          <p className="text-xs text-slate-600">
+                            Maqsadli joy:{' '}
+                            <span className="font-semibold">
+                              {item.targetJournal || item.targetConference || item.grantFunder}
+                            </span>
+                          </p>
+                        )}
+                        {item.abstract && (
+                          <p className="text-xs text-slate-600 line-clamp-2 italic bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                            "{item.abstract}"
+                          </p>
+                        )}
+                        {item.collaborators && item.collaborators.length > 0 && (
+                          <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
+                            <span>
+                              Hammualliflar: <strong>{item.collaborators.length} nafar</strong>
+                            </span>
+                          </div>
+                        )}
                       </>
                     )}
 

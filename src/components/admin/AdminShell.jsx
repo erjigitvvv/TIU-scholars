@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   Megaphone,
   GraduationCap,
+  Bot,
 } from 'lucide-react';
 import NotificationBell from '@/components/shared/NotificationBell';
 
@@ -82,9 +83,15 @@ export default function AdminShell({ user, locale = 'uz', children }) {
       icon: CheckSquare,
       children: [
         { href: '/admin/moderation?type=publications', label: locale === 'ru' ? 'Публикации' : locale === 'en' ? 'Publications' : 'Nashrlar' },
+        { href: '/admin/moderation?type=academic-projects', label: locale === 'ru' ? 'Научные проекты' : locale === 'en' ? 'Academic Projects' : 'Ilmiy Loyihalar' },
         { href: '/admin/moderation?type=grants', label: locale === 'ru' ? 'Гранты' : locale === 'en' ? 'Grants' : 'Grantlar' },
         { href: '/admin/moderation?type=supervisions', label: locale === 'ru' ? 'Руководство' : locale === 'en' ? 'Supervisions' : 'Ilmiy rahbarlik' },
       ],
+    },
+    {
+      href: '/admin/telegram',
+      label: 'Telegram Bot Markazi',
+      icon: Bot,
     },
     {
       href: '/admin/supervisions',

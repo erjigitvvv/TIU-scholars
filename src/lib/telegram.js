@@ -311,4 +311,143 @@ export async function sendModeratorAnswerTelegram({
   });
 }
 
+/**
+ * Moderator tomonidan bitta olimga shaxsiy Telegram xabar yuborish (link va inline tugma bilan)
+ */
+export async function sendDirectMessageToScholar({
+  recipientChatId,
+  scholarId,
+  title,
+  messageText,
+  buttonText,
+  buttonUrl,
+  senderName = 'TIU Ilmiy Bo‘limi (Moderator)',
+}) {
+  let formattedText = `🏛 <b>${senderName}</b>\n\n`;
+  if (title) formattedText += `📌 <b>${title}</b>\n\n`;
+  formattedText += `${messageText}\n\n`;
+  formattedText += `<i>Sana: ${new Date().toLocaleString()}</i>`;
+
+  let replyMarkup = null;
+  if (buttonText && buttonUrl) {
+    const fullUrl = buttonUrl.startsWith('http') ? buttonUrl : `https://tiu.uz${buttonUrl.startsWith('/') ? '' : '/'}${buttonUrl}`;
+    replyMarkup = {
+      inline_keyboard: [
+        [
+          {
+            text: buttonText,
+            url: fullUrl,
+          },
+        ],
+      ],
+    };
+  }
+
+  let telegramRes = null;
+  if (recipientChatId) {
+    telegramRes = await sendTelegramMessage({
+      chatId: recipientChatId,
+      text: formattedText,
+      replyMarkup,
+    });
+  }
+
+  // Also create in-app notification if scholarId is provided
+  if (scholarId) {
+    const scholar = await prisma.scholarProfile.findUnique({
+      where: { id: scholarId },
+      select: { userId: true },
+    });
+    if (scholar?.userId) {
+      await prisma.notification.create({
+        data: {
+          userId: scholar.userId,
+          title: title || '🏛 Moderator xabari',
+          message: messageText,
+          type: 'SYSTEM',
+          link: buttonUrl || '/dashboard',
+        },
+      }).catch(() => {});
+    }
+  }
+
+  return telegramRes;
+}
+
+/**
+ * Moderator tomonidan barcha olimlarga maxsus xabar yoki e'lonni Telegram orqali tarqatish
+ */
+export async function broadcastCustomTelegramMessage({
+  title,
+  messageText,
+  buttonText,
+  buttonUrl,
+  senderName = 'TIU Ilmiy Bo‘limi',
+  category = 'NEWS',
+}) {
+  const connectedScholars = await prisma.scholarProfile.findMany({
+    where: {
+      isTelegramConnected: true,
+      telegramChatId: { not: null },
+    },
+    select: {
+      id: true,
+      telegramChatId: true,
+      userId: true,
+    },
+  });
+
+  let formattedText = `📢 <b>${senderName} Xabarnomasi</b>\n\n`;
+  if (title) formattedText += `📌 <b>${title}</b>\n\n`;
+  formattedText += `${messageText}\n\n`;
+  formattedText += `<i>TIU Ilmiy Salohiyat Portali</i>`;
+
+  let replyMarkup = null;
+  if (buttonText && buttonUrl) {
+    const fullUrl = buttonUrl.startsWith('http') ? buttonUrl : `https://tiu.uz${buttonUrl.startsWith('/') ? '' : '/'}${buttonUrl}`;
+    replyMarkup = {
+      inline_keyboard: [
+        [
+          {
+            text: buttonText,
+            url: fullUrl,
+          },
+        ],
+      ],
+    };
+  }
+
+  let sentCount = 0;
+  for (const s of connectedScholars) {
+    if (s.telegramChatId) {
+      await sendTelegramMessage({
+        chatId: s.telegramChatId,
+        text: formattedText,
+        replyMarkup,
+      }).catch(() => {});
+      sentCount++;
+    }
+  }
+
+  // Also create In-app Notifications for all active users
+  const allUsers = await prisma.user.findMany({
+    where: { accountStatus: 'ACTIVE' },
+    select: { id: true },
+  });
+
+  for (const u of allUsers) {
+    await prisma.notification.create({
+      data: {
+        userId: u.id,
+        title: title || `📢 ${senderName} Xabarnomasi`,
+        message: messageText,
+        type: 'SYSTEM',
+        link: buttonUrl || '/dashboard/announcements',
+      },
+    }).catch(() => {});
+  }
+
+  return sentCount;
+}
+
 

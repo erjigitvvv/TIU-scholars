@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell, CheckCheck } from 'lucide-react';
+import { Bell, CheckCheck, ExternalLink } from 'lucide-react';
 
 export default function NotificationBell({ locale = 'uz' }) {
   const router = useRouter();
@@ -124,8 +124,16 @@ export default function NotificationBell({ locale = 'uz' }) {
                     <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 line-clamp-2">
                       {n.message}
                     </p>
-                    <div className="text-[10px] font-mono text-slate-400 mt-1.5">
-                      {new Date(n.createdAt).toLocaleString()}
+                    <div className="flex items-center justify-between mt-2 pt-1 border-t border-slate-100 dark:border-slate-800 text-[10px]">
+                      <span className="font-mono text-slate-400">
+                        {new Date(n.createdAt).toLocaleDateString()} {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      {n.link && (
+                        <span className="font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1 hover:underline">
+                          <span>Ko‘rish</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </span>
+                      )}
                     </div>
                   </button>
                 ))
