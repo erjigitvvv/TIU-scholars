@@ -27,26 +27,46 @@ export async function GET() {
     // 2. Fetch all scholars with their profile and user info
     const scholars = await prisma.scholarProfile.findMany({
       include: {
-        department: { select: { nameUz: true } },
-        user: { select: { email: true, id: true } },
-        announcementInquiries: {
-          include: {
-            announcement: { select: { title: true, id: true } },
+        department: {
+          select: {
+            id: true,
+            nameUz: true,
+            faculty: { select: { id: true, nameUz: true } },
           },
-          orderBy: { createdAt: 'desc' },
         },
-        academicProjects: {
+        user: {
+          select: {
+            email: true,
+            id: true,
+            academicProjects: {
+              take: 10,
+              orderBy: { createdAt: 'desc' },
+              select: {
+                id: true,
+                title: true,
+                type: true,
+                status: true,
+                createdAt: true,
+              },
+            },
+          },
+        },
+        grantProjects: {
           take: 10,
           orderBy: { createdAt: 'desc' },
           select: {
             id: true,
             title: true,
-            type: true,
-            stage: true,
+            fundingAgency: true,
             status: true,
-            submissionFileUrl: true,
             createdAt: true,
           },
+        },
+        announcementInquiries: {
+          include: {
+            announcement: { select: { title: true, id: true } },
+          },
+          orderBy: { createdAt: 'desc' },
         },
       },
       orderBy: { fullName: 'asc' },
@@ -84,19 +104,33 @@ export async function GET() {
     const scholarChats = scholars.map((scholar) => {
       const messages = [];
 
-      // Add academic projects / grant requests
-      (scholar.academicProjects || []).forEach((proj) => {
+      // Add academic projects requests
+      (scholar.user?.academicProjects || []).forEach((proj) => {
         messages.push({
           id: `proj-${proj.id}`,
           type: 'PROJECT_REQUEST',
           sender: scholar.fullName,
           title: `📑 Ilmiy loyiha so‘rovi: ${proj.title}`,
-          text: `Yangi ilmiy ish / ariza topshirildi.\nYo‘nalishi: ${proj.type} · Bosqich: ${proj.stage}\nHolati: ${proj.status}`,
-          fileUrl: proj.submissionFileUrl,
+          text: `Yangi ilmiy ish / ariza topshirildi.\nYo‘nalishi: ${proj.type}\nHolati: ${proj.status}`,
           createdAt: proj.createdAt,
           isOutgoing: false,
           referenceId: proj.id,
           referenceType: 'PROJECT',
+        });
+      });
+
+      // Add grant projects requests
+      (scholar.grantProjects || []).forEach((grant) => {
+        messages.push({
+          id: `grant-${grant.id}`,
+          type: 'GRANT_REQUEST',
+          sender: scholar.fullName,
+          title: `🏆 Grant arizasi: ${grant.title}`,
+          text: `Moliyalashtiruvchi: ${grant.fundingAgency || 'Davlat / Xalqaro'}\nHolati: ${grant.status}`,
+          createdAt: grant.createdAt,
+          isOutgoing: false,
+          referenceId: grant.id,
+          referenceType: 'GRANT',
         });
       });
 
@@ -139,12 +173,25 @@ export async function GET() {
 
       const lastMsg = messages[messages.length - 1];
 
+      // Determine department & faculty folder
+      const deptName = (scholar.department?.nameUz || '').toLowerCase();
+      const facName = (scholar.department?.faculty?.nameUz || '').toLowerCase();
+      const isJurisprudence =
+        deptName.includes('yuris') ||
+        deptName.includes('huquq') ||
+        facName.includes('yuris') ||
+        facName.includes('huquq');
+      const folder = isJurisprudence ? 'JURISPRUDENCE' : 'BUSINESS';
+
       return {
         id: scholar.id,
         scholarId: scholar.id,
         name: scholar.fullName,
+        fullName: scholar.fullName,
         academicDegree: scholar.academicDegree || 'Tadqiqotchi',
         department: scholar.department?.nameUz || 'Kafedra',
+        faculty: scholar.department?.faculty?.nameUz || (isJurisprudence ? 'Yurisprudensiya fakulteti' : 'Biznes va innovatsion taʼlim fakulteti'),
+        folder,
         email: scholar.user?.email,
         telegramChatId: scholar.telegramChatId,
         isTelegramConnected: Boolean(scholar.telegramChatId),
