@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Send,
   Search,
   X,
   Minus,
@@ -21,13 +20,9 @@ import {
   Reply,
   CheckCheck,
   Bot,
-  ExternalLink,
   Users,
   Briefcase,
   Scale,
-  Sparkles,
-  HelpCircle,
-  Folder,
 } from 'lucide-react';
 
 const EMOJI_LIST = ['👍', '👏', '🎓', '📚', '📄', '📌', '⚠️', '🔔', '💡', '✅', '🔍', '💬', '🤝', '🚀', '✨', '📝', '🏛️', '⚖️'];
@@ -49,7 +44,7 @@ export default function FloatingTelegramChatWidget({ user }) {
 
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [sidebarVisible, setSidebarVisible] = useState(true); // Toggle sidebar via 3-lines menu
+  const [sidebarVisible, setSidebarVisible] = useState(true);
 
   const [loading, setLoading] = useState(true);
   const [botChat, setBotChat] = useState(null);
@@ -57,7 +52,7 @@ export default function FloatingTelegramChatWidget({ user }) {
   const [activeChatId, setActiveChatId] = useState('tiu-scholar-bot');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 3 Jildlar (Folders): 'ALL', 'JURISPRUDENCE', 'BUSINESS', 'TG_BOT'
+  // 3 Jildlar (Folders): Default 'ALL' so all scholars appear immediately
   const [activeFolder, setActiveFolder] = useState('ALL');
 
   // Input, Reply, Category, Emoji & Attachment States
@@ -68,12 +63,11 @@ export default function FloatingTelegramChatWidget({ user }) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [attachedFile, setAttachedFile] = useState(null);
-  const [uploadingFile, setUploadingFile] = useState(false);
 
-  // Poll creation state
+  // Poll creation modal
   const [showPollModal, setShowPollModal] = useState(false);
   const [pollQuestion, setPollQuestion] = useState('');
-  const [pollOptions, setPollOptions] = useState(['Ha, roziman', 'Qo‘shimcha muhokama zarur']);
+  const [pollOptions, setPollOptions] = useState(['Ha, ma‘qullansin', 'Qo‘shimcha tahrir kerak']);
 
   const [sending, setSending] = useState(false);
   const [toastMsg, setToastMsg] = useState(null);
@@ -124,24 +118,21 @@ export default function FloatingTelegramChatWidget({ user }) {
     0
   );
 
-  // Filter scholars list by folder and search
+  // Filter scholars list by folder and search query
   const filteredScholarChats = scholarChats.filter((sc) => {
     // Folder filter
     if (activeFolder === 'JURISPRUDENCE' && sc.folder !== 'JURISPRUDENCE') return false;
     if (activeFolder === 'BUSINESS' && sc.folder !== 'BUSINESS') return false;
-    if (activeFolder === 'TG_BOT') return false; // In TG_BOT folder, show only bot
+    if (activeFolder === 'TG_BOT') return false;
 
-    // Search query
+    // Search query (case-insensitive on name, faculty, department, degree)
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase().trim();
-    return (
-      sc.fullName?.toLowerCase().includes(q) ||
-      sc.name?.toLowerCase().includes(q) ||
-      sc.department?.toLowerCase().includes(q) ||
-      sc.faculty?.toLowerCase().includes(q) ||
-      sc.academicDegree?.toLowerCase().includes(q) ||
-      sc.lastMessage?.text?.toLowerCase().includes(q)
-    );
+    const nameMatch = (sc.fullName || sc.name || '').toLowerCase().includes(q);
+    const deptMatch = (sc.department || '').toLowerCase().includes(q);
+    const facMatch = (sc.faculty || '').toLowerCase().includes(q);
+    const degMatch = (sc.academicDegree || '').toLowerCase().includes(q);
+    return nameMatch || deptMatch || facMatch || degMatch;
   });
 
   // Handle file upload
@@ -149,7 +140,6 @@ export default function FloatingTelegramChatWidget({ user }) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploadingFile(true);
     setShowAttachMenu(false);
 
     try {
@@ -177,7 +167,6 @@ export default function FloatingTelegramChatWidget({ user }) {
     } catch {
       setToastMsg({ type: 'error', text: 'Tarmoq xatosi' });
     } finally {
-      setUploadingFile(false);
       e.target.value = '';
     }
   };
@@ -208,7 +197,7 @@ export default function FloatingTelegramChatWidget({ user }) {
     }
 
     try {
-      // 1. If currently in TIU-scholar Bot
+      // 1. If currently in TIU-scholar Bot: Broadcast Announcement
       if (activeChatId === 'tiu-scholar-bot') {
         const res = await fetch('/api/announcements', {
           method: 'POST',
@@ -252,7 +241,7 @@ export default function FloatingTelegramChatWidget({ user }) {
           setToastMsg({ type: 'error', text: data.error || 'Xatolik' });
         }
       } else {
-        // 2. Scholar Chat
+        // 2. Scholar Chat: Send direct message / reply to scholar
         const scholar = activeChat;
         if (!scholar) return;
 
@@ -348,8 +337,8 @@ export default function FloatingTelegramChatWidget({ user }) {
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className={`mb-3 bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col transition-all duration-300 ${
               isExpanded
-                ? 'w-[920px] h-[700px] max-w-[96vw] max-h-[92vh]'
-                : 'w-[780px] h-[600px] max-w-[94vw] max-h-[86vh]'
+                ? 'w-[940px] h-[720px] max-w-[96vw] max-h-[92vh]'
+                : 'w-[800px] h-[610px] max-w-[94vw] max-h-[86vh]'
             }`}
             onPointerDown={(e) => e.stopPropagation()}
           >
@@ -411,7 +400,7 @@ export default function FloatingTelegramChatWidget({ user }) {
             <div className="flex-1 flex overflow-hidden">
               {/* LEFT COLUMN: 3 JILDLAR (FOLDERS) & OLIMLAR RO'YXATI */}
               {sidebarVisible && (
-                <div className="w-[300px] sm:w-[320px] border-r border-slate-200 bg-[#F4F5F7] flex flex-col shrink-0 transition-all">
+                <div className="w-[300px] sm:w-[325px] border-r border-slate-200 bg-[#F4F5F7] flex flex-col shrink-0 transition-all">
                   {/* Search Bar */}
                   <div className="p-2.5 bg-white border-b border-slate-200/80">
                     <div className="relative">
@@ -540,7 +529,7 @@ export default function FloatingTelegramChatWidget({ user }) {
                       </div>
                     )}
 
-                    {/* Scholars list for non-TG_BOT folders */}
+                    {/* Scholars list */}
                     {activeFolder !== 'TG_BOT' && (
                       <>
                         <div className="px-3 py-1 bg-slate-200/50 text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
@@ -825,7 +814,7 @@ export default function FloatingTelegramChatWidget({ user }) {
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* BOTTOM CHAT INPUT AREA WITH PAPERCLIP, EMOJI & CATEGORY CHEVRON */}
+                {/* BOTTOM CHAT INPUT AREA: INTEGRATED SINGLE BAR (PAPERCLIP + CATEGORY + INPUT + SMILE + SEND) */}
                 <div className="p-2.5 sm:p-3 bg-white border-t border-slate-200 shrink-0 space-y-2 relative">
                   {/* Reply Banner */}
                   {replyingToMessage && (
@@ -868,7 +857,7 @@ export default function FloatingTelegramChatWidget({ user }) {
 
                   {/* Popovers: Category Selection Popup */}
                   {showCategoryMenu && (
-                    <div className="absolute bottom-16 left-4 z-50 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 w-64 space-y-1 animate-in fade-in zoom-in-95">
+                    <div className="absolute bottom-16 left-12 z-50 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 w-64 space-y-1 animate-in fade-in zoom-in-95">
                       <div className="px-2 py-1 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                         E‘lon kategoriyasini tanlang:
                       </div>
@@ -933,7 +922,7 @@ export default function FloatingTelegramChatWidget({ user }) {
 
                   {/* Popovers: Emoji Picker */}
                   {showEmojiPicker && (
-                    <div className="absolute bottom-16 right-12 z-50 bg-white rounded-2xl shadow-xl border border-slate-200 p-2.5 w-64 animate-in fade-in zoom-in-95">
+                    <div className="absolute bottom-16 right-14 z-50 bg-white rounded-2xl shadow-xl border border-slate-200 p-2.5 w-64 animate-in fade-in zoom-in-95">
                       <div className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase">
                         Tezkor Emojilar:
                       </div>
@@ -970,94 +959,103 @@ export default function FloatingTelegramChatWidget({ user }) {
                     className="hidden"
                   />
 
-                  {/* Main Input Bar */}
+                  {/* MAIN INTEGRATED BAR (ALL IN ONE ROW: PAPERCLIP + CATEGORY + INPUT + SMILE INSIDE, AND TELEGRAM SEND BUTTON ON RIGHT) */}
                   <div className="flex items-center gap-2">
-                    {/* 1. Paperclip (Qistirgich 📎) Icon */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowAttachMenu((prev) => !prev);
-                        setShowCategoryMenu(false);
-                        setShowEmojiPicker(false);
-                      }}
-                      className={`p-2 rounded-full transition-colors cursor-pointer shrink-0 ${
-                        showAttachMenu
-                          ? 'bg-blue-100 text-blue-600'
-                          : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
-                      }`}
-                      title="Fayl, rasm yoki so‘rovnoma biriktirish (Qistirgich)"
-                    >
-                      <Paperclip className="w-4 h-4 rotate-45" />
-                    </button>
+                    {/* Unified Input Container with Paperclip, Category and Smile INSIDE */}
+                    <div className="flex-1 flex items-center bg-slate-50/80 rounded-2xl border border-slate-200 focus-within:border-[#2AABEE] focus-within:bg-white transition-all px-2 py-1 shadow-xs">
+                      {/* 1. Paperclip (Qistirgich 📎) Icon INSIDE Input */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAttachMenu((prev) => !prev);
+                          setShowCategoryMenu(false);
+                          setShowEmojiPicker(false);
+                        }}
+                        className={`p-1.5 rounded-full transition-colors cursor-pointer shrink-0 ${
+                          showAttachMenu
+                            ? 'bg-blue-100 text-blue-600'
+                            : 'text-slate-400 hover:bg-slate-200/60 hover:text-slate-700'
+                        }`}
+                        title="Fayl, rasm yoki so‘rovnoma biriktirish (Qistirgich)"
+                      >
+                        <Paperclip className="w-4 h-4 rotate-45" />
+                      </button>
 
-                    {/* 2. Category Selector with Upward Arrow (ChevronUp ^) */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowCategoryMenu((prev) => !prev);
-                        setShowAttachMenu(false);
-                        setShowEmojiPicker(false);
-                      }}
-                      className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer shrink-0 ${
-                        showCategoryMenu
-                          ? 'border-[#2AABEE] text-[#2AABEE] bg-blue-50/50'
-                          : 'border-slate-200 text-slate-700 bg-slate-50 hover:bg-slate-100'
-                      }`}
-                      title="Kategoriya tanlash uchun bosing (Tepaga strelka ^)"
-                    >
-                      <span>{selectedCategoryObj.icon}</span>
-                      <span className="hidden sm:inline">{selectedCategoryObj.id}</span>
-                      <ChevronUp className="w-3.5 h-3.5 text-slate-500" />
-                    </button>
+                      {/* 2. Category Selector with Upward Arrow (ChevronUp ^) INSIDE Input */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCategoryMenu((prev) => !prev);
+                          setShowAttachMenu(false);
+                          setShowEmojiPicker(false);
+                        }}
+                        className={`inline-flex items-center gap-1 px-2 py-1 ml-1 rounded-lg border text-[11px] font-bold transition-all cursor-pointer shrink-0 ${
+                          showCategoryMenu
+                            ? 'border-[#2AABEE] text-[#2AABEE] bg-blue-50'
+                            : 'border-slate-200 text-slate-600 bg-white hover:bg-slate-100'
+                        }`}
+                        title="Kategoriya tanlash uchun bosing (Tepaga strelka ^)"
+                      >
+                        <span>{selectedCategoryObj.icon}</span>
+                        <span className="hidden sm:inline">{selectedCategoryObj.id}</span>
+                        <ChevronUp className="w-3 h-3 text-slate-500" />
+                      </button>
 
-                    {/* 3. Text Input */}
-                    <textarea
-                      rows={1}
-                      placeholder={
-                        activeChatId === 'tiu-scholar-bot'
-                          ? 'Rasmiy e‘lon / xabarni yozing (Telegram bot orqali tarqaladi)...'
-                          : replyingToMessage
-                          ? `${replyingToMessage.sender} ga Telegram bot orqali javob...`
-                          : `${activeChat?.fullName || 'Olim'} ga Telegram xabari...`
-                      }
-                      value={inputText}
-                      onChange={(e) => setInputText(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSendMessage();
+                      {/* 3. Textarea / Input in center */}
+                      <textarea
+                        rows={1}
+                        placeholder={
+                          activeChatId === 'tiu-scholar-bot'
+                            ? 'Rasmiy e‘lon / xabarni yozing (Telegram bot orqali tarqaladi)...'
+                            : replyingToMessage
+                            ? `${replyingToMessage.sender} ga Telegram bot orqali javob...`
+                            : `${activeChat?.fullName || 'Olim'} ga Telegram xabari...`
                         }
-                      }}
-                      className="flex-1 text-xs py-2 px-3 rounded-2xl border border-slate-200 focus:outline-none focus:border-[#2AABEE] resize-none bg-slate-50/50 max-h-24 font-normal"
-                    />
+                        value={inputText}
+                        onChange={(e) => setInputText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSendMessage();
+                          }
+                        }}
+                        className="flex-1 text-xs py-1.5 px-2.5 bg-transparent border-0 focus:outline-none resize-none max-h-24 font-normal text-slate-800 placeholder:text-slate-400"
+                      />
 
-                    {/* 4. Emoji (Smile 😊) Icon on the right */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowEmojiPicker((prev) => !prev);
-                        setShowAttachMenu(false);
-                        setShowCategoryMenu(false);
-                      }}
-                      className={`p-2 rounded-full transition-colors cursor-pointer shrink-0 ${
-                        showEmojiPicker
-                          ? 'bg-amber-100 text-amber-600'
-                          : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
-                      }`}
-                      title="Emoji qo‘yish"
-                    >
-                      <Smile className="w-4 h-4" />
-                    </button>
+                      {/* 4. Emoji (Smile 😊) Icon INSIDE on the right */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowEmojiPicker((prev) => !prev);
+                          setShowAttachMenu(false);
+                          setShowCategoryMenu(false);
+                        }}
+                        className={`p-1.5 rounded-full transition-colors cursor-pointer shrink-0 ${
+                          showEmojiPicker
+                            ? 'bg-amber-100 text-amber-600'
+                            : 'text-slate-400 hover:bg-slate-200/60 hover:text-slate-700'
+                        }`}
+                        title="Emoji qo‘yish"
+                      >
+                        <Smile className="w-4 h-4" />
+                      </button>
+                    </div>
 
-                    {/* 5. Send (Jo'natish 🚀) Circular Button */}
+                    {/* 5. TELEGRAM SEND BUTTON (POINTING DIRECTLY TO THE RIGHT ➡️ LIKE TELEGRAM DESKTOP) */}
                     <button
                       type="button"
                       disabled={sending || (!inputText.trim() && !attachedFile)}
                       onClick={handleSendMessage}
-                      className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#2AABEE] to-[#229ED9] hover:from-[#229ED9] hover:to-blue-600 text-white flex items-center justify-center shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0 transition-transform active:scale-95"
-                      title="Telegram orqali yuborish"
+                      className="w-10 h-10 rounded-full bg-[#2AABEE] hover:bg-[#229ED9] text-white flex items-center justify-center shadow-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0 transition-transform active:scale-95"
+                      title="Telegram orqali yuborish (Send)"
                     >
-                      <Send className="w-4 h-4 translate-x-0.2 -translate-y-0.2" />
+                      {/* Telegram Official Right-Facing Send Icon SVG */}
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="w-5 h-5 fill-white translate-x-0.5"
+                      >
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                      </svg>
                     </button>
                   </div>
                 </div>
@@ -1145,7 +1143,6 @@ export default function FloatingTelegramChatWidget({ user }) {
         className="relative w-15 h-15 rounded-full bg-white shadow-xl hover:shadow-2xl border-2 border-white flex items-center justify-center cursor-move transition-transform overflow-visible p-1"
         title="TIU Telegram Messenger (Kursor bilan ushlab istalgan joyga sudrang)"
       >
-        {/* 1-rasmdagi ko'k shaffof chat bubble tasviri */}
         <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center">
           <img
             src="/icons/chat-bubble.jpg"
@@ -1161,7 +1158,7 @@ export default function FloatingTelegramChatWidget({ user }) {
           </span>
         )}
 
-        {/* Gentle Pulse Aura */}
+        {/* Pulse Aura */}
         <span className="absolute inset-0 rounded-full bg-[#2AABEE]/30 animate-ping pointer-events-none -z-10" />
       </motion.button>
     </motion.div>

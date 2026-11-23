@@ -57,7 +57,7 @@ export async function GET() {
           select: {
             id: true,
             title: true,
-            fundingAgency: true,
+            fundingSource: true,
             status: true,
             createdAt: true,
           },
@@ -126,7 +126,7 @@ export async function GET() {
           type: 'GRANT_REQUEST',
           sender: scholar.fullName,
           title: `🏆 Grant arizasi: ${grant.title}`,
-          text: `Moliyalashtiruvchi: ${grant.fundingAgency || 'Davlat / Xalqaro'}\nHolati: ${grant.status}`,
+          text: `Moliyalashtiruvchi: ${grant.fundingSource || 'Davlat / Xalqaro'}\nHolati: ${grant.status}`,
           createdAt: grant.createdAt,
           isOutgoing: false,
           referenceId: grant.id,
