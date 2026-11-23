@@ -167,20 +167,20 @@ export async function broadcastAnnouncementToTelegram(announcement) {
 
     if (connectedScholars.length === 0) return 0;
 
-    const categoryEmoji =
+    const categoryHeader =
       announcement.category === 'GRANT'
-        ? '💰 ILMIY GRANT'
+        ? '🏆 ILMIY GRANT'
         : announcement.category === 'CONFERENCE'
-        ? '🎓 ILMIY ANJUMAN'
+        ? '🎓 ILMIY KONFERENSIYA'
         : announcement.category === 'DEADLINE'
-        ? '⏳ MUHIM MUDDAT'
-        : '📢 YANGI E‘LON';
+        ? '⏰ MUHIM MUDDAT (DEADLINE)'
+        : '📰 ILMIY YANGILIK';
 
-    const compactContent = announcement.content
-      ? announcement.content.replace(/<[^>]+>/g, '').slice(0, 150).trim() + (announcement.content.length > 150 ? '...' : '')
-      : '';
+    const cleanBody = announcement.content
+      ? announcement.content.replace(/<[^>]+>/g, '').trim()
+      : announcement.title;
 
-    const text = `<b>${categoryEmoji}</b>\n<b>${announcement.title}</b>\n${compactContent ? `\n${compactContent}` : ''}`;
+    const text = `<b>${categoryHeader}</b>\n\n${cleanBody}`;
 
     const siteUrl = process.env.NEXTAUTH_URL || 'http://localhost:3001';
     const replyMarkup = {
@@ -369,13 +369,14 @@ export async function sendDirectMessageToScholar({
 }
 
 /**
- * Moderator tomonidan barcha olimlarga xabar tarqatish (toza matn)
+ * Moderator tomonidan barcha olimlarga xabar tarqatish (kategoriyaviy sarlavha bilan)
  */
 export async function broadcastCustomTelegramMessage({
   title,
   messageText,
   buttonText,
   buttonUrl,
+  category = 'NEWS',
 }) {
   const connectedScholars = await prisma.scholarProfile.findMany({
     where: {
@@ -389,7 +390,16 @@ export async function broadcastCustomTelegramMessage({
     },
   });
 
-  const formattedText = messageText.trim();
+  const categoryHeader =
+    category === 'GRANT'
+      ? '🏆 ILMIY GRANT'
+      : category === 'CONFERENCE'
+      ? '🎓 ILMIY KONFERENSIYA'
+      : category === 'DEADLINE'
+      ? '⏰ MUHIM MUDDAT (DEADLINE)'
+      : '📰 ILMIY YANGILIK';
+
+  const formattedText = `<b>${categoryHeader}</b>\n\n${messageText.trim()}`;
 
   let replyMarkup = null;
   if (buttonText && buttonUrl) {
@@ -518,12 +528,13 @@ export async function sendTelegramFile({
 }
 
 /**
- * Haqiqiy faylni barcha ulangan olimlarga tarqatish
+ * Haqiqiy faylni barcha ulangan olimlarga tarqatish (kategoriya bilan)
  */
 export async function broadcastTelegramFile({
   filePath,
   fileName,
   caption = '',
+  category = 'NEWS',
 }) {
   const connectedScholars = await prisma.scholarProfile.findMany({
     where: {
@@ -533,6 +544,19 @@ export async function broadcastTelegramFile({
     select: { telegramChatId: true },
   });
 
+  const categoryHeader =
+    category === 'GRANT'
+      ? '🏆 ILMIY GRANT'
+      : category === 'CONFERENCE'
+      ? '🎓 ILMIY KONFERENSIYA'
+      : category === 'DEADLINE'
+      ? '⏰ MUHIM MUDDAT (DEADLINE)'
+      : '📰 ILMIY YANGILIK';
+
+  const finalCaption = caption && caption.trim()
+    ? `<b>${categoryHeader}</b>\n\n${caption.trim()}`
+    : `<b>${categoryHeader}</b>`;
+
   let sentCount = 0;
   for (const s of connectedScholars) {
     if (s.telegramChatId) {
@@ -540,7 +564,7 @@ export async function broadcastTelegramFile({
         chatId: s.telegramChatId,
         filePath,
         fileName,
-        caption,
+        caption: finalCaption,
       });
       sentCount++;
     }

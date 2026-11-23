@@ -10,18 +10,25 @@ export async function GET() {
   }
 
   try {
-    // 1. Fetch announcements for TIU-scholar bot chat
+    // 1. Fetch announcements for TIU-scholar bot chat with scholar inquiries
     const announcements = await prisma.announcement.findMany({
       take: 25,
       orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        title: true,
-        content: true,
-        category: true,
-        status: true,
-        createdAt: true,
-        viewsCount: true,
+      include: {
+        inquiries: {
+          include: {
+            scholar: {
+              select: {
+                id: true,
+                fullName: true,
+                academicDegree: true,
+                photoUrl: true,
+                telegramChatId: true,
+              },
+            },
+          },
+          orderBy: { createdAt: 'asc' },
+        },
       },
     });
 
@@ -76,13 +83,29 @@ export async function GET() {
     // 3. Assemble TIU-scholar bot chat object
     const botMessages = announcements.map((a) => ({
       id: `bot-ann-${a.id}`,
+      announcementId: a.id,
       type: 'ANNOUNCEMENT',
       sender: 'TIU-scholar',
       title: a.title,
       text: a.content,
       category: a.category,
       createdAt: a.createdAt,
-      isOutgoing: true, // From system to scholars
+      isOutgoing: true,
+      inquiries: (a.inquiries || []).map((inq) => ({
+        id: `inq-${inq.id}`,
+        inquiryId: inq.id,
+        announcementId: a.id,
+        authorName: inq.authorName || inq.scholar?.fullName || 'Olim',
+        scholarDegree: inq.scholar?.academicDegree || 'Tadqiqotchi',
+        scholarPhoto: inq.scholar?.photoUrl,
+        scholarId: inq.scholarId,
+        telegramChatId: inq.telegramChatId || inq.scholar?.telegramChatId,
+        questionText: inq.questionText,
+        answerText: inq.answerText,
+        status: inq.status,
+        createdAt: inq.createdAt,
+        answeredAt: inq.answeredAt,
+      })),
     }));
 
     const botChat = {

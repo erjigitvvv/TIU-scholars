@@ -57,7 +57,7 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: 'Avtorizatsiyadan o‘tilmagan' }, { status: 401 });
     }
 
-    const isModerator = user.role === 'MODERATOR' || user.role === 'SUPER_ADMIN';
+    const isModerator = user.role === 'MODERATOR' || user.role === 'SUPER_ADMIN' || user.role === 'ADMIN';
     if (!isModerator) {
       return NextResponse.json({ success: false, error: 'Faqat moderatorlar eʼlon joylashi mumkin' }, { status: 403 });
     }

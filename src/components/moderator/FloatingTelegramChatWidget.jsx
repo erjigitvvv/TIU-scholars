@@ -292,6 +292,43 @@ export default function FloatingTelegramChatWidget({ user }) {
     const hasDoc = attachedFile && attachedFile.type !== 'IMAGE';
 
     try {
+      // If replying to a specific inquiry or message (from announcement comments or direct chat)
+      if (replyingToMessage) {
+        const payload = {
+          mode: 'DIRECT',
+          scholarId: replyingToMessage.scholarId || (activeChat?.scholarId && !activeChat?.id?.startsWith('guest-') ? activeChat.scholarId : null),
+          recipientChatId: replyingToMessage.telegramChatId || activeChat?.telegramChatId || null,
+          inquiryId: replyingToMessage.inquiryId || (replyingToMessage.id?.startsWith('inq-') ? replyingToMessage.id.replace('inq-', '') : null),
+          title: `↩ Javob: ${replyingToMessage.title || 'E‘lon bo‘yicha so‘rov'}`,
+          messageText: cleanText,
+          fileUrl: attachedFile?.url || null,
+          fileName: attachedFile?.name || null,
+        };
+
+        const res = await fetch('/api/admin/telegram', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setInputText('');
+          setAttachedFile(null);
+          setReplyingToMessage(null);
+          setToastMsg({
+            type: 'success',
+            text: `Javob ${replyingToMessage.sender || 'Olim'}ga Telegram bot orqali yetkazildi! ✅`,
+          });
+          setTimeout(() => setToastMsg(null), 4000);
+          loadChatData(false);
+          return;
+        } else {
+          setToastMsg({ type: 'error', text: data.error || 'Javob yuborishda xatolik' });
+          return;
+        }
+      }
+
       // 1. TIU-scholar Bot Chat (Announcement Broadcast)
       if (activeChatId === 'tiu-scholar-bot') {
         // If file is attached, broadcast real file via Telegram API
@@ -857,15 +894,18 @@ export default function FloatingTelegramChatWidget({ user }) {
                         >
                           <div
                             onClick={() => !isOutgoing && setReplyingToMessage(msg)}
-                            className={`max-w-[85%] rounded-2xl p-3 shadow-xs transition-all relative group ${
-                              !isOutgoing ? 'cursor-pointer hover:shadow-md' : ''
-                            } ${
+                            onDoubleClick={(e) => {
+                              e.stopPropagation();
+                              setReplyingToMessage(msg);
+                            }}
+                            className={`max-w-[85%] rounded-2xl p-3 shadow-xs transition-all relative group cursor-pointer ${
                               isSelectedForReply
                                 ? 'ring-2 ring-blue-500 bg-blue-50/90'
                                 : isOutgoing
                                 ? 'bg-[#EFFDDE] text-slate-900 border border-[#C6EAB0]'
-                                : 'bg-white text-slate-900 border border-slate-200/80'
+                                : 'bg-white text-slate-900 border border-slate-200/80 hover:shadow-md'
                             }`}
+                            title="Javob (Reply) yozish uchun 2 marta bosing"
                           >
                             {/* Message Header */}
                             <div className="flex items-center justify-between gap-2 mb-1">
@@ -1014,6 +1054,89 @@ export default function FloatingTelegramChatWidget({ user }) {
                                   <FileText className="w-3.5 h-3.5" />
                                   <span>Biriktirilgan faylni ochish (.docx/.pdf)</span>
                                 </a>
+                              </div>
+                            )}
+
+                            {/* OLIMLARNING E'LON BO'YICHA BERGAN SAVOL VA IZOHLARI (REPLY THREAD) */}
+                            {msg.inquiries && msg.inquiries.length > 0 && (
+                              <div className="mt-2.5 pt-2 border-t border-slate-200/80 space-y-1.5">
+                                <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
+                                  <span className="flex items-center gap-1.5 text-blue-700">
+                                    <Reply className="w-3.5 h-3.5 rotate-180" />
+                                    Olimlarning savol va izohlari ({msg.inquiries.length})
+                                  </span>
+                                  <span className="text-[10px] text-slate-400 font-normal">
+                                    (Javob yozish uchun 2 marta bosing)
+                                  </span>
+                                </div>
+
+                                <div className="space-y-1.5 pl-2 border-l-2 border-blue-400">
+                                  {msg.inquiries.map((inq) => {
+                                    const isAnswered = inq.status === 'ANSWERED' || Boolean(inq.answerText);
+                                    return (
+                                      <div
+                                        key={inq.id}
+                                        onDoubleClick={(e) => {
+                                          e.stopPropagation();
+                                          setReplyingToMessage({
+                                            id: inq.id,
+                                            inquiryId: inq.inquiryId,
+                                            sender: inq.authorName,
+                                            text: inq.questionText,
+                                            scholarId: inq.scholarId,
+                                            telegramChatId: inq.telegramChatId,
+                                            title: msg.title || 'E‘lon bo‘yicha savol',
+                                          });
+                                        }}
+                                        onClick={() => {
+                                          setReplyingToMessage({
+                                            id: inq.id,
+                                            inquiryId: inq.inquiryId,
+                                            sender: inq.authorName,
+                                            text: inq.questionText,
+                                            scholarId: inq.scholarId,
+                                            telegramChatId: inq.telegramChatId,
+                                            title: msg.title || 'E‘lon bo‘yicha savol',
+                                          });
+                                        }}
+                                        className="p-2 rounded-xl bg-white/95 border border-slate-200 hover:border-blue-400 shadow-xs cursor-pointer transition-all hover:bg-blue-50/50 space-y-1 group"
+                                        title="Ushbu savolga javob yozish uchun 2 marta bosing"
+                                      >
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-[11px] font-bold text-slate-900 flex items-center gap-1">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                            {inq.authorName}
+                                            {inq.scholarDegree && (
+                                              <span className="text-[10px] font-normal text-slate-500">
+                                                ({inq.scholarDegree})
+                                              </span>
+                                            )}
+                                          </span>
+                                          <span
+                                            className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
+                                              isAnswered
+                                                ? 'bg-emerald-100 text-emerald-800'
+                                                : 'bg-amber-100 text-amber-800'
+                                            }`}
+                                          >
+                                            {isAnswered ? 'Javob berilgan' : 'Javob kutilmoqda'}
+                                          </span>
+                                        </div>
+
+                                        <p className="text-xs text-slate-800 leading-snug">
+                                          ❓ {inq.questionText}
+                                        </p>
+
+                                        {inq.answerText && (
+                                          <div className="mt-1 p-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-900 leading-snug">
+                                            <span className="font-bold">↩ Moderator javobi: </span>
+                                            {inq.answerText}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
                               </div>
                             )}
 
