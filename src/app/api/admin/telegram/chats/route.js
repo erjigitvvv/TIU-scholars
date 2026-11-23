@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireModeratorOrAdmin } from '@/lib/auth';
+import { getPollRecords } from '@/lib/telegram';
 
 export async function GET() {
   const user = await requireModeratorOrAdmin();
@@ -209,6 +210,73 @@ export async function GET() {
       };
     });
 
+    // Also include guest / unlinked support inquiries
+    const unlinkedInquiries = await prisma.announcementInquiry.findMany({
+      where: { scholarId: null },
+      include: { announcement: { select: { title: true, id: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (unlinkedInquiries.length > 0) {
+      const grouped = {};
+      for (const inq of unlinkedInquiries) {
+        const key = inq.telegramChatId || inq.id;
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(inq);
+      }
+
+      for (const [tChatId, inqList] of Object.entries(grouped)) {
+        const first = inqList[0];
+        const msgs = [];
+        for (const inq of inqList) {
+          msgs.push({
+            id: `inq-${inq.id}`,
+            type: 'INQUIRY',
+            sender: inq.authorName,
+            title: inq.announcement?.title || 'Support Murojaati',
+            text: inq.questionText,
+            status: inq.status,
+            createdAt: inq.createdAt,
+            isOutgoing: false,
+            inquiryId: inq.id,
+            announcementId: inq.announcementId,
+          });
+          if (inq.answerText) {
+            msgs.push({
+              id: `ans-${inq.id}`,
+              type: 'INQUIRY_ANSWER',
+              sender: 'TIU Ilmiy Bo‘limi',
+              title: `↩ Javob`,
+              text: inq.answerText,
+              createdAt: inq.answeredAt || inq.createdAt,
+              isOutgoing: true,
+              replyToId: `inq-${inq.id}`,
+            });
+          }
+        }
+        msgs.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        const pendingCount = inqList.filter((q) => q.status === 'PENDING').length;
+        const last = msgs[msgs.length - 1];
+
+        scholarChats.push({
+          id: `guest-${tChatId}`,
+          scholarId: null,
+          fullName: `${first.authorName} (Support)`,
+          academicDegree: 'Mehmon foydalanuvchi',
+          department: 'Qo‘llab-quvvatlash',
+          faculty: 'Telegram Murojaatchisi',
+          folder: 'BUSINESS',
+          telegramChatId: tChatId,
+          isTelegramConnected: true,
+          unreadCount: pendingCount,
+          lastMessage: last
+            ? { text: last.text?.slice(0, 50), time: last.createdAt, isOutgoing: last.isOutgoing }
+            : { text: 'Yangi murojaat', time: first.createdAt, isOutgoing: false },
+          messages: msgs,
+        });
+      }
+    }
+
     // Sort scholar chats by latest activity
     scholarChats.sort((a, b) => {
       const timeA = a.lastMessage?.time ? new Date(a.lastMessage.time).getTime() : 0;
@@ -220,6 +288,7 @@ export async function GET() {
       success: true,
       botChat,
       scholarChats,
+      polls: getPollRecords(),
     });
   } catch (error) {
     console.error('GET /api/admin/telegram/chats error:', error);

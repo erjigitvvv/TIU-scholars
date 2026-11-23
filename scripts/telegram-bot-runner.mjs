@@ -33,6 +33,41 @@ const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const BOT_USERNAME = process.env.TELEGRAM_BOT_USERNAME || 'tiuscholarbot';
 const userStates = new Map();
 
+const POLLS_FILE = path.join(rootDir, 'data', 'telegram-polls.json');
+
+function getPollRecords() {
+  try {
+    if (!fs.existsSync(POLLS_FILE)) return [];
+    const content = fs.readFileSync(POLLS_FILE, 'utf-8');
+    const data = JSON.parse(content);
+    return Array.isArray(data) ? data : data.polls || [];
+  } catch {
+    return [];
+  }
+}
+
+function savePollRecord(poll) {
+  try {
+    const existing = getPollRecords();
+    const idx = existing.findIndex((p) => p.id === String(poll.id));
+    if (idx >= 0) {
+      existing[idx] = { ...existing[idx], ...poll, updatedAt: new Date().toISOString() };
+    } else {
+      existing.unshift({
+        ...poll,
+        id: String(poll.id),
+        createdAt: poll.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    }
+    const dir = path.dirname(POLLS_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(POLLS_FILE, JSON.stringify(existing, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('savePollRecord error:', err);
+  }
+}
+
 if (!BOT_TOKEN) {
   console.error('❌ Xatolik: TELEGRAM_BOT_TOKEN topilmadi.');
   process.exit(1);
@@ -317,7 +352,17 @@ async function handleVerification(code, chatId, username, firstName) {
   if (!authCodeRecord || !authCodeRecord.scholar) {
     return {
       success: false,
-      message: '❌ <b>Kiritilgan kod xato yoki uning 1 daqiqalik amal qilish muddati tugagan.</b>\n\n<i>Iltimos, saytdagi kabinetingizdan «Yangi kod olish» tugmasini bosing va yangi kodni yuboring.</i>',
+      message: '❌ <b>Kiritilgan kod xato yoki uning 1 daqiqalik amal qilish muddati tugagan.</b>\n\n<i>Iltimos, saytdagi kabinetingizdan «Yangi kod olish» tugmasini bosing va yangi kodni yuboring yoki yordam uchun quyidagi tugma orqali murojaat qiling:</i>',
+      replyMarkup: {
+        inline_keyboard: [
+          [
+            {
+              text: '🆘 Qo‘llab-quvvatlashga yozish (Support)',
+              callback_data: 'support_req',
+            },
+          ],
+        ],
+      },
     };
   }
 
@@ -338,6 +383,19 @@ async function handleVerification(code, chatId, username, firstName) {
   await prisma.telegramAuthCode.delete({
     where: { id: authCodeRecord.id },
   }).catch(() => {});
+
+  // Scholar uchun In-App bildirishnoma yaratish
+  if (scholar.userId) {
+    await prisma.notification.create({
+      data: {
+        userId: scholar.userId,
+        title: '🎉 Telegram bot muvaffaqiyatli bog‘landi',
+        message: 'Telegram hisobingiz TIU ilmiy tizimiga ulandi.',
+        type: 'SYSTEM',
+        link: '/dashboard',
+      },
+    }).catch(() => {});
+  }
 
   const degreePrefix =
     scholar.academicDegree === 'DSC'
@@ -368,9 +426,55 @@ async function processUpdate(update) {
 
   console.log(`[Bot Message] ChatID: ${chatId}, From: @${username || firstName}, Text: "${text}"`);
 
-  // Check if user is in an active inquiry state (answering to an announcement)
+  // Check if user is in an active inquiry or support state
   if (userStates.has(String(chatId))) {
     const state = userStates.get(String(chatId));
+
+    if (state.action === 'AWAIT_SUPPORT') {
+      const scholar = await prisma.scholarProfile.findFirst({
+        where: { telegramChatId: String(chatId) },
+      });
+      const generalAnn = await prisma.announcement.findFirst({
+        orderBy: { createdAt: 'desc' },
+      });
+
+      await prisma.announcementInquiry.create({
+        data: {
+          announcementId: generalAnn?.id || 'cmwiqnegz0001d6wowgy1nbot',
+          scholarId: scholar?.id || null,
+          telegramChatId: String(chatId),
+          authorName: scholar?.fullName || `${firstName} (@${username || 'foydalanuvchi'})`,
+          questionText: `🆘 [Support]: ${text}`,
+          status: 'PENDING',
+        },
+      });
+
+      // Send In-App notification to all Admins and Moderators
+      const admins = await prisma.user.findMany({
+        where: { role: { in: ['ADMIN', 'MODERATOR'] } },
+        select: { id: true },
+      });
+      for (const adm of admins) {
+        await prisma.notification.create({
+          data: {
+            userId: adm.id,
+            title: `💬 Telegram Yangi Xabar: ${scholar?.fullName || firstName}`,
+            message: text.slice(0, 150),
+            type: 'TELEGRAM_INQUIRY',
+            link: '/admin',
+          },
+        }).catch(() => {});
+      }
+
+      userStates.delete(String(chatId));
+
+      await sendTelegramMessage(
+        chatId,
+        `✅ <b>Murojaatingiz TIU Ilmiy Bo‘limiga yetkazildi!</b>\n\nModeratorimiz xabaringizni ko‘rib chiqib, tez orada sizga javob yozadi. Javob to‘g‘ridan-to‘g‘ri shu yerga bot orqali yetib keladi.`
+      );
+      return;
+    }
+
     if (state.action === 'AWAIT_INQUIRY') {
       const scholar = await prisma.scholarProfile.findFirst({
         where: { telegramChatId: String(chatId) },
@@ -386,6 +490,23 @@ async function processUpdate(update) {
           status: 'PENDING',
         },
       });
+
+      // Send In-App notification to all Admins and Moderators
+      const admins = await prisma.user.findMany({
+        where: { role: { in: ['ADMIN', 'MODERATOR'] } },
+        select: { id: true },
+      });
+      for (const adm of admins) {
+        await prisma.notification.create({
+          data: {
+            userId: adm.id,
+            title: `💬 Yangi Savol: ${scholar?.fullName || firstName}`,
+            message: text.slice(0, 150),
+            type: 'TELEGRAM_INQUIRY',
+            link: '/admin',
+          },
+        }).catch(() => {});
+      }
 
       userStates.delete(String(chatId));
 
@@ -404,12 +525,21 @@ async function processUpdate(update) {
     if (parts.length > 1 && parts[1]) {
       const codeParam = parts[1].trim();
       const res = await handleVerification(codeParam, chatId, username, firstName);
-      await sendTelegramMessage(chatId, res.message);
+      await sendTelegramMessage(chatId, res.message, res.replyMarkup);
       return;
     }
 
-    const greeting = `Assalomu alaykum, <b>${firstName}</b>!\n🏛 <b>TIU Rasmiy Boti</b>\n\nProfilingizni bog‘lash uchun saytdagi 1 daqiqalik tasdiqlash kodini yuboring (masalan: <code>TIU-7492</code>).`;
-    await sendTelegramMessage(chatId, greeting);
+    const greeting = `Assalomu alaykum, <b>${firstName}</b>!\n🏛 <b>TIU Ilmiy Salohiyat Portali Rasmiy Boti</b>\n\nProfilingizni portal bilan bog‘lash uchun saytdagi kabinetingizda ko‘rsatilgan <b>1 daqiqalik tasdiqlash kodini</b> yuboring (masalan: <code>TIU-7492</code> yoki <code>7492</code>):`;
+    await sendTelegramMessage(chatId, greeting, {
+      inline_keyboard: [
+        [
+          {
+            text: '🆘 Qo‘llab-quvvatlashga yozish (Support)',
+            callback_data: 'support_req',
+          },
+        ],
+      ],
+    });
     return;
   }
 
@@ -417,14 +547,24 @@ async function processUpdate(update) {
   const codeMatch = text.match(/^(TIU-)?([A-Za-z0-9]{4,6})$/i);
   if (codeMatch) {
     const res = await handleVerification(text, chatId, username, firstName);
-    await sendTelegramMessage(chatId, res.message);
+    await sendTelegramMessage(chatId, res.message, res.replyMarkup);
     return;
   }
 
   // Boshqa har qanday xabar uchun yo'naltirish
   await sendTelegramMessage(
     chatId,
-    `Hurmatli <b>${firstName}</b>! Profilingizni sayt bilan bog‘lash uchun 1 daqiqalik tasdiqlash kodini yuboring (masalan: <code>TIU-7492</code>).\n\nYordam uchun: /start`
+    `Hurmatli <b>${firstName}</b>! Profilingizni sayt bilan bog‘lash uchun 1 daqiqalik tasdiqlash kodini yuboring (masalan: <code>TIU-7492</code>).\n\nSavol yoki muammo bo‘lsa, quyidagi tugma orqali yozishingiz mumkin:`,
+    {
+      inline_keyboard: [
+        [
+          {
+            text: '🆘 Qo‘llab-quvvatlashga yozish (Support)',
+            callback_data: 'support_req',
+          },
+        ],
+      ],
+    }
   );
 }
 
@@ -452,9 +592,69 @@ async function pollUpdates() {
               await handlePublicationCallback(update.callback_query);
             } else if (data.startsWith('ann_ask:')) {
               await handleAnnouncementInquiryCallback(update.callback_query);
+            } else if (data === 'support_req') {
+              const cqChatId = update.callback_query.message?.chat?.id;
+              if (cqChatId) {
+                userStates.set(String(cqChatId), { action: 'AWAIT_SUPPORT' });
+                await answerCallbackQuery(update.callback_query.id, 'Savolingizni yozing...');
+                await sendTelegramMessage(
+                  cqChatId,
+                  `✍️ <b>Muammo yoki savolingizni yozib qoldiring:</b>\n\n<i>Siz yozgan xabar to‘g‘ridan-to‘g‘ri TIU Ilmiy Bo‘limi (TIUgram) moderatoriga yetkaziladi.</i>`
+                );
+              }
             }
           } else if (update.message) {
             await processUpdate(update);
+          } else if (update.poll) {
+            const p = update.poll;
+            savePollRecord({
+              id: p.id,
+              question: p.question,
+              options: p.options.map((opt) => ({
+                text: opt.text,
+                voter_count: opt.voter_count || 0,
+              })),
+              total_voter_count: p.total_voter_count || 0,
+              is_closed: p.is_closed || false,
+            });
+          } else if (update.poll_answer) {
+            const pa = update.poll_answer;
+            const existingPolls = getPollRecords();
+            const targetPoll = existingPolls.find((p) => p.id === String(pa.poll_id));
+            if (targetPoll) {
+              if (!targetPoll.voters) targetPoll.voters = [];
+              const voterName = pa.user
+                ? `${pa.user.first_name || ''} ${pa.user.last_name || ''} (@${pa.user.username || ''})`.trim()
+                : 'Olim';
+              const existingVoterIdx = targetPoll.voters.findIndex((v) => v.userId === pa.user?.id);
+              if (existingVoterIdx >= 0) {
+                targetPoll.voters[existingVoterIdx] = {
+                  userId: pa.user?.id,
+                  name: voterName,
+                  option_ids: pa.option_ids,
+                  time: new Date().toISOString(),
+                };
+              } else {
+                targetPoll.voters.push({
+                  userId: pa.user?.id,
+                  name: voterName,
+                  option_ids: pa.option_ids,
+                  time: new Date().toISOString(),
+                });
+              }
+              targetPoll.total_voter_count = targetPoll.voters.length;
+              const counts = {};
+              for (const v of targetPoll.voters) {
+                for (const optId of v.option_ids || []) {
+                  counts[optId] = (counts[optId] || 0) + 1;
+                }
+              }
+              targetPoll.options = targetPoll.options.map((opt, idx) => ({
+                ...opt,
+                voter_count: counts[idx] || 0,
+              }));
+              savePollRecord(targetPoll);
+            }
           }
         }
       } else if (!data.ok) {

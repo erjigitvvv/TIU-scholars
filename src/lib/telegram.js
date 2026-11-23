@@ -1,4 +1,6 @@
 import { prisma } from '@/lib/prisma';
+import fs from 'fs';
+import path from 'path';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const BOT_USERNAME = process.env.TELEGRAM_BOT_USERNAME || 'TIUScholarsBot';
@@ -437,8 +439,117 @@ export async function broadcastCustomTelegramMessage({
   return sentCount;
 }
 
+const POLLS_FILE = path.join(process.cwd(), 'data', 'telegram-polls.json');
+
+export function getPollRecords() {
+  try {
+    if (!fs.existsSync(POLLS_FILE)) return [];
+    const content = fs.readFileSync(POLLS_FILE, 'utf-8');
+    const data = JSON.parse(content);
+    return Array.isArray(data) ? data : data.polls || [];
+  } catch {
+    return [];
+  }
+}
+
+export function savePollRecord(poll) {
+  try {
+    const existing = getPollRecords();
+    const idx = existing.findIndex((p) => p.id === String(poll.id));
+    if (idx >= 0) {
+      existing[idx] = { ...existing[idx], ...poll, updatedAt: new Date().toISOString() };
+    } else {
+      existing.unshift({
+        ...poll,
+        id: String(poll.id),
+        createdAt: poll.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    }
+    const dir = path.dirname(POLLS_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(POLLS_FILE, JSON.stringify(existing, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('savePollRecord error:', err);
+  }
+}
+
 /**
- * Haqiqiy Telegram Poll (Native So'rovnoma) yuborish
+ * Haqiqiy faylni (PDF, Word, Excel, ZIP yoki rasm) Telegram orqali bitta olimga yuborish
+ */
+export async function sendTelegramFile({
+  chatId,
+  filePath,
+  fileName,
+  caption = '',
+}) {
+  if (!BOT_TOKEN || !chatId) return null;
+
+  try {
+    let absolutePath = filePath;
+    if (!path.isAbsolute(filePath)) {
+      absolutePath = path.join(process.cwd(), 'public', filePath.replace(/^\//, ''));
+    }
+
+    if (!fs.existsSync(absolutePath)) {
+      console.warn('sendTelegramFile: fayl diskda topilmadi:', absolutePath);
+      return null;
+    }
+
+    const fileBuffer = fs.readFileSync(absolutePath);
+    const resolvedName = fileName || path.basename(absolutePath);
+    const blob = new Blob([fileBuffer]);
+    const formData = new FormData();
+    formData.append('chat_id', chatId);
+    formData.append('document', blob, resolvedName);
+    if (caption && caption.trim()) {
+      formData.append('caption', caption.trim());
+    }
+
+    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
+      method: 'POST',
+      body: formData,
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('sendTelegramFile error:', err);
+    return null;
+  }
+}
+
+/**
+ * Haqiqiy faylni barcha ulangan olimlarga tarqatish
+ */
+export async function broadcastTelegramFile({
+  filePath,
+  fileName,
+  caption = '',
+}) {
+  const connectedScholars = await prisma.scholarProfile.findMany({
+    where: {
+      isTelegramConnected: true,
+      telegramChatId: { not: null },
+    },
+    select: { telegramChatId: true },
+  });
+
+  let sentCount = 0;
+  for (const s of connectedScholars) {
+    if (s.telegramChatId) {
+      await sendTelegramFile({
+        chatId: s.telegramChatId,
+        filePath,
+        fileName,
+        caption,
+      });
+      sentCount++;
+    }
+  }
+  return sentCount;
+}
+
+/**
+ * Haqiqiy Telegram Poll (Native So'rovnoma) yuborish va natijalarni saqlash
  */
 export async function sendTelegramPoll({ chatId, question, options, isAnonymous = false }) {
   if (!BOT_TOKEN || !chatId) return null;
@@ -453,7 +564,21 @@ export async function sendTelegramPoll({ chatId, question, options, isAnonymous 
         is_anonymous: isAnonymous,
       }),
     });
-    return await res.json();
+    const data = await res.json();
+    if (data.ok && data.result?.poll) {
+      const poll = data.result.poll;
+      savePollRecord({
+        id: poll.id,
+        question: poll.question,
+        options: poll.options.map((opt) => ({
+          text: opt.text,
+          voter_count: opt.voter_count || 0,
+        })),
+        total_voter_count: poll.total_voter_count || 0,
+        is_closed: poll.is_closed || false,
+      });
+    }
+    return data;
   } catch (err) {
     console.error('sendTelegramPoll error:', err);
     return null;
@@ -475,12 +600,12 @@ export async function broadcastPollToScholars({ question, options }) {
   let sentCount = 0;
   for (const s of connectedScholars) {
     if (s.telegramChatId) {
-      await sendTelegramPoll({
+      const res = await sendTelegramPoll({
         chatId: s.telegramChatId,
         question,
         options,
       });
-      sentCount++;
+      if (res && res.ok) sentCount++;
     }
   }
   return sentCount;

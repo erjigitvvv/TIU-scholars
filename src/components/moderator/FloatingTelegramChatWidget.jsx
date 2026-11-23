@@ -50,6 +50,7 @@ export default function FloatingTelegramChatWidget({ user }) {
   const [loading, setLoading] = useState(true);
   const [botChat, setBotChat] = useState(null);
   const [scholarChats, setScholarChats] = useState([]);
+  const [livePolls, setLivePolls] = useState([]);
   const [activeChatId, setActiveChatId] = useState('tiu-scholar-bot');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -77,25 +78,31 @@ export default function FloatingTelegramChatWidget({ user }) {
   const fileInputRef = useRef(null);
   const imageInputRef = useRef(null);
 
-  // Fetch chats data
-  const loadChatData = async () => {
+  // Fetch chats and live polls data
+  const loadChatData = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const res = await fetch('/api/admin/telegram/chats');
       const data = await res.json();
       if (data.success) {
-        setBotChat(data.botChat);
-        setScholarChats(data.scholarChats || []);
+        if (data.botChat) setBotChat(data.botChat);
+        if (data.scholarChats) setScholarChats(data.scholarChats || []);
+        if (data.polls) setLivePolls(data.polls || []);
       }
     } catch (err) {
       console.error('Failed to load telegram simulation chats:', err);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadChatData();
+    loadChatData(true);
+    // Real-time polling every 6 seconds for new messages, inquiries and poll votes
+    const timer = setInterval(() => {
+      loadChatData(false);
+    }, 6000);
+    return () => clearInterval(timer);
   }, []);
 
   // Scroll to bottom on conversation change
@@ -280,23 +287,35 @@ export default function FloatingTelegramChatWidget({ user }) {
     setShowCategoryMenu(false);
     setShowEmojiPicker(false);
 
-    let fullMessageText = inputText.trim();
+    let cleanText = inputText.trim();
     const hasImage = attachedFile?.type === 'IMAGE';
     const hasDoc = attachedFile && attachedFile.type !== 'IMAGE';
-
-    if (hasDoc) {
-      fullMessageText += `\n\n📎 Biriktirilgan hujjat: ${window.location.origin}${attachedFile.url} (${attachedFile.name})`;
-    }
 
     try {
       // 1. TIU-scholar Bot Chat (Announcement Broadcast)
       if (activeChatId === 'tiu-scholar-bot') {
+        // If file is attached, broadcast real file via Telegram API
+        if (attachedFile) {
+          await fetch('/api/admin/telegram', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              mode: 'BROADCAST',
+              title: `📢 E‘lon (${announcementCategory})`,
+              messageText: cleanText,
+              category: announcementCategory,
+              fileUrl: attachedFile.url,
+              fileName: attachedFile.name,
+            }),
+          });
+        }
+
         const res = await fetch('/api/announcements', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            title: `📢 E‘lon: ${inputText.slice(0, 45) || attachedFile?.name || 'Yangi xabar'}`,
-            content: fullMessageText,
+            title: `📢 E‘lon: ${cleanText.slice(0, 45) || attachedFile?.name || 'Yangi xabar'}`,
+            content: cleanText || (attachedFile?.name ? `Fayl: ${attachedFile.name}` : ''),
             category: announcementCategory,
             visibility: 'PUBLIC',
             status: 'PUBLISHED',
@@ -304,15 +323,16 @@ export default function FloatingTelegramChatWidget({ user }) {
         });
 
         const data = await res.json();
-        if (data.success) {
+        if (data.success || attachedFile) {
           const newMsg = {
             id: `bot-ann-${Date.now()}`,
             type: 'ANNOUNCEMENT',
             sender: 'TIU-scholar',
             title: `📢 E‘lon (${announcementCategory})`,
-            text: fullMessageText,
+            text: cleanText,
             imageUrl: hasImage ? attachedFile.url : null,
             fileUrl: hasDoc ? attachedFile.url : null,
+            fileName: attachedFile?.name || null,
             createdAt: new Date().toISOString(),
             isOutgoing: true,
           };
@@ -320,31 +340,34 @@ export default function FloatingTelegramChatWidget({ user }) {
           setBotChat((prev) => ({
             ...prev,
             messages: [...(prev.messages || []), newMsg],
-            lastMessage: { text: `📢 ${newMsg.text || 'Rasm biriktirildi'}`, time: new Date() },
+            lastMessage: { text: `📢 ${newMsg.text || 'Fayl biriktirildi'}`, time: new Date() },
           }));
 
           setInputText('');
           setAttachedFile(null);
           setToastMsg({
             type: 'success',
-            text: `Post TIU-scholar kanaliga va ${data.telegramBroadcastCount || 'barcha'} ta olim botiga tarqatildi! ✅`,
+            text: `Post TIU-scholar kanaliga va olimlar botiga yetkazildi! ✅`,
           });
           setTimeout(() => setToastMsg(null), 4000);
         } else {
           setToastMsg({ type: 'error', text: data.error || 'Xatolik' });
         }
       } else {
-        // 2. Scholar Chat: Direct message / reply
+        // 2. Scholar Chat: Direct message / reply / real file
         const scholar = activeChat;
         if (!scholar) return;
 
         const payload = {
           mode: 'DIRECT',
-          scholarId: scholar.scholarId || scholar.id,
+          scholarId: scholar.scholarId || (scholar.id?.startsWith('guest-') ? null : scholar.id),
+          recipientChatId: scholar.telegramChatId || null,
           title: replyingToMessage
             ? `↩ Javob: ${replyingToMessage.title || 'So‘rovingiz bo‘yicha'}`
             : '',
-          messageText: fullMessageText,
+          messageText: cleanText,
+          fileUrl: attachedFile?.url || null,
+          fileName: attachedFile?.name || null,
         };
 
         if (replyingToMessage?.inquiryId) {
@@ -365,9 +388,10 @@ export default function FloatingTelegramChatWidget({ user }) {
             type: 'INQUIRY_ANSWER',
             sender: 'TIU Ilmiy Bo‘limi',
             title: replyingToMessage ? `↩ Javob: ${replyingToMessage.sender}` : 'Moderator javobi',
-            text: fullMessageText,
+            text: cleanText,
             imageUrl: hasImage ? attachedFile.url : null,
             fileUrl: hasDoc ? attachedFile.url : null,
+            fileName: attachedFile?.name || null,
             createdAt: new Date().toISOString(),
             isOutgoing: true,
             replyToId: replyingToMessage?.id,
@@ -893,29 +917,83 @@ export default function FloatingTelegramChatWidget({ user }) {
                               </div>
                             )}
 
-                            {/* Native Telegram Poll Card */}
-                            {msg.type === 'POLL' && (
-                              <div className="space-y-2 mt-1 mb-2 bg-white/60 p-3 rounded-xl border border-blue-200/60 shadow-xs">
-                                <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                                  <BarChart2 className="w-4 h-4 text-blue-600 shrink-0" />
-                                  <span>{msg.pollQuestion || msg.title}</span>
-                                </div>
-                                <div className="space-y-1.5 pt-1">
-                                  {(msg.pollOptions || []).map((opt, idx) => (
-                                    <div
-                                      key={idx}
-                                      className="p-2 rounded-lg border border-slate-200 bg-white text-xs text-slate-800 font-medium flex items-center justify-between"
+                            {/* Native Telegram Poll Card with Live Vote Counts */}
+                            {msg.type === 'POLL' && (() => {
+                              const matchedPoll = livePolls.find(
+                                (p) =>
+                                  p.id === msg.pollId ||
+                                  p.question === msg.pollQuestion ||
+                                  (p.question && msg.pollQuestion && p.question.includes(msg.pollQuestion.slice(0, 15)))
+                              );
+                              const totalVotes = matchedPoll?.total_voter_count || 0;
+                              const rawOptions = matchedPoll?.options || msg.pollOptions || [];
+                              const options = rawOptions.map((opt) => {
+                                if (typeof opt === 'string') {
+                                  const mOpt = matchedPoll?.options?.find((o) => o.text === opt);
+                                  return { text: opt, voter_count: mOpt?.voter_count || 0 };
+                                }
+                                return opt;
+                              });
+
+                              return (
+                                <div className="space-y-2 mt-1 mb-2 bg-white/80 p-3 rounded-xl border border-blue-200 shadow-xs">
+                                  <div className="text-xs font-bold text-slate-900 flex items-center justify-between gap-1.5">
+                                    <span className="flex items-center gap-1.5 min-w-0">
+                                      <BarChart2 className="w-4 h-4 text-blue-600 shrink-0" />
+                                      <span className="truncate">{msg.pollQuestion || msg.title}</span>
+                                    </span>
+                                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-bold shrink-0 font-mono">
+                                      {totalVotes} ta ovoz
+                                    </span>
+                                  </div>
+
+                                  <div className="space-y-2 pt-1">
+                                    {options.map((opt, idx) => {
+                                      const vCount = opt.voter_count || 0;
+                                      const pct = totalVotes > 0 ? Math.round((vCount / totalVotes) * 100) : 0;
+                                      return (
+                                        <div key={idx} className="p-2 rounded-lg border border-slate-200 bg-white space-y-1">
+                                          <div className="flex items-center justify-between text-xs">
+                                            <span className="font-medium text-slate-800">{opt.text}</span>
+                                            <span className="font-bold text-blue-700 text-[11px] font-mono">
+                                              {vCount} ({pct}%)
+                                            </span>
+                                          </div>
+                                          <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                            <div
+                                              style={{ width: `${pct}%` }}
+                                              className="bg-blue-600 h-full rounded-full transition-all duration-500"
+                                            />
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+
+                                  <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[10px] text-slate-500">
+                                    <span className="font-medium">
+                                      👥 Jami berilgan ovozlar: <b className="text-slate-800">{totalVotes} ta</b>
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => loadChatData(false)}
+                                      className="text-blue-600 hover:text-blue-800 font-bold cursor-pointer inline-flex items-center gap-1"
                                     >
-                                      <span>{opt}</span>
-                                      <span className="w-3.5 h-3.5 rounded-full border-2 border-slate-300" />
+                                      <span>Yangilash</span> 🔄
+                                    </button>
+                                  </div>
+
+                                  {matchedPoll?.voters && matchedPoll.voters.length > 0 && (
+                                    <div className="text-[10px] text-slate-500 bg-slate-50 p-1.5 rounded-lg border border-slate-100 space-y-0.5">
+                                      <span className="font-bold text-slate-600 block">Ovoz bergan olimlar:</span>
+                                      <p className="text-slate-700 leading-snug">
+                                        {matchedPoll.voters.map((v) => v.name).join(', ')}
+                                      </p>
                                     </div>
-                                  ))}
+                                  )}
                                 </div>
-                                <div className="text-[10px] text-blue-600 font-semibold pt-0.5">
-                                  📊 Rasmiy Telegram so‘rovnomasi (Olimlar botda ovoz beradi)
-                                </div>
-                              </div>
-                            )}
+                              );
+                            })()}
 
                             {/* Text / Caption */}
                             {msg.text && (
@@ -1205,19 +1283,22 @@ export default function FloatingTelegramChatWidget({ user }) {
                       </button>
                     </div>
 
-                    {/* 5. TELEGRAM SEND BUTTON (O'NG TOMONGA QARAGAN JONATISH BTN) */}
+                    {/* 5. TELEGRAM SEND BUTTON (AYNAN RASMDAGI O'NGGA QARAGAN SEND ICON) */}
                     <button
                       type="button"
                       disabled={sending || (!inputText.trim() && !attachedFile)}
                       onClick={handleSendMessage}
-                      className="w-10 h-10 rounded-full shadow-md bg-[#2AABEE] hover:bg-[#229ED9] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0 transition-transform active:scale-95 flex items-center justify-center p-2.5 border-0"
+                      className="w-10 h-10 rounded-full shadow-md bg-[#2AABEE] hover:bg-[#229ED9] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shrink-0 transition-transform active:scale-95 flex items-center justify-center p-2.5 border-0 text-white"
                       title="Telegram orqali yuborish (Send)"
                     >
-                      <img
-                        src="/icons/send-arrow-white.png"
-                        alt="Yuborish"
-                        className="w-full h-full object-contain pointer-events-none translate-x-0.5"
-                      />
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-5 h-5 text-white translate-x-0.5"
+                      >
+                        <path d="M2.5 2.5L21.5 12L2.5 21.5L5.8 13.8L15.5 12L5.8 10.2L2.5 2.5Z" />
+                      </svg>
                     </button>
                   </div>
                 </div>
@@ -1340,9 +1421,9 @@ export default function FloatingTelegramChatWidget({ user }) {
           />
         </div>
 
-        {/* Total pending inquiries badge */}
+        {/* Total pending incoming messages / inquiries badge */}
         {totalPendingInquiries > 0 && (
-          <span className="absolute -top-1 -right-1 px-1.5 py-0.5 min-w-[20px] rounded-full bg-rose-500 text-white text-[10px] font-black border-2 border-white shadow-xs animate-bounce">
+          <span className="absolute -top-1.5 -right-1.5 px-2 py-0.5 min-w-[22px] h-[22px] rounded-full bg-rose-500 text-white text-[11px] font-black border-2 border-white shadow-md flex items-center justify-center animate-bounce">
             {totalPendingInquiries}
           </span>
         )}
