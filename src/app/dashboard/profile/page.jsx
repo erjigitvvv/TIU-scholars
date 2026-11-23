@@ -294,13 +294,24 @@ export default function ProfilePage() {
   const [changingEmail, setChangingEmail] = useState(false);
   const [currentEmail, setCurrentEmail] = useState('');
   const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [emailStep, setEmailStep] = useState(1); // 1: input email, 2: input 6-digit OTP
+  const [emailOtpCode, setEmailOtpCode] = useState('');
+  const [emailTimer, setEmailTimer] = useState(60);
+  const [sendingEmailCode, setSendingEmailCode] = useState(false);
+  const [verifyingEmailCode, setVerifyingEmailCode] = useState(false);
+  const [emailSuccess3s, setEmailSuccess3s] = useState(false);
+  const [emailCountdown, setEmailCountdown] = useState(3);
+
   const [pwModalOpen, setPwModalOpen] = useState(false);
+  const [pwForgotMode, setPwForgotMode] = useState(false); // false: normal, true: forgot OTP
+  const [pwOtpCode, setPwOtpCode] = useState('');
+  const [pwOtpTimer, setPwOtpTimer] = useState(60);
+  const [sendingPwOtp, setSendingPwOtp] = useState(false);
+  const [resettingPw, setResettingPw] = useState(false);
   const [pwSuccess3s, setPwSuccess3s] = useState(false);
   const [pwCountdown, setPwCountdown] = useState(3);
   const [pwError, setPwError] = useState('');
   const [emailError, setEmailError] = useState('');
-  const [forgotLoading, setForgotLoading] = useState(false);
-  const [forgotSentMsg, setForgotSentMsg] = useState('');
 
   const t = COPY[locale] || COPY.uz;
 
@@ -475,6 +486,172 @@ export default function ProfilePage() {
     }
   };
 
+  // 1 daqiqalik email taymeri
+  useEffect(() => {
+    let timer;
+    if (emailModalOpen && emailStep === 2 && emailTimer > 0) {
+      timer = setInterval(() => {
+        setEmailTimer((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [emailModalOpen, emailStep, emailTimer]);
+
+  // 1 daqiqalik parol OTP taymeri
+  useEffect(() => {
+    let timer;
+    if (pwModalOpen && pwForgotMode && pwOtpTimer > 0) {
+      timer = setInterval(() => {
+        setPwOtpTimer((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [pwModalOpen, pwForgotMode, pwOtpTimer]);
+
+  const handleSendEmailCode = async (e) => {
+    if (e) e.preventDefault();
+    if (!emailForm.newEmail || !emailForm.newEmail.includes('@')) {
+      setEmailError('To‘g‘ri yangi email manzilini kiriting');
+      return;
+    }
+    setEmailError('');
+    setSendingEmailCode(true);
+    try {
+      const res = await fetch('/api/dashboard/profile/email/send-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newEmail: emailForm.newEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Kod yuborishda xatolik');
+      setEmailStep(2);
+      setEmailTimer(60);
+      setEmailOtpCode(data.devCode || '');
+    } catch (err) {
+      setEmailError(err.message);
+    } finally {
+      setSendingEmailCode(false);
+    }
+  };
+
+  const handleVerifyEmailCode = async (e) => {
+    if (e) e.preventDefault();
+    if (!emailOtpCode || emailOtpCode.trim().length < 6) {
+      setEmailError('Pochtaga yuborilgan 6 xonali tasdiqlash kodini to‘liq kiriting');
+      return;
+    }
+    setEmailError('');
+    setVerifyingEmailCode(true);
+    try {
+      const res = await fetch('/api/dashboard/profile/email/verify-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          newEmail: emailForm.newEmail,
+          code: emailOtpCode.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Kodni tasdiqlashda xatolik');
+
+      setCurrentEmail(emailForm.newEmail);
+      setEmailSuccess3s(true);
+      setEmailCountdown(3);
+      let count = 3;
+      const interval = setInterval(() => {
+        count -= 1;
+        setEmailCountdown(count);
+        if (count <= 0) {
+          clearInterval(interval);
+          setEmailSuccess3s(false);
+          setEmailModalOpen(false);
+          setEmailStep(1);
+          setEmailOtpCode('');
+          showToast('Emailingiz muvaffaqiyatli yangilandi!', 'success');
+        }
+      }, 1000);
+    } catch (err) {
+      setEmailError(err.message);
+    } finally {
+      setVerifyingEmailCode(false);
+    }
+  };
+
+  const handleStartForgotPw = async () => {
+    setPwError('');
+    setPwForgotMode(true);
+    setSendingPwOtp(true);
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: currentEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Kod yuborishda xatolik');
+      setPwOtpTimer(60);
+      setPwOtpCode(data.devCode || '');
+    } catch (err) {
+      setPwError(err.message);
+    } finally {
+      setSendingPwOtp(false);
+    }
+  };
+
+  const handleResetPwWithCode = async (e) => {
+    if (e) e.preventDefault();
+    if (!pwOtpCode || pwOtpCode.trim().length < 6) {
+      setPwError('Pochtangizga borgan 6 xonali kodni kiriting');
+      return;
+    }
+    if (!pwForm.newPassword || pwForm.newPassword.length < 6) {
+      setPwError('Yangi parol kamida 6 ta belgidan iborat bo‘lishi kerak');
+      return;
+    }
+    if (pwForm.newPassword !== pwForm.confirmPassword) {
+      setPwError('Yangi parollar bir-biriga mos kelmadi');
+      return;
+    }
+
+    setPwError('');
+    setResettingPw(true);
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: currentEmail,
+          code: pwOtpCode.trim(),
+          newPassword: pwForm.newPassword,
+          confirmPassword: pwForm.confirmPassword,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Parolni tiklashda xatolik');
+
+      setPwSuccess3s(true);
+      setPwCountdown(3);
+      let count = 3;
+      const interval = setInterval(() => {
+        count -= 1;
+        setPwCountdown(count);
+        if (count <= 0) {
+          clearInterval(interval);
+          setPwSuccess3s(false);
+          setPwModalOpen(false);
+          setPwForgotMode(false);
+          setPwOtpCode('');
+          setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+          showToast('Parolingiz muvaffaqiyatli yangilandi!', 'success');
+        }
+      }, 1000);
+    } catch (err) {
+      setPwError(err.message);
+    } finally {
+      setResettingPw(false);
+    }
+  };
+
   const handleChangePassword = async (e) => {
     e.preventDefault();
     setPwError('');
@@ -507,49 +684,6 @@ export default function ProfilePage() {
       setPwError(err.message);
     } finally {
       setChangingPw(false);
-    }
-  };
-
-  const handleForgotPassword = async () => {
-    setForgotLoading(true);
-    setForgotSentMsg('');
-    setPwError('');
-    try {
-      const res = await fetch('/api/auth/forgot-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: currentEmail }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Xatolik yuz berdi');
-      setForgotSentMsg(data.message || 'Parolni tiklash havolasi emailingizga yuborildi!');
-    } catch (err) {
-      setPwError(err.message);
-    } finally {
-      setForgotLoading(false);
-    }
-  };
-
-  const handleChangeEmail = async (e) => {
-    e.preventDefault();
-    setEmailError('');
-    setChangingEmail(true);
-    try {
-      const res = await fetch('/api/dashboard/profile/email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(emailForm),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Emailni yangilashda xatolik');
-      setCurrentEmail(data.email || emailForm.newEmail);
-      setEmailForm({ newEmail: '', currentPassword: '' });
-      setEmailModalOpen(false);
-      showToast(t.emailSuccess, 'success');
-    } catch (err) {
-      setEmailError(err.message);
-    } finally {
-      setChangingEmail(false);
     }
   };
 
@@ -1196,85 +1330,181 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Modal 1: Email Change Modal */}
+      {/* Modal 1: Email Change Modal with 1-Minute 6-Digit OTP */}
       {emailModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
           <div className="relative w-full max-w-md p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 flex items-center justify-center">
-                  <Mail className="w-4 h-4" />
+            {emailSuccess3s ? (
+              /* 3-Second Animated Confirmation Screen */
+              <div className="py-8 text-center space-y-4">
+                <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20 animate-bounce">
+                  <CheckCircle2 className="w-10 h-10" />
                 </div>
-                <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                  Kirish emailini o‘zgartirish
-                </h3>
+                <div>
+                  <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
+                    Email muvaffaqiyatli yangilandi!
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-mono">
+                    Yangi email: <b>{currentEmail}</b>
+                  </p>
+                </div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[11px] font-mono text-slate-500">
+                  <Clock className="w-3 h-3 text-amber-500 animate-pulse" />
+                  <span>Oyna {emailCountdown} soniyadan so‘ng avtomatik yopiladi...</span>
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setEmailModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 flex items-center justify-center">
+                      <Mail className="w-4 h-4" />
+                    </div>
+                    <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                      {emailStep === 1 ? 'Kirish emailini yangilash' : 'Pochtani tasdiqlash'}
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmailModalOpen(false);
+                      setEmailStep(1);
+                    }}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
 
-            {emailError && (
-              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs">
-                {emailError}
-              </div>
+                {emailError && (
+                  <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs">
+                    {emailError}
+                  </div>
+                )}
+
+                {emailStep === 1 ? (
+                  /* Step 1: Input New Email */
+                  <form onSubmit={handleSendEmailCode} className="space-y-3.5">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                      Yangi email manzilini kiriting. Pochtangizga aynan <b>1 daqiqa</b> amal qiluvchi <b>6 xonali tasdiqlash kodi</b> yuboriladi.
+                    </p>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                        Yangi email manzili
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        placeholder="masalan: dr.alisher.olimov@tiu.uz"
+                        value={emailForm.newEmail}
+                        onChange={(e) => setEmailForm({ ...emailForm, newEmail: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-hidden focus:ring-2 focus:ring-blue-500 font-mono"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2.5 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setEmailModalOpen(false)}
+                        className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                      >
+                        Bekor qilish
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={sendingEmailCode || !emailForm.newEmail}
+                        className="px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition disabled:opacity-50 flex items-center gap-1.5"
+                      >
+                        <Send className="w-3.5 h-3.5 -rotate-45" />
+                        <span>{sendingEmailCode ? 'Kod yuborilmoqda...' : '1 daqiqalik kodni olish'}</span>
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  /* Step 2: Input 6-Digit OTP Code with 1-Minute Live Timer */
+                  <form onSubmit={handleVerifyEmailCode} className="space-y-4">
+                    <div className="p-3.5 rounded-2xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-900/40 text-xs text-blue-900 dark:text-blue-300">
+                      Tasdiqlash kodi <b>{emailForm.newEmail}</b> pochtasiga yuborildi. Pochtadagi 6 xonali kodni kiriting.
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                          6 xonali tasdiqlash kodi
+                        </label>
+                        {emailTimer > 0 ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-mono font-bold text-amber-600 dark:text-amber-400">
+                            <Clock className="w-3 h-3 animate-pulse" />
+                            00:{emailTimer < 10 ? `0${emailTimer}` : emailTimer} qoldi
+                          </span>
+                        ) : (
+                          <span className="text-xs font-bold text-rose-500">
+                            Kod muddati tugadi
+                          </span>
+                        )}
+                      </div>
+
+                      <input
+                        type="text"
+                        required
+                        maxLength={6}
+                        placeholder="••••••"
+                        value={emailOtpCode}
+                        onChange={(e) => setEmailOtpCode(e.target.value.replace(/\D/g, ''))}
+                        className="w-full text-center tracking-[0.5em] text-2xl font-mono font-black py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white outline-hidden focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setEmailStep(1)}
+                        className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                      >
+                        ← Emailni o‘zgartirish
+                      </button>
+
+                      {emailTimer === 0 && (
+                        <button
+                          type="button"
+                          onClick={handleSendEmailCode}
+                          disabled={sendingEmailCode}
+                          className="text-xs font-bold text-blue-600 hover:underline"
+                        >
+                          Qayta kod olish
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEmailModalOpen(false);
+                          setEmailStep(1);
+                        }}
+                        className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                      >
+                        Bekor qilish
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={verifyingEmailCode || emailOtpCode.length < 6 || emailTimer === 0}
+                        className="px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition disabled:opacity-50"
+                      >
+                        {verifyingEmailCode ? 'Tekshirilmoqda...' : 'Tasdiqlash va Saqlash'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </>
             )}
-
-            <form onSubmit={handleChangeEmail} className="space-y-3.5">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                  Yangi login emaili
-                </label>
-                <input
-                  type="email"
-                  required
-                  placeholder="masalan: dr.alisher.olimov@tiu.uz"
-                  value={emailForm.newEmail}
-                  onChange={(e) => setEmailForm({ ...emailForm, newEmail: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-hidden focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                  Tasdiqlash uchun joriy parol
-                </label>
-                <input
-                  type="password"
-                  required
-                  placeholder="Joriy parolingizni kiriting"
-                  value={emailForm.currentPassword}
-                  onChange={(e) => setEmailForm({ ...emailForm, currentPassword: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-hidden focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2.5 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setEmailModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
-                >
-                  Bekor qilish
-                </button>
-                <button
-                  type="submit"
-                  disabled={changingEmail}
-                  className="px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition disabled:opacity-50"
-                >
-                  {changingEmail ? 'Saqlanmoqda...' : 'Saqlash'}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}
 
-      {/* Modal 2: Password Change Modal with 3-Second Confirmation Screen */}
+      {/* Modal 2: Password Change & Forgot Password OTP Modal */}
       {pwModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
           <div className="relative w-full max-w-md p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
@@ -1298,7 +1528,6 @@ export default function ProfilePage() {
                 </div>
               </div>
             ) : (
-              /* Normal Form View */
               <>
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-2.5">
@@ -1306,12 +1535,15 @@ export default function ProfilePage() {
                       <Lock className="w-4 h-4" />
                     </div>
                     <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                      Parolni o‘zgartirish
+                      {pwForgotMode ? 'Parolni tiklash (Email OTP)' : 'Parolni o‘zgartirish'}
                     </h3>
                   </div>
                   <button
                     type="button"
-                    onClick={() => setPwModalOpen(false)}
+                    onClick={() => {
+                      setPwModalOpen(false);
+                      setPwForgotMode(false);
+                    }}
                     className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                   >
                     <X className="w-4 h-4" />
@@ -1324,87 +1556,188 @@ export default function ProfilePage() {
                   </div>
                 )}
 
-                {forgotSentMsg && (
-                  <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300 text-xs flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>{forgotSentMsg}</span>
-                  </div>
+                {pwForgotMode ? (
+                  /* Forgot Password Flow with 1-Minute 6-Digit OTP */
+                  <form onSubmit={handleResetPwWithCode} className="space-y-3.5">
+                    <div className="p-3.5 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-900/40 text-xs text-indigo-900 dark:text-indigo-300">
+                      1 daqiqalik tasdiqlash kodi <b>{currentEmail}</b> pochtasiga yuborildi.
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                          Pochtadagi 6 xonali kod
+                        </label>
+                        {pwOtpTimer > 0 ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-mono font-bold text-amber-600 dark:text-amber-400">
+                            <Clock className="w-3 h-3 animate-pulse" />
+                            00:{pwOtpTimer < 10 ? `0${pwOtpTimer}` : pwOtpTimer} qoldi
+                          </span>
+                        ) : (
+                          <span className="text-xs font-bold text-rose-500">
+                            Kod muddati tugadi
+                          </span>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        required
+                        maxLength={6}
+                        placeholder="••••••"
+                        value={pwOtpCode}
+                        onChange={(e) => setPwOtpCode(e.target.value.replace(/\D/g, ''))}
+                        className="w-full text-center tracking-[0.5em] text-2xl font-mono font-black py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white outline-hidden focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                        Yangi parol (kamida 6 ta belgi)
+                      </label>
+                      <input
+                        type="password"
+                        required
+                        minLength={6}
+                        placeholder="Yangi kuchli parol"
+                        value={pwForm.newPassword}
+                        onChange={(e) => setPwForm({ ...pwForm, newPassword: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-hidden focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                        Yangi parolni qayta kiritish
+                      </label>
+                      <input
+                        type="password"
+                        required
+                        minLength={6}
+                        placeholder="Yangi parolni tasdiqlang"
+                        value={pwForm.confirmPassword}
+                        onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-hidden focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setPwForgotMode(false)}
+                        className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                      >
+                        ← Joriy parol orqali o‘zgartirish
+                      </button>
+
+                      {pwOtpTimer === 0 && (
+                        <button
+                          type="button"
+                          onClick={handleStartForgotPw}
+                          disabled={sendingPwOtp}
+                          className="text-xs font-bold text-indigo-600 hover:underline"
+                        >
+                          Qayta kod olish
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPwModalOpen(false);
+                          setPwForgotMode(false);
+                        }}
+                        className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                      >
+                        Bekor qilish
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={resettingPw || pwOtpCode.length < 6 || pwOtpTimer === 0}
+                        className="px-5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition disabled:opacity-50"
+                      >
+                        {resettingPw ? 'Yangilanmoqda...' : 'Parolni yangilash'}
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  /* Normal Password Change Flow */
+                  <form onSubmit={handleChangePassword} className="space-y-3.5">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                        Joriy (eski) parol
+                      </label>
+                      <input
+                        type="password"
+                        required
+                        placeholder="Eski parolingizni kiriting"
+                        value={pwForm.currentPassword}
+                        onChange={(e) => setPwForm({ ...pwForm, currentPassword: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-hidden focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                        Yangi parol (kamida 6 ta belgi)
+                      </label>
+                      <input
+                        type="password"
+                        required
+                        minLength={6}
+                        placeholder="Yangi kuchli parol"
+                        value={pwForm.newPassword}
+                        onChange={(e) => setPwForm({ ...pwForm, newPassword: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-hidden focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                        Yangi parolni qayta kiritish
+                      </label>
+                      <input
+                        type="password"
+                        required
+                        minLength={6}
+                        placeholder="Yangi parolni tasdiqlang"
+                        value={pwForm.confirmPassword}
+                        onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-hidden focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+
+                    {/* Forgot Password Link */}
+                    <div className="pt-1">
+                      <button
+                        type="button"
+                        disabled={sendingPwOtp}
+                        onClick={handleStartForgotPw}
+                        className="text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-semibold underline underline-offset-2 transition cursor-pointer"
+                      >
+                        {sendingPwOtp ? 'Pochtaga 1 daqiqalik kod yuborilmoqda...' : 'Parolni unutdingizmi? Pochtaga 1 daqiqalik kod yuborish'}
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2.5 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setPwModalOpen(false)}
+                        className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                      >
+                        Bekor qilish
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={changingPw}
+                        className="px-5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition disabled:opacity-50"
+                      >
+                        {changingPw ? 'Tasdiqlanmoqda...' : 'Tasdiqlash'}
+                      </button>
+                    </div>
+                  </form>
                 )}
-
-                <form onSubmit={handleChangePassword} className="space-y-3.5">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                      Joriy (eski) parol
-                    </label>
-                    <input
-                      type="password"
-                      required
-                      placeholder="Eski parolingizni kiriting"
-                      value={pwForm.currentPassword}
-                      onChange={(e) => setPwForm({ ...pwForm, currentPassword: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-hidden focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                      Yangi parol (kamida 6 ta belgi)
-                    </label>
-                    <input
-                      type="password"
-                      required
-                      minLength={6}
-                      placeholder="Yangi kuchli parol"
-                      value={pwForm.newPassword}
-                      onChange={(e) => setPwForm({ ...pwForm, newPassword: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-hidden focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                      Yangi parolni qayta kiritish
-                    </label>
-                    <input
-                      type="password"
-                      required
-                      minLength={6}
-                      placeholder="Yangi parolni tasdiqlang"
-                      value={pwForm.confirmPassword}
-                      onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-hidden focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-
-                  {/* Forgot Password Link */}
-                  <div className="pt-1">
-                    <button
-                      type="button"
-                      disabled={forgotLoading}
-                      onClick={handleForgotPassword}
-                      className="text-xs text-blue-600 hover:text-blue-700 dark:text-sky-400 dark:hover:text-sky-300 font-semibold underline underline-offset-2 transition cursor-pointer"
-                    >
-                      {forgotLoading ? 'Pochtaga havola yuborilmoqda...' : 'Parolni unutdingizmi? Pochtaga tiklash havolasini yuborish'}
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-end gap-2.5 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setPwModalOpen(false)}
-                      className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
-                    >
-                      Bekor qilish
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={changingPw}
-                      className="px-5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition disabled:opacity-50"
-                    >
-                      {changingPw ? 'Tasdiqlanmoqda...' : 'Tasdiqlash'}
-                    </button>
-                  </div>
-                </form>
               </>
             )}
           </div>

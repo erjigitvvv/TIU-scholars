@@ -407,3 +407,17 @@ model TelegramAuthCode {
   @@index([code])
   @@index([scholarId])
 }
+
+model EmailVerificationCode {
+  id        String   @id @default(cuid())
+  userId    String?
+  email     String
+  code      String
+  purpose   String   @default("CHANGE_EMAIL") // CHANGE_EMAIL, RESET_PASSWORD
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([code])
+}
+
