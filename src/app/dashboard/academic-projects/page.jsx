@@ -86,6 +86,24 @@ export default function AcademicProjectsPage() {
   const [selectedCredit, setSelectedCredit] = useState(['Methodology', 'Writing - original draft']);
   const [inviting, setInviting] = useState(false);
   const [inviteSuccessMsg, setInviteSuccessMsg] = useState('');
+  const [scholarSearchText, setScholarSearchText] = useState('');
+  const [scholarSuggestions, setScholarSuggestions] = useState([]);
+
+  const searchTiuScholars = async (query) => {
+    if (!query || query.trim().length < 2) {
+      setScholarSuggestions([]);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/scholars/search?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      if (data.success) {
+        setScholarSuggestions(data.data || []);
+      }
+    } catch {
+      setScholarSuggestions([]);
+    }
+  };
 
   // Status message
   const [copiedCitation, setCopiedCitation] = useState(null);
@@ -908,6 +926,61 @@ export default function AcademicProjectsPage() {
                 </div>
               ) : (
                 <form onSubmit={handleSendInvite} className="space-y-3.5 text-xs">
+                  {/* TIU Scholars Autocomplete */}
+                  <div className="bg-emerald-50/60 dark:bg-emerald-950/30 p-3 rounded-2xl border border-emerald-200/70 dark:border-emerald-800/60 space-y-2">
+                    <label className="block font-bold text-emerald-900 dark:text-emerald-300 text-[11px] flex items-center gap-1.5">
+                      <Search className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>TIU Olimlaridan Izlash (1-klikda to‘ldirish)</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Olimning ismi yoki kafedrasini yozing..."
+                        value={scholarSearchText}
+                        onChange={(e) => {
+                          setScholarSearchText(e.target.value);
+                          searchTiuScholars(e.target.value);
+                        }}
+                        className="w-full pl-3 pr-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 text-xs"
+                      />
+                    </div>
+
+                    {scholarSuggestions.length > 0 && (
+                      <div className="max-h-40 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800 shadow-xl">
+                        {scholarSuggestions.map((s) => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => {
+                              setInviteEmail(s.email);
+                              setInviteName(s.fullName);
+                              setScholarSuggestions([]);
+                              setScholarSearchText(s.fullName);
+                            }}
+                            className="w-full p-2.5 text-left hover:bg-emerald-50 dark:hover:bg-emerald-950/50 flex items-center justify-between gap-2 transition"
+                          >
+                            <div>
+                              <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                <span>{s.fullName}</span>
+                                {s.isTelegramConnected && (
+                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300">
+                                    Telegram 🤖
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[10px] text-slate-400">
+                                {s.departmentName || s.email}
+                              </div>
+                            </div>
+                            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
+                              Tanlash 👉
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   <div>
                     <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
                       Hammuallif Emaili <span className="text-red-500">*</span>

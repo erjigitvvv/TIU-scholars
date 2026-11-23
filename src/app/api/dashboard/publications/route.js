@@ -5,6 +5,7 @@ import { getActiveScholar } from '@/lib/auth'
 import { recalculateScholarMetrics, getPublicationPoints } from '@/lib/scoring'
 import { fetchByDoi } from '@/lib/crossref'
 import { parseBibtex } from '@/lib/bibtex'
+import { sendTelegramMessage } from '@/lib/telegram'
 
 function getFeedbackMap() {
   try {
@@ -45,6 +46,9 @@ export async function GET(request) {
     const publications = pubAuthors.map(pa => ({
       ...pa.publication,
       authorOrder: pa.authorOrder,
+      approvalStatus: pa.approvalStatus || 'APPROVED',
+      approvedAt: pa.approvedAt,
+      rejectionNote: pa.rejectionNote,
       views: feedbackMap[pa.publication.id]?.views || 0,
       commentsCount: Array.isArray(feedbackMap[pa.publication.id]?.comments)
         ? feedbackMap[pa.publication.id].comments.length
@@ -52,16 +56,33 @@ export async function GET(request) {
       tiuScoreValue: getPublicationPoints(pa.publication, scoringConfig),
     }))
 
+    const pendingApprovals = pubAuthors
+      .filter(pa => pa.authorOrder > 1 && pa.approvalStatus === 'PENDING')
+      .map(pa => ({
+        ...pa.publication,
+        authorOrder: pa.authorOrder,
+        approvalStatus: pa.approvalStatus,
+      }))
+
     const allScholars = await prisma.scholarProfile.findMany({
       where: {
         id: { not: scholar.id },
         user: { accountStatus: 'ACTIVE' },
       },
-      select: { id: true, fullName: true, academicDegree: true },
+      select: {
+        id: true,
+        fullName: true,
+        academicDegree: true,
+        academicTitle: true,
+        photoUrl: true,
+        isTelegramConnected: true,
+        user: { select: { email: true } },
+        department: { select: { nameUz: true } },
+      },
       orderBy: { fullName: 'asc' },
     })
 
-    return Response.json({ publications, allScholars })
+    return Response.json({ publications, pendingApprovals, allScholars })
   } catch (error) {
     console.error('API GET /api/dashboard/publications error:', error)
     return Response.json({ error: error.message }, { status: 500 })
@@ -155,7 +176,11 @@ export async function POST(request) {
         const extraAuthors = Array.isArray(coAuthorIds)
           ? coAuthorIds
               .filter((cid) => cid && cid !== scholar.id)
-              .map((cid, idx) => ({ scholarId: cid, authorOrder: idx + 2 }))
+              .map((cid, idx) => ({
+                scholarId: cid,
+                authorOrder: idx + 2,
+                approvalStatus: 'PENDING',
+              }))
           : []
         const newPub = await prisma.publication.create({
           data: {
@@ -176,6 +201,8 @@ export async function POST(request) {
                 {
                   scholarId: scholar.id,
                   authorOrder: 1,
+                  approvalStatus: 'APPROVED',
+                  approvedAt: new Date(),
                 },
                 ...extraAuthors,
               ]
@@ -183,6 +210,64 @@ export async function POST(request) {
           }
         })
         publicationId = newPub.id
+
+        // Hammualliflarni xabardor qilish: Telegram Bot (agar ulangan bo'lsa) yoki Notification
+        const siteUrl = process.env.NEXTAUTH_URL || 'http://localhost:3001';
+        for (const ea of extraAuthors) {
+          const coScholar = await prisma.scholarProfile.findUnique({
+            where: { id: ea.scholarId },
+            include: { user: true },
+          });
+
+          if (coScholar) {
+            // 1. Tizim ichki bildirishnomasi
+            if (coScholar.userId) {
+              await prisma.notification.create({
+                data: {
+                  userId: coScholar.userId,
+                  title: '📌 Yangi nashr hammuallifligi',
+                  message: `${scholar.fullName} sizni «${newPub.title}» nashriga hammuallif sifatida ko‘rsatdi. Iltimos, ko‘rib chiqib tasdiqlang.`,
+                  type: 'SYSTEM',
+                  link: `/dashboard/publications?review=${publicationId}`,
+                },
+              }).catch(() => {});
+            }
+
+            // 2. Telegram Bot xabarnomasi (tasdiqlash va ko'rish tugmalari bilan)
+            if (coScholar.isTelegramConnected && coScholar.telegramChatId) {
+              const text = `📌 <b>Yangi Nashr Qo‘shildi va Tasdiqlashingiz So‘ralmoqda!</b>\n\n` +
+                `Hurmatli olim, hamkasbingiz <b>${scholar.fullName}</b> yangi nashrni kiritdi va sizni hammuallif sifatida ko‘rsatdi:\n\n` +
+                `📖 <b>Sarlavha:</b> «${newPub.title}»\n` +
+                `📂 <b>Turi:</b> ${newPub.type} • ${newPub.journalOrPublisher} (${newPub.year})\n\n` +
+                `<i>Ushbu nashrni ko‘rib chiqib, hammualliflikni tasdiqlang:</i>`;
+
+              const replyMarkup = {
+                inline_keyboard: [
+                  [
+                    {
+                      text: '👁 Ko‘rish',
+                      url: `${siteUrl}/dashboard/publications?review=${publicationId}`,
+                    },
+                    {
+                      text: '✅ Tasdiqlash',
+                      callback_data: `pub_app:${publicationId}:${coScholar.id}`,
+                    },
+                    {
+                      text: '❌ Rad etish',
+                      callback_data: `pub_rej:${publicationId}:${coScholar.id}`,
+                    },
+                  ],
+                ],
+              };
+
+              await sendTelegramMessage({
+                chatId: coScholar.telegramChatId,
+                text,
+                replyMarkup,
+              }).catch(() => {});
+            }
+          }
+        }
       }
 
       createdOrLinkedPubs.push(publicationId)

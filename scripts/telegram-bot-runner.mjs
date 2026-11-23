@@ -173,6 +173,97 @@ async function handleCollaborationCallback(cq) {
   }
 }
 
+async function handlePublicationCallback(cq) {
+  const data = cq.data || '';
+  const isApprove = data.startsWith('pub_app:');
+  const isReject = data.startsWith('pub_rej:');
+  if (!isApprove && !isReject) return;
+
+  const parts = data.replace(/^pub_(app|rej):/, '').split(':');
+  const publicationId = parts[0];
+  const scholarId = parts[1];
+
+  const pubAuthor = await prisma.publicationAuthor.findUnique({
+    where: {
+      publicationId_scholarId: {
+        publicationId,
+        scholarId,
+      },
+    },
+    include: {
+      scholar: true,
+      publication: {
+        include: {
+          submittedBy: {
+            include: { scholarProfile: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (!pubAuthor) {
+    await answerCallbackQuery(cq.id, '❌ Nashr yozuvi topilmadi.', true);
+    return;
+  }
+
+  const chatId = cq.message?.chat?.id;
+  const messageId = cq.message?.message_id;
+
+  if (isApprove) {
+    await prisma.publicationAuthor.update({
+      where: { id: pubAuthor.id },
+      data: {
+        approvalStatus: 'APPROVED',
+        approvedAt: new Date(),
+      },
+    });
+
+    await answerCallbackQuery(cq.id, 'Nashr hammuallifligi tasdiqlandi! 🎉', false);
+    if (chatId && messageId) {
+      await editMessageText(
+        chatId,
+        messageId,
+        `✅ <b>Nashr hammuallifligi muvaffaqiyatli tasdiqlandi!</b>\n\n📖 «${pubAuthor.publication.title}»\nSiz rasman hammuallif sifatida tasdiqlandingiz.`
+      );
+    }
+
+    // Submitterni xabardor qilish
+    const submitterChatId = pubAuthor.publication?.submittedBy?.scholarProfile?.telegramChatId;
+    if (submitterChatId) {
+      await sendTelegramMessage(
+        submitterChatId,
+        `🎉 <b>Xushxabar!</b>\n\nOlim <b>${pubAuthor.scholar.fullName}</b> siz topshirgan «${pubAuthor.publication.title}» nashridagi hammualliflikni <b>TASDIQLADI</b>!`
+      );
+    }
+  } else {
+    await prisma.publicationAuthor.update({
+      where: { id: pubAuthor.id },
+      data: {
+        approvalStatus: 'REJECTED',
+        rejectionNote: 'Telegram orqali rad etildi',
+      },
+    });
+
+    await answerCallbackQuery(cq.id, 'Hammualliflik rad etildi.', false);
+    if (chatId && messageId) {
+      await editMessageText(
+        chatId,
+        messageId,
+        `❌ <b>Nashr hammuallifligi rad etildi.</b>\n\n📖 «${pubAuthor.publication.title}»`
+      );
+    }
+
+    const submitterChatId = pubAuthor.publication?.submittedBy?.scholarProfile?.telegramChatId;
+    if (submitterChatId) {
+      await sendTelegramMessage(
+        submitterChatId,
+        `ℹ️ <b>Hammualliflik rad etildi:</b>\n\nOlim <b>${pubAuthor.scholar.fullName}</b> siz topshirgan «${pubAuthor.publication.title}» nashridagi hammualliflikni rad etdi.`
+      );
+    }
+  }
+}
+
 async function handleVerification(code, chatId, username, firstName) {
   const normalized = (code || '').trim().toUpperCase();
   const searchCode = normalized.startsWith('TIU-') ? normalized : `TIU-${normalized}`;
@@ -295,7 +386,12 @@ async function pollUpdates() {
         for (const update of data.result) {
           offset = update.update_id + 1;
           if (update.callback_query) {
-            await handleCollaborationCallback(update.callback_query);
+            const data = update.callback_query.data || '';
+            if (data.startsWith('collab_')) {
+              await handleCollaborationCallback(update.callback_query);
+            } else if (data.startsWith('pub_')) {
+              await handlePublicationCallback(update.callback_query);
+            }
           } else if (update.message) {
             await processUpdate(update);
           }

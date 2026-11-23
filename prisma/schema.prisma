@@ -142,6 +142,9 @@ model PublicationAuthor {
   scholarId     String
   scholar       ScholarProfile @relation(fields: [scholarId], references: [id], onDelete: Cascade)
   authorOrder   Int            @default(1)
+  approvalStatus String        @default("PENDING") // PENDING, APPROVED, REJECTED
+  approvedAt    DateTime?
+  rejectionNote String?
 
   @@unique([publicationId, scholarId])
 }

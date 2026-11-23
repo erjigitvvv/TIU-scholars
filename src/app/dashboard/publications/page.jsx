@@ -7,6 +7,8 @@ import { Plus, BookOpen, CheckCircle, Clock, XCircle, Trash2, Edit, Eye, Award, 
 export default function PublicationsPage() {
   const [publications, setPublications] = useState([])
   const [allScholars, setAllScholars] = useState([])
+  const [pendingApprovals, setPendingApprovals] = useState([])
+  const [reviewModalPub, setReviewModalPub] = useState(null)
   const [coAuthorIds, setCoAuthorIds] = useState([])
   const [coAuthorSearch, setCoAuthorSearch] = useState('')
   const [loading, setLoading] = useState(true)
@@ -121,7 +123,18 @@ export default function PublicationsPage() {
           startTransition(() => {
             setPublications(data.publications)
             if (Array.isArray(data.allScholars)) setAllScholars(data.allScholars)
+            if (Array.isArray(data.pendingApprovals)) setPendingApprovals(data.pendingApprovals)
           })
+
+          // Check if URL has ?review=ID
+          if (typeof window !== 'undefined') {
+            const urlParams = new URLSearchParams(window.location.search)
+            const reviewId = urlParams.get('review')
+            if (reviewId) {
+              const target = data.publications?.find((p) => p.id === reviewId) || data.pendingApprovals?.find((p) => p.id === reviewId)
+              if (target) setReviewModalPub(target)
+            }
+          }
         }
       } catch (err) {
         console.error(err)
@@ -140,9 +153,31 @@ export default function PublicationsPage() {
       const data = await res.json()
       if (data.publications) {
         setPublications(data.publications)
+        if (Array.isArray(data.pendingApprovals)) setPendingApprovals(data.pendingApprovals)
       }
     } catch (err) {
       console.error(err)
+    }
+  }
+
+  const handleRespondCoauthor = async (publicationId, action, reason = '') => {
+    try {
+      const res = await fetch('/api/dashboard/publications/respond-coauthor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publicationId, action, rejectionNote: reason }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setReviewModalPub(null)
+        setSuccessMsg(data.message || 'Muvaffaqiyatli bajarildi')
+        setTimeout(() => setSuccessMsg(''), 4000)
+        await fetchPublications()
+      } else {
+        alert(data.error || 'Xatolik yuz berdi')
+      }
+    } catch {
+      alert('Server xatosi')
     }
   }
 
@@ -296,6 +331,85 @@ export default function PublicationsPage() {
       )}
       {successMsg && (
         <div className="neu-card-sm p-4 border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300 rounded-2xl text-sm">{successMsg}</div>
+      )}
+
+      {/* Tasdiqlash kutilayotgan nashrlar (Pending Co-Author Approvals) */}
+      {pendingApprovals.length > 0 && (
+        <div className="bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent border border-amber-300 dark:border-amber-700/60 rounded-3xl p-5 space-y-3 shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="w-9 h-9 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-bold text-base shadow-xs">
+              ⚠️
+            </span>
+            <div>
+              <h3 className="font-extrabold text-sm text-amber-900 dark:text-amber-200">
+                Hammualliflik Tasdig‘ingiz Kutilmoqda ({pendingApprovals.length} ta nashr)
+              </h3>
+              <p className="text-xs text-amber-800/80 dark:text-amber-400 mt-0.5">
+                Hamkasblaringiz ushbu ilmiy ishlarga sizni hammuallif sifatida ko‘rsatgan. Iltimos, ko‘rib chiqib o‘z tasdig‘ingizni bering.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+            {pendingApprovals.map((pub) => (
+              <div
+                key={pub.id}
+                className="bg-white dark:bg-slate-900 border border-amber-200/90 dark:border-amber-900/60 rounded-2xl p-4 flex flex-col justify-between space-y-3 shadow-xs hover:shadow-md transition"
+              >
+                <div>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300">
+                      {pub.type}
+                    </span>
+                    <span className="text-xs text-slate-500 font-medium">{pub.year}</span>
+                    {pub.quartile && pub.quartile !== 'NONE' && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-800">
+                        {pub.quartile}
+                      </span>
+                    )}
+                  </div>
+                  <h4 className="font-bold text-sm text-slate-900 dark:text-white line-clamp-2">
+                    {pub.title}
+                  </h4>
+                  <p className="text-xs text-slate-500 truncate mt-1">
+                    {pub.journalOrPublisher}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setReviewModalPub(pub)}
+                    className="text-xs font-bold text-blue-600 hover:text-blue-800 dark:text-blue-400 flex items-center gap-1.5"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Ko‘rib chiqish</span>
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleRespondCoauthor(pub.id, 'APPROVE')}
+                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition active:scale-95"
+                    >
+                      ✅ Tasdiqlash
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const reason = prompt('Rad etish sababini kiriting (ixtiyoriy):')
+                        handleRespondCoauthor(pub.id, 'REJECT', reason || '')
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs transition"
+                    >
+                      Rad etish
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Publications Table */}
@@ -747,6 +861,111 @@ export default function PublicationsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* REVIEW & APPROVE MODAL */}
+      {reviewModalPub && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <span className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 font-bold text-xs">
+                  <BookOpen className="w-5 h-5" />
+                </span>
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
+                    Nashrni Ko‘rib Chiqish
+                  </h3>
+                  <p className="text-[11px] text-slate-400">Hammualliflik roziligini berish yoki rad etish</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReviewModalPub(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <span className="text-slate-400 block text-[11px] uppercase font-bold">Mavzu / Sarlavha:</span>
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white mt-0.5">
+                  {reviewModalPub.title}
+                </h4>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl">
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Turi:</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">{reviewModalPub.type}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Yili:</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">{reviewModalPub.year}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Jurnal / Nashriyot:</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block">
+                    {reviewModalPub.journalOrPublisher}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Kvartil:</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">{reviewModalPub.quartile || 'NONE'}</span>
+                </div>
+              </div>
+
+              {reviewModalPub.doi && (
+                <div>
+                  <span className="text-slate-400 block text-[11px] uppercase font-bold">DOI:</span>
+                  <a
+                    href={`https://doi.org/${reviewModalPub.doi}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-mono text-blue-600 hover:underline break-all"
+                  >
+                    https://doi.org/{reviewModalPub.doi}
+                  </a>
+                </div>
+              )}
+
+              {reviewModalPub.url && (
+                <div>
+                  <span className="text-slate-400 block text-[11px] uppercase font-bold">Fayl / Havola:</span>
+                  <a
+                    href={reviewModalPub.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-mono text-blue-600 hover:underline break-all"
+                  >
+                    {reviewModalPub.url}
+                  </a>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  const reason = prompt('Rad etish sababi:')
+                  handleRespondCoauthor(reviewModalPub.id, 'REJECT', reason || '')
+                }}
+                className="px-4 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs transition"
+              >
+                Rad etish
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRespondCoauthor(reviewModalPub.id, 'APPROVE')}
+                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition active:scale-95"
+              >
+                ✅ Tasdiqlash
+              </button>
+            </div>
           </div>
         </div>
       )}
