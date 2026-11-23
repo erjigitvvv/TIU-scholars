@@ -4,6 +4,8 @@ import { requireModeratorOrAdmin } from '@/lib/auth';
 import {
   broadcastCustomTelegramMessage,
   sendDirectMessageToScholar,
+  sendTelegramPoll,
+  broadcastPollToScholars,
 } from '@/lib/telegram';
 
 export async function GET() {
@@ -96,7 +98,41 @@ export async function POST(request) {
       buttonText = '',
       buttonUrl = '',
       category = 'NEWS',
+      isPoll = false,
+      pollQuestion = '',
+      pollOptions = [],
     } = body;
+
+    // Handle Poll Broadcast
+    if (isPoll && pollQuestion && Array.isArray(pollOptions) && pollOptions.length >= 2) {
+      if (mode === 'BROADCAST') {
+        const sentPolls = await broadcastPollToScholars({
+          question: pollQuestion,
+          options: pollOptions,
+        });
+        return NextResponse.json({
+          success: true,
+          sentCount: sentPolls,
+          message: `Rasmiy Telegram so‘rovnomasi ${sentPolls} ta olim botiga yuborildi! 📊`,
+        });
+      } else if (scholarId) {
+        const scholar = await prisma.scholarProfile.findUnique({
+          where: { id: scholarId },
+          select: { telegramChatId: true, fullName: true },
+        });
+        if (scholar?.telegramChatId) {
+          await sendTelegramPoll({
+            chatId: scholar.telegramChatId,
+            question: pollQuestion,
+            options: pollOptions,
+          });
+          return NextResponse.json({
+            success: true,
+            message: `${scholar.fullName} ga Telegram so‘rovnomasi yuborildi! 📊`,
+          });
+        }
+      }
+    }
 
     if (!messageText || !messageText.trim()) {
       return NextResponse.json(

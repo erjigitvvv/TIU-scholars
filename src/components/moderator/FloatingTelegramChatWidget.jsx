@@ -189,17 +189,85 @@ export default function FloatingTelegramChatWidget({ user }) {
     }
   };
 
-  // Create Poll message
-  const handleCreatePoll = () => {
+  // Send Poll directly as native Telegram Poll with options
+  const handleSendPollDirectly = async () => {
     if (!pollQuestion.trim()) return;
     const validOptions = pollOptions.filter((opt) => opt.trim());
     if (validOptions.length < 2) return;
 
-    const pollText = `📊 SO‘ROVNOMA: ${pollQuestion.trim()}\n\n` +
-      validOptions.map((opt, i) => `${i + 1}. 🔘 ${opt.trim()}`).join('\n');
-    setInputText((prev) => (prev ? `${prev}\n\n${pollText}` : pollText));
+    setSending(true);
+    setToastMsg(null);
     setShowPollModal(false);
-    setPollQuestion('');
+
+    try {
+      const isBroadcast = activeChatId === 'tiu-scholar-bot';
+      const payload = {
+        isPoll: true,
+        mode: isBroadcast ? 'BROADCAST' : 'DIRECT',
+        scholarId: isBroadcast ? null : activeChat?.scholarId || activeChat?.id,
+        pollQuestion: pollQuestion.trim(),
+        pollOptions: validOptions,
+        messageText: `📊 SO‘ROVNOMA: ${pollQuestion.trim()}`,
+      };
+
+      const res = await fetch('/api/admin/telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const pollMsg = {
+          id: `poll-${Date.now()}`,
+          type: 'POLL',
+          sender: isBroadcast ? 'TIU-scholar' : 'TIU Ilmiy Bo‘limi',
+          title: `📊 Rasmiy So‘rovnoma: ${pollQuestion.trim()}`,
+          text: validOptions.map((opt, i) => `${i + 1}. 🔘 ${opt.trim()}`).join('\n'),
+          pollQuestion: pollQuestion.trim(),
+          pollOptions: validOptions,
+          createdAt: new Date().toISOString(),
+          isOutgoing: true,
+        };
+
+        if (isBroadcast) {
+          setBotChat((prev) => ({
+            ...prev,
+            messages: [...(prev.messages || []), pollMsg],
+            lastMessage: { text: `📊 ${pollQuestion.trim()}`, time: new Date() },
+          }));
+        } else {
+          setScholarChats((prev) =>
+            prev.map((sc) =>
+              sc.id === activeChat.id
+                ? {
+                    ...sc,
+                    messages: [...sc.messages, pollMsg],
+                    lastMessage: { text: `📊 ${pollQuestion.trim()}`, time: new Date(), isOutgoing: true },
+                  }
+                : sc
+            )
+          );
+        }
+
+        setPollQuestion('');
+        setToastMsg({
+          type: 'success',
+          text: data.message || 'Haqiqiy Telegram so‘rovnomasi bot orqali yuborildi! 📊',
+        });
+        setTimeout(() => setToastMsg(null), 4000);
+      } else {
+        setToastMsg({ type: 'error', text: data.error || 'So‘rovnoma yuborishda xatolik' });
+      }
+    } catch {
+      setToastMsg({ type: 'error', text: 'Tarmoq xatosi' });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleCreatePoll = () => {
+    handleSendPollDirectly();
   };
 
   // Send message or Telegram photo-post with caption
@@ -275,7 +343,7 @@ export default function FloatingTelegramChatWidget({ user }) {
           scholarId: scholar.scholarId || scholar.id,
           title: replyingToMessage
             ? `↩ Javob: ${replyingToMessage.title || 'So‘rovingiz bo‘yicha'}`
-            : '💬 TIU Ilmiy Bo‘limi Xabarnomasi',
+            : '',
           messageText: fullMessageText,
         };
 
@@ -388,7 +456,7 @@ export default function FloatingTelegramChatWidget({ user }) {
                     <img src="/icons/tiu-scholar-logo.jpg" alt="TIU Chat" className="w-full h-full object-cover rounded-full" />
                   </div>
                   <h3 className="font-bold text-xs tracking-wide flex items-center gap-1.5">
-                    TIU Telegram Messenger
+                    TIUgram Messenger
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
                   </h3>
                 </div>
@@ -663,8 +731,15 @@ export default function FloatingTelegramChatWidget({ user }) {
                 </div>
               )}
 
-              {/* RIGHT COLUMN: ACTIVE CHAT CONVERSATION VIEW */}
-              <div className="flex-1 flex flex-col bg-[#EFE7DE] relative overflow-hidden">
+              {/* RIGHT COLUMN: ACTIVE CHAT CONVERSATION VIEW (OFFICIAL TELEGRAM DOODLE BACKGROUND) */}
+              <div
+                className="flex-1 flex flex-col relative overflow-hidden bg-[#E7EBE0]"
+                style={{
+                  backgroundImage: "url('/images/telegram-bg.jpg')",
+                  backgroundRepeat: 'repeat',
+                  backgroundSize: '400px auto',
+                }}
+              >
                 {/* Chat Top Header with TIU-scholar Logo */}
                 <div className="px-4 py-2.5 bg-white border-b border-slate-200 flex items-center justify-between shadow-xs shrink-0">
                   <div className="flex items-center gap-3 min-w-0">
@@ -815,6 +890,30 @@ export default function FloatingTelegramChatWidget({ user }) {
                                   className="w-full h-full object-cover max-h-64 cursor-pointer hover:opacity-95 transition"
                                   onClick={() => window.open(msg.imageUrl, '_blank')}
                                 />
+                              </div>
+                            )}
+
+                            {/* Native Telegram Poll Card */}
+                            {msg.type === 'POLL' && (
+                              <div className="space-y-2 mt-1 mb-2 bg-white/60 p-3 rounded-xl border border-blue-200/60 shadow-xs">
+                                <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                                  <BarChart2 className="w-4 h-4 text-blue-600 shrink-0" />
+                                  <span>{msg.pollQuestion || msg.title}</span>
+                                </div>
+                                <div className="space-y-1.5 pt-1">
+                                  {(msg.pollOptions || []).map((opt, idx) => (
+                                    <div
+                                      key={idx}
+                                      className="p-2 rounded-lg border border-slate-200 bg-white text-xs text-slate-800 font-medium flex items-center justify-between"
+                                    >
+                                      <span>{opt}</span>
+                                      <span className="w-3.5 h-3.5 rounded-full border-2 border-slate-300" />
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="text-[10px] text-blue-600 font-semibold pt-0.5">
+                                  📊 Rasmiy Telegram so‘rovnomasi (Olimlar botda ovoz beradi)
+                                </div>
                               </div>
                             )}
 
@@ -1209,11 +1308,12 @@ export default function FloatingTelegramChatWidget({ user }) {
                     </button>
                     <button
                       type="button"
-                      onClick={handleCreatePoll}
-                      disabled={!pollQuestion.trim() || pollOptions.filter((o) => o.trim()).length < 2}
-                      className="px-4 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 disabled:opacity-50 cursor-pointer shadow-xs"
+                      onClick={handleSendPollDirectly}
+                      disabled={!pollQuestion.trim() || pollOptions.filter((o) => o.trim()).length < 2 || sending}
+                      className="px-4 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 disabled:opacity-50 cursor-pointer shadow-xs flex items-center gap-1.5"
                     >
-                      So‘rovnomani qo‘shish
+                      <BarChart2 className="w-3.5 h-3.5" />
+                      <span>{sending ? 'Yuborilmoqda...' : 'Telegramga yuborish 📊'}</span>
                     </button>
                   </div>
                 </div>

@@ -291,7 +291,7 @@ export async function sendCollaborationInviteTelegram({
 }
 
 /**
- * Moderatorning e'longa berilgan savolga javobini Telegram bot orqali olimga yetkazish
+ * Moderatorning e'longa berilgan savolga javobini Telegram bot orqali olimga yetkazish (toza matn)
  */
 export async function sendModeratorAnswerTelegram({
   recipientChatId,
@@ -299,11 +299,7 @@ export async function sendModeratorAnswerTelegram({
   questionText,
   answerText,
 }) {
-  const text = `🏛 <b>TIU Ilmiy Bo‘limi (Moderator) Javobi!</b>\n\n` +
-    `📢 <b>E‘lon:</b> «${announcementTitle}»\n` +
-    `❓ <b>Sizning savolingiz:</b> <i>${questionText}</i>\n\n` +
-    `💬 <b>Javob:</b>\n${answerText}\n\n` +
-    `<i>Batafsil maʼlumot portal kabinetingizda mavjud.</i>`;
+  const text = `📢 «${announcementTitle}»\n❓ Savol: ${questionText}\n\n💬 Javob:\n${answerText.trim()}`;
 
   return await sendTelegramMessage({
     chatId: recipientChatId,
@@ -312,7 +308,7 @@ export async function sendModeratorAnswerTelegram({
 }
 
 /**
- * Moderator tomonidan bitta olimga shaxsiy Telegram xabar yuborish (link va inline tugma bilan)
+ * Moderator tomonidan bitta olimga shaxsiy Telegram xabar yuborish (toza matn, ortiqcha so'zlarsiz)
  */
 export async function sendDirectMessageToScholar({
   recipientChatId,
@@ -321,12 +317,8 @@ export async function sendDirectMessageToScholar({
   messageText,
   buttonText,
   buttonUrl,
-  senderName = 'TIU Ilmiy Bo‘limi (Moderator)',
 }) {
-  let formattedText = `🏛 <b>${senderName}</b>\n\n`;
-  if (title) formattedText += `📌 <b>${title}</b>\n\n`;
-  formattedText += `${messageText}\n\n`;
-  formattedText += `<i>Sana: ${new Date().toLocaleString()}</i>`;
+  const formattedText = messageText.trim();
 
   let replyMarkup = null;
   if (buttonText && buttonUrl) {
@@ -362,8 +354,8 @@ export async function sendDirectMessageToScholar({
       await prisma.notification.create({
         data: {
           userId: scholar.userId,
-          title: title || '🏛 Moderator xabari',
-          message: messageText,
+          title: title || 'TIU Xabarnomasi',
+          message: messageText.trim(),
           type: 'SYSTEM',
           link: buttonUrl || '/dashboard',
         },
@@ -375,15 +367,13 @@ export async function sendDirectMessageToScholar({
 }
 
 /**
- * Moderator tomonidan barcha olimlarga maxsus xabar yoki e'lonni Telegram orqali tarqatish
+ * Moderator tomonidan barcha olimlarga xabar tarqatish (toza matn)
  */
 export async function broadcastCustomTelegramMessage({
   title,
   messageText,
   buttonText,
   buttonUrl,
-  senderName = 'TIU Ilmiy Bo‘limi',
-  category = 'NEWS',
 }) {
   const connectedScholars = await prisma.scholarProfile.findMany({
     where: {
@@ -397,10 +387,7 @@ export async function broadcastCustomTelegramMessage({
     },
   });
 
-  let formattedText = `📢 <b>${senderName} Xabarnomasi</b>\n\n`;
-  if (title) formattedText += `📌 <b>${title}</b>\n\n`;
-  formattedText += `${messageText}\n\n`;
-  formattedText += `<i>TIU Ilmiy Salohiyat Portali</i>`;
+  const formattedText = messageText.trim();
 
   let replyMarkup = null;
   if (buttonText && buttonUrl) {
@@ -429,7 +416,7 @@ export async function broadcastCustomTelegramMessage({
     }
   }
 
-  // Also create In-app Notifications for all active users
+  // In-app Notifications to all active users
   const allUsers = await prisma.user.findMany({
     where: { accountStatus: 'ACTIVE' },
     select: { id: true },
@@ -439,14 +426,63 @@ export async function broadcastCustomTelegramMessage({
     await prisma.notification.create({
       data: {
         userId: u.id,
-        title: title || `📢 ${senderName} Xabarnomasi`,
-        message: messageText,
+        title: title || 'TIU Xabarnomasi',
+        message: messageText.trim(),
         type: 'SYSTEM',
         link: buttonUrl || '/dashboard/announcements',
       },
     }).catch(() => {});
   }
 
+  return sentCount;
+}
+
+/**
+ * Haqiqiy Telegram Poll (Native So'rovnoma) yuborish
+ */
+export async function sendTelegramPoll({ chatId, question, options, isAnonymous = false }) {
+  if (!BOT_TOKEN || !chatId) return null;
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPoll`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        question: question.trim(),
+        options: options.map((opt) => opt.trim()),
+        is_anonymous: isAnonymous,
+      }),
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('sendTelegramPoll error:', err);
+    return null;
+  }
+}
+
+/**
+ * Haqiqiy Telegram Pollni barcha ulangan olimlarga tarqatish
+ */
+export async function broadcastPollToScholars({ question, options }) {
+  const connectedScholars = await prisma.scholarProfile.findMany({
+    where: {
+      isTelegramConnected: true,
+      telegramChatId: { not: null },
+    },
+    select: { telegramChatId: true },
+  });
+
+  let sentCount = 0;
+  for (const s of connectedScholars) {
+    if (s.telegramChatId) {
+      await sendTelegramPoll({
+        chatId: s.telegramChatId,
+        question,
+        options,
+      });
+      sentCount++;
+    }
+  }
   return sentCount;
 }
 
