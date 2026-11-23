@@ -27,6 +27,7 @@ import PublicationTypeBadge from '@/components/ui/PublicationTypeBadge';
 import PublicationCitationBox from '@/components/publications/PublicationCitationBox';
 import PublicationReaderSection from '@/components/publications/PublicationReaderSection';
 import PublicationPdfButton from '@/components/publications/PublicationPdfButton';
+import ScholarPublicationInteractiveHub from '@/components/publications/ScholarPublicationInteractiveHub';
 
 const LIFECYCLE_STAGES = [
   { id: 1, key: 'IDEA', label: 'G‘oya & Reja', desc: 'Mavzu va yangilik aniqlangan' },
@@ -244,6 +245,19 @@ export default async function ScholarPublicationDetailPage({ params }) {
           </div>
         </div>
       </div>
+
+      {/* Interactive Actions & Review Hub */}
+      <ScholarPublicationInteractiveHub
+        publicationId={publication.id}
+        initialStage={publication.currentStage || 'IDEA'}
+        initialReviewLogs={
+          publication.reviewLogs ? JSON.parse(publication.reviewLogs) : []
+        }
+        qualityCheck={publication.qualityCheck}
+        isAuthor={isAuthor}
+        publicationTitle={publication.title}
+        journalName={publication.journalOrPublisher}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column (2 Cols): Authors, Quality Gate, Abstract, PDF Reader */}

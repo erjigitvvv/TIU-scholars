@@ -125,6 +125,11 @@ model Publication {
   source             String              @default("MANUAL") // MANUAL, ORCID, SCOPUS, SCHOLAR, CROSSREF
   status             String              @default("PENDING") // PENDING, APPROVED, REJECTED
   rejectionReason    String?
+  currentStage       String              @default("PUBLISHED") // IDEA, LITERATURE, METHODOLOGY, ANALYSIS, WRITING, PLAGIARISM, SUBMITTED, PEER_REVIEW, REVISION, PUBLISHED
+  reviewLogs         String?             // JSON string: [{ id, round, date, decision, comments: [{ reviewer, note, rebuttal }], revisedDocUrl }]
+  expertiseActNo     String?             // e.g. "TIU-EXP-2026-0042"
+  expertiseActDate   DateTime?
+  expertiseActUrl    String?
   submittedById      String
   submittedBy        User                @relation("SubmittedPublications", fields: [submittedById], references: [id], onDelete: Cascade)
   createdAt          DateTime            @default(now())
