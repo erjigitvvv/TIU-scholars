@@ -45,18 +45,18 @@ export default function TelegramStatusCard({ className = '' }) {
   return (
     <>
       <div
-        className={`neu-card p-5 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs ${className}`}
+        className={`neu-card p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs ${className}`}
       >
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-start sm:items-center gap-3.5">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-start sm:items-center gap-3">
             <div
-              className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+              className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
                 status?.isConnected
                   ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400'
                   : 'bg-sky-100 text-sky-600 dark:bg-sky-950/60 dark:text-sky-400'
               }`}
             >
-              <Send className="w-5 h-5 -rotate-45 ml-0.5" />
+              <Send className="w-4 h-4 -rotate-45 ml-0.5" />
             </div>
 
             <div className="space-y-0.5">

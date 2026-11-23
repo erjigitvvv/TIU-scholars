@@ -114,7 +114,7 @@ export async function verifyTelegramAuthCode({ code, chatId, username, firstName
       facultyName: scholar.department?.faculty?.nameUz || 'TIU',
       tiuScore: scholar.tiuScore || 0,
     },
-    welcomeMessage: `✅ Assalomu alaykum, ${degreePrefix} ${scholar.fullName}!\n\n🏛 Kafedra: ${scholar.department?.nameUz || 'TIU'}\n⭐ TIU Reyting Balli: ${Math.round(scholar.tiuScore || 0)}\n\nSizning TIU Scholars profilingiz muvaffaqiyatli ulandi! Endi barcha yangi ilmiy e’lonlar, grantlar va shogirdlaringiz harakatlari to‘g‘ridan-to‘g‘ri shu yerga yuboriladi.`,
+    welcomeMessage: `✅ <b>Assalomu alaykum, ${degreePrefix} ${scholar.fullName}!</b>\n🏛 ${scholar.department?.nameUz || 'TIU'} • ⭐ ${Math.round(scholar.tiuScore || 0)} ball\n\nProfilingiz muvaffaqiyatli bog‘landi! E’lonlar va bildirishnomalar shu yerga keladi.`,
   };
 }
 
@@ -174,14 +174,18 @@ export async function broadcastAnnouncementToTelegram(announcement) {
         ? '⏳ MUHIM MUDDAT'
         : '📢 YANGI E‘LON';
 
-    const text = `<b>${categoryEmoji}</b>\n\n<b>${announcement.title}</b>\n\n${announcement.content ? announcement.content.slice(0, 300) + '...' : ''}\n\n🏛 <i>Tashkent International University</i>`;
+    const compactContent = announcement.content
+      ? announcement.content.replace(/<[^>]+>/g, '').slice(0, 150).trim() + (announcement.content.length > 150 ? '...' : '')
+      : '';
+
+    const text = `<b>${categoryEmoji}</b>\n<b>${announcement.title}</b>\n${compactContent ? `\n${compactContent}` : ''}`;
 
     const siteUrl = process.env.NEXTAUTH_URL || 'http://localhost:3001';
     const replyMarkup = {
       inline_keyboard: [
         [
           {
-            text: "Batafsil saytda ko'rish 👉",
+            text: "Batafsil ko‘rish 👉",
             url: `${siteUrl}/dashboard/announcements`,
           },
         ],

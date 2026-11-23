@@ -113,7 +113,7 @@ async function handleVerification(code, chatId, username, firstName) {
       ? 'Professor'
       : 'Hurmatli';
 
-  const welcomeText = `✅ <b>Assalomu alaykum, ${degreePrefix} ${scholar.fullName}!</b>\n\n🏛 <b>Kafedra:</b> ${scholar.department?.nameUz || 'TIU'}\n⭐ <b>TIU Reyting Balli:</b> ${Math.round(scholar.tiuScore || 0)}\n\n🎉 <b>Sizning TIU Scholars profilingiz muvaffaqiyatli ulandi!</b>\n\nEndi barcha yangi ilmiy e’lonlar, konferensiyalar, grantlar va ilmiy rahbarlik harakatlari to‘g‘ridan-to‘g‘ri shu yerga yuboriladi.`;
+  const welcomeText = `✅ <b>Assalomu alaykum, ${degreePrefix} ${scholar.fullName}!</b>\n🏛 ${scholar.department?.nameUz || 'TIU'} • ⭐ ${Math.round(scholar.tiuScore || 0)} ball\n\nProfilingiz muvaffaqiyatli bog‘landi! E’lonlar va bildirishnomalar shu yerga yuboriladi.`;
 
   return { success: true, message: welcomeText };
 }
@@ -142,7 +142,7 @@ async function processUpdate(update) {
       return;
     }
 
-    const greeting = `Assalomu alaykum, <b>${firstName}</b>!\n\n🏛 <b>Tashkent International University (TIU)</b> ilmiy platformasining rasmiy botiga xush kelibsiz.\n\n🔐 <b>Profilingizni ulash uchun:</b>\nSaytdagi shaxsiy kabinetingizda <i>«Telegram botni ulash»</i> tugmasini bosganda ko‘rsatilgan <b>1 daqiqalik tasdiqlash kodini</b> shu yerga yuboring.\n\n<i>Misol: <code>TIU-7492</code></i>`;
+    const greeting = `Assalomu alaykum, <b>${firstName}</b>!\n🏛 <b>TIU Rasmiy Boti</b>\n\nProfilingizni bog‘lash uchun saytdagi 1 daqiqalik tasdiqlash kodini yuboring (masalan: <code>TIU-7492</code>).`;
     await sendTelegramMessage(chatId, greeting);
     return;
   }

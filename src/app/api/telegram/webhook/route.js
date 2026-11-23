@@ -44,7 +44,7 @@ export async function POST(request) {
       }
 
       // Default start prompt asking for the code
-      const greeting = `Assalomu alaykum, <b>${firstName || 'hurmatli olim'}</b>!\n\n🏛 <b>Tashkent International University (TIU)</b> ilmiy platformasining rasmiy xabarnoma botiga xush kelibsiz.\n\n🔐 <b>Profilingizni ulash uchun:</b>\nSaytdagi shaxsiy kabinetingizda <i>«Telegram botni ulash»</i> tugmasini bosganda ko‘rsatilgan <b>1 daqiqalik tasdiqlash kodini</b> yuboring.\n\n<i>Misol: <code>TIU-7492</code></i>`;
+      const greeting = `Assalomu alaykum, <b>${firstName || 'hurmatli olim'}</b>!\n🏛 <b>TIU Rasmiy Boti</b>\n\nProfilingizni bog‘lash uchun saytdagi 1 daqiqalik tasdiqlash kodini yuboring (masalan: <code>TIU-7492</code>).`;
 
       await sendTelegramMessage({
         chatId,
