@@ -981,7 +981,7 @@ export default function FloatingTelegramChatWidget({ user }) {
                         <Paperclip className="w-4 h-4 rotate-45" />
                       </button>
 
-                      {/* 2. Category Selector with Upward Arrow (ChevronUp ^) INSIDE Input */}
+                      {/* 2. Category Selector: FAQAT TEPAGA QARAGAN STRELKA ICONI (ChevronUp ^) */}
                       <button
                         type="button"
                         onClick={() => {
@@ -989,16 +989,14 @@ export default function FloatingTelegramChatWidget({ user }) {
                           setShowAttachMenu(false);
                           setShowEmojiPicker(false);
                         }}
-                        className={`inline-flex items-center gap-1 px-2 py-1 ml-1 rounded-lg border text-[11px] font-bold transition-all cursor-pointer shrink-0 ${
+                        className={`p-1.5 rounded-full transition-colors cursor-pointer shrink-0 ${
                           showCategoryMenu
-                            ? 'border-[#2AABEE] text-[#2AABEE] bg-blue-50'
-                            : 'border-slate-200 text-slate-600 bg-white hover:bg-slate-100'
+                            ? 'bg-[#2AABEE] text-white shadow-xs'
+                            : 'text-slate-400 hover:bg-slate-200/60 hover:text-slate-700'
                         }`}
-                        title="Kategoriya tanlash uchun bosing (Tepaga strelka ^)"
+                        title={`Kategoriya tanlash: ${selectedCategoryObj.label} (Tepaga strelka ^)`}
                       >
-                        <span>{selectedCategoryObj.icon}</span>
-                        <span className="hidden sm:inline">{selectedCategoryObj.id}</span>
-                        <ChevronUp className="w-3 h-3 text-slate-500" />
+                        <ChevronUp className="w-4 h-4" />
                       </button>
 
                       {/* 3. Textarea / Input in center */}
@@ -1019,7 +1017,7 @@ export default function FloatingTelegramChatWidget({ user }) {
                             handleSendMessage();
                           }
                         }}
-                        className="flex-1 text-xs py-1.5 px-2.5 bg-transparent border-0 focus:outline-none resize-none max-h-24 font-normal text-slate-800 placeholder:text-slate-400"
+                        className="flex-1 text-xs py-1.5 px-2 bg-transparent border-0 focus:outline-none resize-none max-h-24 font-normal text-slate-800 placeholder:text-slate-400"
                       />
 
                       {/* 4. Emoji (Smile 😊) Icon INSIDE on the right */}
@@ -1041,21 +1039,19 @@ export default function FloatingTelegramChatWidget({ user }) {
                       </button>
                     </div>
 
-                    {/* 5. TELEGRAM SEND BUTTON (POINTING DIRECTLY TO THE RIGHT ➡️ LIKE TELEGRAM DESKTOP) */}
+                    {/* 5. TELEGRAM SEND BUTTON (AYNAN YUBORILGAN RASMDAGI TELEGRAM SAMOLYOTI) */}
                     <button
                       type="button"
                       disabled={sending || (!inputText.trim() && !attachedFile)}
                       onClick={handleSendMessage}
-                      className="w-10 h-10 rounded-full bg-[#2AABEE] hover:bg-[#229ED9] text-white flex items-center justify-center shadow-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0 transition-transform active:scale-95"
+                      className="w-10 h-10 rounded-full overflow-hidden shadow-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0 transition-transform active:scale-95 flex items-center justify-center p-0 border-0 bg-[#2AABEE]"
                       title="Telegram orqali yuborish (Send)"
                     >
-                      {/* Telegram Official Right-Facing Send Icon SVG */}
-                      <svg
-                        viewBox="0 0 24 24"
-                        className="w-5 h-5 fill-white translate-x-0.5"
-                      >
-                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                      </svg>
+                      <img
+                        src="/icons/telegram-send.jpg"
+                        alt="Telegram Send"
+                        className="w-full h-full object-cover rounded-full pointer-events-none"
+                      />
                     </button>
                   </div>
                 </div>
