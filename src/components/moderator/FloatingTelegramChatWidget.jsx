@@ -1205,18 +1205,18 @@ export default function FloatingTelegramChatWidget({ user }) {
                       </button>
                     </div>
 
-                    {/* 5. TELEGRAM SEND BUTTON (AYNAN YUBORILGAN RASMDAGI TELEGRAM SAMOLYOTI) */}
+                    {/* 5. TELEGRAM SEND BUTTON (O'NG TOMONGA QARAGAN JONATISH BTN) */}
                     <button
                       type="button"
                       disabled={sending || (!inputText.trim() && !attachedFile)}
                       onClick={handleSendMessage}
-                      className="w-10 h-10 rounded-full overflow-hidden shadow-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0 transition-transform active:scale-95 flex items-center justify-center p-0 border-0 bg-[#2AABEE]"
+                      className="w-10 h-10 rounded-full shadow-md bg-[#2AABEE] hover:bg-[#229ED9] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0 transition-transform active:scale-95 flex items-center justify-center p-2.5 border-0"
                       title="Telegram orqali yuborish (Send)"
                     >
                       <img
-                        src="/icons/telegram-send.jpg"
-                        alt="Telegram Send"
-                        className="w-full h-full object-cover rounded-full pointer-events-none"
+                        src="/icons/send-arrow-white.png"
+                        alt="Yuborish"
+                        className="w-full h-full object-contain pointer-events-none translate-x-0.5"
                       />
                     </button>
                   </div>
@@ -1323,19 +1323,19 @@ export default function FloatingTelegramChatWidget({ user }) {
         )}
       </AnimatePresence>
 
-      {/* DRAGGABLE TRIGGER BUTTON (1-RASMDAGI SHAFFAF KO'K CHAT BUBBLE DIZAYNI) */}
+      {/* DRAGGABLE TRIGGER BUTTON (ODATIY TELEGRAM LOGOTIPI) */}
       <motion.button
         type="button"
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.92 }}
         onClick={() => setIsOpen((prev) => !prev)}
-        className="relative w-15 h-15 rounded-full bg-white shadow-xl hover:shadow-2xl border-2 border-white flex items-center justify-center cursor-move transition-transform overflow-visible p-1"
-        title="TIU Telegram Messenger (Kursor bilan ushlab istalgan joyga sudrang)"
+        className="relative w-14 h-14 rounded-full bg-[#2AABEE] shadow-xl hover:shadow-2xl border-2 border-white flex items-center justify-center cursor-move transition-transform overflow-visible p-0"
+        title="TIUgram Messenger (Kursor bilan ushlab istalgan joyga sudrang)"
       >
         <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center">
           <img
-            src="/icons/chat-bubble.jpg"
-            alt="Telegram Chat"
+            src="/icons/telegram-launcher.png"
+            alt="TIUgram Messenger"
             className="w-full h-full object-cover rounded-full pointer-events-none"
           />
         </div>
