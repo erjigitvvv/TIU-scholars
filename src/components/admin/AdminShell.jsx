@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   Megaphone,
   GraduationCap,
+  UserCog,
 } from 'lucide-react';
 import NotificationBell from '@/components/shared/NotificationBell';
 import FloatingTelegramChatWidget from '@/components/moderator/FloatingTelegramChatWidget';
@@ -97,6 +98,11 @@ export default function AdminShell({ user, locale = 'uz', children }) {
     { href: '/admin/announcements', label: t.announcements, icon: Megaphone },
     { href: '/admin/kpi', label: t.kpi, icon: Target },
     { href: '/admin/reports', label: t.reports, icon: FileSpreadsheet },
+    {
+      href: '/admin/profile',
+      label: locale === 'ru' ? 'Настройки профиля' : locale === 'en' ? 'Profile Settings' : 'Profil sozlamalari',
+      icon: UserCog,
+    },
     ...(user?.role === 'SUPER_ADMIN'
       ? [{ href: '/admin/settings', label: t.settings, icon: Settings }]
       : []),
@@ -142,20 +148,25 @@ export default function AdminShell({ user, locale = 'uz', children }) {
         )}
       </div>
 
-      {/* Role Mini Card */}
-      <div className="p-3.5 mx-3 mt-4 neu-card-sm rounded-2xl flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0F294A] to-[#1B4275] text-white flex items-center justify-center shrink-0 shadow-xs">
+      {/* Role Mini Card with link to /admin/profile */}
+      <Link
+        href="/admin/profile"
+        onClick={() => isMobile && setMobileOpen(false)}
+        className="p-3.5 mx-3 mt-4 neu-card-sm rounded-2xl flex items-center gap-3 hover:border-blue-300 transition-all cursor-pointer group"
+        title="Moderator profil sozlamalari"
+      >
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0F294A] to-[#1B4275] text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
           <ShieldCheck className="w-5 h-5 text-blue-200" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+          <p className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-blue-600 transition-colors">
             {user?.email}
           </p>
           <p className="text-[11px] text-slate-500 dark:text-slate-400 capitalize truncate mt-0.5">
-            {user?.role?.toLowerCase().replace('_', ' ')}
+            {user?.role?.toLowerCase().replace('_', ' ')} • Sozlamalar ⚙️
           </p>
         </div>
-      </div>
+      </Link>
 
       {/* Navigation */}
       <nav className="flex-1 p-3 space-y-1.5 mt-2 overflow-y-auto">
