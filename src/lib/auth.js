@@ -72,7 +72,36 @@ export async function requireModeratorOrAdmin() {
 
 export async function getActiveScholar() {
   const user = await getCurrentUser();
-  if (!user || !user.scholarProfile || user.accountStatus !== 'ACTIVE') {
+  if (!user || user.accountStatus !== 'ACTIVE') {
+    return null;
+  }
+
+  // Agar moderator yoki admin bo'lib scholarProfile hali yaratilmagan bo'lsa, avtomatik yaratish/ulash
+  if (!user.scholarProfile && (user.role === 'MODERATOR' || user.role === 'SUPER_ADMIN' || user.role === 'ADMIN')) {
+    let scholar = await prisma.scholarProfile.findFirst({
+      where: { userId: user.id },
+    });
+    if (!scholar) {
+      const defaultDept = await prisma.department.findFirst();
+      if (defaultDept) {
+        scholar = await prisma.scholarProfile.create({
+          data: {
+            userId: user.id,
+            fullName: user.name || 'Moderator (Ilmiy Bo‘lim)',
+            departmentId: defaultDept.id,
+            academicDegree: 'PHD',
+            academicTitle: 'DOCENT',
+            tiuScore: 0,
+          },
+        });
+      }
+    }
+    if (scholar) {
+      return { ...scholar, accountEmail: user.email || '' };
+    }
+  }
+
+  if (!user.scholarProfile) {
     return null;
   }
   return { ...user.scholarProfile, accountEmail: user.email || '' };

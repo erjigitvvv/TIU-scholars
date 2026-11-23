@@ -1527,14 +1527,14 @@ export default function FloatingTelegramChatWidget({ user }) {
         )}
       </AnimatePresence>
 
-      {/* DRAGGABLE TRIGGER BUTTON (ODATIY TELEGRAM LOGOTIPI) */}
+      {/* DRAGGABLE TRIGGER BUTTON (FAQAT IKKI MARTA BOSILGANDA OCHILIB/YOPILADI) */}
       <motion.button
         type="button"
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.92 }}
-        onClick={() => setIsOpen((prev) => !prev)}
-        className="relative w-14 h-14 rounded-full bg-[#2AABEE] shadow-xl hover:shadow-2xl border-2 border-white flex items-center justify-center cursor-move transition-transform overflow-visible p-0"
-        title="TIUgram Messenger (Kursor bilan ushlab istalgan joyga sudrang)"
+        onDoubleClick={() => setIsOpen((prev) => !prev)}
+        className="relative w-14 h-14 rounded-full bg-[#2AABEE] shadow-xl hover:shadow-2xl border-2 border-white flex items-center justify-center cursor-move transition-transform overflow-visible p-0 select-none"
+        title="TIUgram Messenger (Ochish va yopish uchun kursor bilan 2 marta bosing)"
       >
         <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center">
           <img

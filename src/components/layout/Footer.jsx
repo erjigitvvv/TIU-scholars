@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { MapPin, Mail, Phone, Globe, Clock, BookOpen, Users, Award, ShieldCheck } from 'lucide-react';
 
 const FOOTER_LABELS = {
@@ -47,6 +50,12 @@ const FOOTER_LABELS = {
 };
 
 export default function Footer({ dict, currentLocale = 'uz' }) {
+  const pathname = usePathname();
+  // Olim va Moderator ishchi kabinetida (dashboard va admin) footer kerak emas
+  if (pathname?.startsWith('/dashboard') || pathname?.startsWith('/admin')) {
+    return null;
+  }
+
   const f = FOOTER_LABELS[currentLocale] || FOOTER_LABELS.uz;
 
   return (
