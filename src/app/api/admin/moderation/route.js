@@ -15,12 +15,14 @@ export async function GET(request) {
   const statusParam = (searchParams.get('status') || 'PENDING').toUpperCase();
   const statusFilter =
     statusParam === 'ALL'
-      ? { in: ['PENDING', 'APPROVED', 'REJECTED'] }
+      ? { in: ['PENDING', 'APPROVED', 'REJECTED', 'SUBMITTED_INTERNAL'] }
+      : statusParam === 'PENDING'
+      ? { in: ['PENDING', 'SUBMITTED_INTERNAL'] }
       : statusParam;
 
   const [pendingPubs, pendingGrants, pendingSupervisions] = await Promise.all([
     prisma.publication.count({ where: { status: 'PENDING' } }),
-    prisma.grantProject.count({ where: { status: 'PENDING' } }),
+    prisma.grantProject.count({ where: { status: { in: ['PENDING', 'SUBMITTED_INTERNAL'] } } }),
     prisma.supervision.count({ where: { status: 'PENDING' } }),
   ]);
 

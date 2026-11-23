@@ -20,6 +20,21 @@ import {
   SlidersHorizontal,
   UserX,
   ChevronDown,
+  Briefcase,
+  FileText,
+  Download,
+  Upload,
+  Plus,
+  CheckCircle,
+  Sparkles,
+  AlertCircle,
+  FileCheck,
+  DollarSign,
+  Calendar,
+  BookOpen,
+  ExternalLink,
+  FileUp,
+  Clock,
 } from 'lucide-react';
 import { getDictionary } from '@/lib/i18n';
 import { INTEREST_TRANSLATIONS } from '@/lib/interests';
@@ -105,6 +120,28 @@ export default function ScholarsDirectoryPage() {
   const [viewMode, setViewMode] = useState(initView);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
+  // Grantlar va Modal holatlari
+  const initSection = searchParams.get('tab') === 'grants' ? 'GRANTS' : 'SCHOLARS';
+  const [activeSection, setActiveSection] = useState(initSection);
+  const [grants, setGrants] = useState([]);
+  const [loadingGrants, setLoadingGrants] = useState(false);
+  const [grantSearch, setGrantSearch] = useState('');
+  const [isGrantModalOpen, setIsGrantModalOpen] = useState(false);
+  const [grantModalPage, setGrantModalPage] = useState(1); // 1: Description, 2: Sample/Guidelines
+  const [grantTitle, setGrantTitle] = useState('');
+  const [grantComment, setGrantComment] = useState('');
+  const [grantFundingSource, setGrantFundingSource] = useState('O‘zbekiston Respublikasi Innovatsion rivojlanish agentligi');
+  const [grantBudget, setGrantBudget] = useState('');
+  const [grantProgram, setGrantProgram] = useState('Amaliy tadqiqotlar loyihalari');
+  const [grantFileUrl, setGrantFileUrl] = useState('');
+  const [grantFileName, setGrantFileName] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [submittingGrant, setSubmittingGrant] = useState(false);
+  const [grantSuccessMsg, setGrantSuccessMsg] = useState('');
+  const [grantErrorMsg, setGrantErrorMsg] = useState('');
+  const [currentUser, setCurrentUser] = useState(null);
+
   // Til o'zgarishini kuzatish
   useEffect(() => {
     const updateLocale = () => setLocale(getCookieLocale());
@@ -112,6 +149,140 @@ export default function ScholarsDirectoryPage() {
     const interval = setInterval(updateLocale, 400);
     return () => clearInterval(interval);
   }, []);
+
+  // Joriy foydalanuvchini va grantlarni yuklash
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.user) setCurrentUser(d.user);
+      })
+      .catch(() => {});
+
+    fetchGrants();
+  }, []);
+
+  const fetchGrants = async () => {
+    try {
+      setLoadingGrants(true);
+      const res = await fetch('/api/grants');
+      const data = await res.json();
+      if (data.success && data.grants) {
+        setGrants(data.grants);
+      }
+    } catch (err) {
+      console.error('Fetch grants error:', err);
+    } finally {
+      setLoadingGrants(false);
+    }
+  };
+
+  const uploadGrantFile = async (file) => {
+    if (!file) return;
+    const name = (file.name || '').toLowerCase();
+    if (!name.endsWith('.docx') && !name.endsWith('.doc') && !name.endsWith('.pdf')) {
+      setGrantErrorMsg('Faqat .docx, .doc yoki .pdf formatidagi fayllar qabul qilinadi');
+      return;
+    }
+    try {
+      setUploadingFile(true);
+      setGrantErrorMsg('');
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/dashboard/grants/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success && data.url) {
+        setGrantFileUrl(data.url);
+        setGrantFileName(data.originalName || file.name);
+      } else {
+        setGrantErrorMsg(data.error || 'Faylni yuklashda xatolik yuz berdi');
+      }
+    } catch {
+      setGrantErrorMsg('Faylni serverga yuklashda xatolik yuz berdi');
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const files = e.dataTransfer?.files;
+    if (files && files[0]) {
+      await uploadGrantFile(files[0]);
+    }
+  };
+
+  const handleSubmitGrant = async (e) => {
+    e.preventDefault();
+    if (!grantTitle.trim()) {
+      setGrantErrorMsg('Loyiha mavzusi yoki sarlavhasini kiritish shart');
+      return;
+    }
+    if (!currentUser) {
+      setGrantErrorMsg('Grant arizasini yuborish uchun avval tizimga ilmiy xodim sifatida kiring');
+      return;
+    }
+    if (!currentUser.profile) {
+      setGrantErrorMsg('Faqat ilmiy xodim yoki olim profiliga ega foydalanuvchilar grant arizasi topshira oladi');
+      return;
+    }
+
+    try {
+      setSubmittingGrant(true);
+      setGrantErrorMsg('');
+      const res = await fetch('/api/grants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: grantTitle,
+          comment: grantComment,
+          description: grantComment,
+          fundingSource: grantFundingSource || 'O‘zbekiston Respublikasi Innovatsion rivojlanish agentligi',
+          grantProgram: grantProgram || 'Amaliy tadqiqotlar loyihalari',
+          budgetRequested: parseFloat(grantBudget) || 0,
+          applicationFileUrl: grantFileUrl || null,
+          applicationFileName: grantFileName || null,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setGrantSuccessMsg(data.message || 'Arizangiz muvaffaqiyatli qabul qilindi va moderator paneliga tasdiq uchun yuborildi! 🎉');
+        setTimeout(() => {
+          setIsGrantModalOpen(false);
+          setGrantSuccessMsg('');
+          setGrantTitle('');
+          setGrantComment('');
+          setGrantBudget('');
+          setGrantFileUrl('');
+          setGrantFileName('');
+          fetchGrants();
+        }, 2500);
+      } else {
+        setGrantErrorMsg(data.error || 'Arizani yuborishda xatolik yuz berdi');
+      }
+    } catch {
+      setGrantErrorMsg('Server bilan aloqada xatolik');
+    } finally {
+      setSubmittingGrant(false);
+    }
+  };
 
   const dict = useMemo(() => getDictionary(locale), [locale]);
   const t = dict.scholars;
@@ -353,17 +524,79 @@ export default function ScholarsDirectoryPage() {
   const visibleScholars = scholars.slice(0, visibleCount);
   const remainingCount = Math.max(0, scholars.length - visibleCount);
 
+  const filteredGrants = useMemo(() => {
+    if (!grantSearch.trim()) return grants;
+    const lower = grantSearch.toLowerCase();
+    return grants.filter(
+      (g) =>
+        g.title?.toLowerCase().includes(lower) ||
+        g.scholar?.fullName?.toLowerCase().includes(lower) ||
+        g.fundingSource?.toLowerCase().includes(lower) ||
+        g.grantCode?.toLowerCase().includes(lower)
+    );
+  }, [grants, grantSearch]);
+
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-24 pb-16 space-y-8">
-      {/* Sahifa sarlavhasi (Navbar menyusi bilan to'qnashmasligi uchun yetarli tepa masofa berilgan) */}
-      <div className="space-y-2">
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0F294A] dark:text-white tracking-tight">
-          {t.title}
-        </h1>
-        <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base max-w-2xl">
-          {t.subtitle}
-        </p>
+      {/* Sahifa sarlavhasi va Tab almashtirgich (Olimlar / Ketayotgan grantlar) */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200/80 dark:border-slate-800">
+        <div className="space-y-1">
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0F294A] dark:text-white tracking-tight">
+            {activeSection === 'SCHOLARS' ? t.title : 'Ketayotgan Ilmiy Grantlar'}
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400 text-sm max-w-2xl">
+            {activeSection === 'SCHOLARS'
+              ? t.subtitle
+              : 'Universitet olimlari ishtirokidagi davlat, fundamental, amaliy va xalqaro tadqiqot grantlari.'}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="inline-flex p-1 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
+            <button
+              type="button"
+              onClick={() => setActiveSection('SCHOLARS')}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                activeSection === 'SCHOLARS'
+                  ? 'bg-white dark:bg-slate-900 text-[#0F294A] dark:text-white shadow-xs'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <GraduationCap className="w-4 h-4" />
+              <span>Barcha Olimlar ({scholars.length})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveSection('GRANTS')}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                activeSection === 'GRANTS'
+                  ? 'bg-white dark:bg-slate-900 text-[#0F294A] dark:text-white shadow-xs'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Briefcase className="w-4 h-4 text-amber-500" />
+              <span>Ketayotgan Grantlar ({grants.length})</span>
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setGrantModalPage(1);
+              setGrantErrorMsg('');
+              setIsGrantModalOpen(true);
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ Yangi Grant Qo‘shish</span>
+          </button>
+        </div>
       </div>
+
+      {activeSection === 'SCHOLARS' && (
+        <>
 
       {/* Qidiruv va Filtrlar Paneli */}
       <div className="neu-card p-4 sm:p-6 rounded-3xl space-y-5">
@@ -1048,7 +1281,6 @@ export default function ScholarsDirectoryPage() {
           </div>
         </div>
       )}
-
       {/* Pagination va "Yana yuklash" (12 ta kartadan keyin) */}
       {!loading && scholars.length > 0 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-200/70 dark:border-slate-800">
@@ -1070,6 +1302,571 @@ export default function ScholarsDirectoryPage() {
               <ChevronDown className="w-4 h-4" />
             </button>
           )}
+        </div>
+      )}
+      </>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 2. KETAYOTGAN VA TASDIQLANGAN GRANTLAR SECTION */}
+      {/* ========================================================================= */}
+      {activeSection === 'GRANTS' && (
+        <div className="space-y-6">
+          {/* Grant Banner & Header */}
+          <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-[#0F294A] via-indigo-950 to-slate-900 text-white shadow-xl relative overflow-hidden">
+            <div className="absolute right-0 top-0 bottom-0 w-80 bg-white/5 transform skew-x-12 pointer-events-none" />
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+              <div className="space-y-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-[11px] font-bold uppercase tracking-wider text-amber-300">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>TIU Research Grants & Innovation Engine</span>
+                </span>
+                <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+                  Ketayotgan va Tasdiqlangan Ilmiy Grantlar
+                </h2>
+                <p className="text-blue-100 text-xs sm:text-sm max-w-2xl leading-relaxed">
+                  Toshkent Xalqaro Universiteti olimlari yetakchiligida amalga oshirilayotgan davlat amaliy dasturlari, fundamental tadqiqotlar hamda xalqaro fondlar grantlari monitoringi.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5 self-start md:self-auto shrink-0">
+                <a
+                  href="/api/dashboard/grants/template"
+                  download="TIU_Grant_Ariza_Shabloni_va_Korsatmalari.doc"
+                  className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/20 backdrop-blur-md transition shadow-xs"
+                >
+                  <Download className="w-4 h-4 text-emerald-300" />
+                  <span>📄 .docx Shablon</span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGrantModalPage(1);
+                    setGrantErrorMsg('');
+                    setIsGrantModalOpen(true);
+                  }}
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-lg active:scale-95 transition-all cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ Yangi Grant Qo‘shish</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Qidiruv input */}
+          <div className="relative flex items-center">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Grant mavzusi, ilmiy rahbar yoki moliyalashtiruvchi fond nomi bo‘yicha qidirish..."
+              value={grantSearch}
+              onChange={(e) => setGrantSearch(e.target.value)}
+              className="w-full pl-10 pr-9 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs sm:text-sm outline-none text-slate-900 dark:text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition-all shadow-xs"
+            />
+            {grantSearch && (
+              <button
+                type="button"
+                onClick={() => setGrantSearch('')}
+                className="absolute right-3.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Grantlar ro'yxati */}
+          {loadingGrants ? (
+            <div className="space-y-4 animate-pulse">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-44 rounded-3xl bg-slate-200 dark:bg-slate-800" />
+              ))}
+            </div>
+          ) : filteredGrants.length === 0 ? (
+            <div className="p-12 text-center bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 space-y-3">
+              <Briefcase className="w-12 h-12 text-slate-300 mx-auto" />
+              <div className="font-bold text-base text-slate-700 dark:text-slate-300">
+                Grant loyihalari topilmadi
+              </div>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                Hozircha tanlangan qidiruv bo‘yicha grant loyihasi mavjud emas. Yangi ilmiy grant arizasini topshirishingiz mumkin.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setGrantModalPage(1);
+                  setGrantErrorMsg('');
+                  setIsGrantModalOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-md hover:bg-blue-700 transition"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Grant Arizasi Yuborish</span>
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {filteredGrants.map((g) => {
+                let proposalObj = {};
+                try {
+                  proposalObj = g.proposalData ? JSON.parse(g.proposalData) : {};
+                } catch {}
+
+                const isApproved =
+                  g.status === 'APPROVED' || g.status === 'WON' || g.status === 'APPROVED_BY_MODERATOR';
+                const isPending = g.status === 'PENDING' || g.status === 'SUBMITTED_INTERNAL';
+
+                return (
+                  <div
+                    key={g.id}
+                    className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-4"
+                  >
+                    <div className="space-y-3">
+                      {/* Top Badges */}
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-mono text-[11px] font-bold px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200/60">
+                          {g.grantCode || `TIU-GRT-${g.startYear}`}
+                        </span>
+
+                        <span
+                          className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+                            isApproved
+                              ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200'
+                              : isPending
+                              ? 'bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200'
+                              : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                          }`}
+                        >
+                          {isApproved
+                            ? 'Faol / Tasdiqlangan 🏆'
+                            : isPending
+                            ? 'Moderatsiya jarayonida ⏳'
+                            : g.status}
+                        </span>
+                      </div>
+
+                      {/* Mavzu */}
+                      <h3 className="font-bold text-base text-slate-900 dark:text-white leading-snug">
+                        {g.title}
+                      </h3>
+
+                      {/* Ilmiy rahbar ma'lumotlari */}
+                      {g.scholar && (
+                        <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                          <ScholarAvatar
+                            name={g.scholar.fullName}
+                            avatarUrl={g.scholar.photoUrl}
+                            size={40}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <Link
+                              href={`/scholars/${g.scholar.id}`}
+                              className="font-bold text-xs text-slate-900 dark:text-white hover:text-blue-600 transition truncate block"
+                            >
+                              {g.scholar.fullName}
+                            </Link>
+                            <div className="text-[11px] text-slate-400 truncate">
+                              {g.scholar.academicDegree || 'Olim'} • {g.scholar.department?.nameUz || 'Kafedra'}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Metrikalar */}
+                      <div className="space-y-1.5 text-xs text-slate-500 pt-1">
+                        <div className="flex items-center justify-between">
+                          <span>Fond / Dastur:</span>
+                          <strong className="text-slate-800 dark:text-slate-200 truncate max-w-[210px]">
+                            {g.fundingSource}
+                          </strong>
+                        </div>
+                        {g.budgetRequested && (
+                          <div className="flex items-center justify-between">
+                            <span>Ajratilgan / So‘ralgan:</span>
+                            <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                              {g.budgetRequested.toLocaleString()} so‘m
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between">
+                          <span>Muddati:</span>
+                          <span className="font-mono text-slate-700 dark:text-slate-300 font-semibold">
+                            {g.startYear} – {g.endYear || g.startYear + 2}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Izoh / Annotatsiya */}
+                      {(proposalObj.comment || proposalObj.urgency) && (
+                        <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 italic pt-1 border-t border-slate-100 dark:border-slate-800">
+                          "{proposalObj.comment || proposalObj.urgency}"
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Biriktirilgan fayl havolasi */}
+                    {g.applicationFileUrl && (
+                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                        <a
+                          href={g.applicationFileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-bold text-xs border border-blue-200/60 hover:bg-blue-100 transition w-full justify-center"
+                        >
+                          <FileText className="w-3.5 h-3.5 text-blue-600" />
+                          <span className="truncate max-w-[240px]">
+                            {g.applicationFileName || 'Loyiha Hujjati (.docx / .pdf)'}
+                          </span>
+                          <ExternalLink className="w-3 h-3 text-blue-500 shrink-0" />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 3. YANGI GRANT QO'SHISH: 2 TA PAGELI MODAL & DROP ARIZA BLOKI */}
+      {/* ========================================================================= */}
+      {isGrantModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full p-6 sm:p-7 shadow-2xl my-8 space-y-5 text-xs animate-fadeIn">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 flex items-center justify-center">
+                  <Briefcase className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
+                    Ilmiy Grant Loyihasi Arizasi & Yo‘riqnoma
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    TIU tadqiqot portali orqali rasmiy ariza topshirish va ko‘rsatmalar
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsGrantModalOpen(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Xabar bildirishnomalari */}
+            {grantSuccessMsg && (
+              <div className="p-3.5 rounded-2xl bg-emerald-600 text-white font-bold text-xs flex items-center gap-2 shadow-sm">
+                <CheckCircle className="w-4 h-4 shrink-0" />
+                <span>{grantSuccessMsg}</span>
+              </div>
+            )}
+            {grantErrorMsg && (
+              <div className="p-3.5 rounded-2xl bg-rose-50 text-rose-700 font-bold text-xs flex items-center gap-2 border border-rose-200">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{grantErrorMsg}</span>
+              </div>
+            )}
+
+            {/* 2 TA PAGELI MODAL TUGMALARI (TAVSIF & NAMUNA FAYLI) */}
+            <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => setGrantModalPage(1)}
+                className={`py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  grantModalPage === 1
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-white/50'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>1-Panel: Tavsif & Tushuncha</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setGrantModalPage(2)}
+                className={`py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  grantModalPage === 2
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-white/50'
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>2-Panel: Namuna & Ko‘rsatma</span>
+              </button>
+            </div>
+
+            {/* 1-PANEL: TO'LIQ TUSHUNCHA VA YO'RIQNOMA */}
+            {grantModalPage === 1 && (
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 space-y-3">
+                <h4 className="font-bold text-xs text-blue-900 dark:text-blue-300 uppercase tracking-wide flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <span>Grant Loyihasi Shartlari & Baholash Mezonlari</span>
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-slate-700 dark:text-slate-300 text-[11px]">
+                  <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                    <strong className="text-slate-900 dark:text-white block font-bold">
+                      🎯 Tanlov Maqsadi:
+                    </strong>
+                    <p className="text-slate-500">
+                      Universitetning ilmiy salohiyatini oshirish, davlat va xalqaro jamg‘armalar hisobidan ilmiy natijalarni moliyalashtirish.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                    <strong className="text-slate-900 dark:text-white block font-bold">
+                      👥 Kimlar topshira oladi:
+                    </strong>
+                    <p className="text-slate-500">
+                      Barcha TIU professor-o‘qituvchilari, doktorantlar, katta ilmiy xodimlar va mustaqil izlanuvchilar (yakka yoki jamoa sifatida).
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                    <strong className="text-slate-900 dark:text-white block font-bold">
+                      ⚖️ Baholash Mezonlari:
+                    </strong>
+                    <p className="text-slate-500">
+                      Ilmiy yangilik, sohadagi dolzarblik, amaliy samaradorlik, rejalashtirilgan Scopus/OAK nashrlar va byudjet asoslanganligi.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                    <strong className="text-slate-900 dark:text-white block font-bold">
+                      🛡️ Moderatsiya va Tasdiq:
+                    </strong>
+                    <p className="text-slate-500">
+                      Yuborilgan har bir ariza Universitet Ilmiy Bo‘limi moderatori paneliga tushadi va ko‘rib chiqilib rasmiy tasdiqlanadi.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 2-PANEL: NAMUNA & KO'RSATMA FAYLI */}
+            {grantModalPage === 2 && (
+              <div className="p-4 rounded-2xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/60 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h4 className="font-bold text-xs text-blue-900 dark:text-blue-300 uppercase tracking-wide flex items-center gap-1.5">
+                      <FileText className="w-4 h-4 text-blue-600" />
+                      <span>Rasmiy Ariza Ko‘rsatmalari va Shablon</span>
+                    </h4>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      8 ta rasmiy bo‘limga ega tayyor ko‘rsatmali .docx hujjat
+                    </p>
+                  </div>
+
+                  <a
+                    href="/api/dashboard/grants/template"
+                    download="TIU_Grant_Ariza_Shabloni_va_Korsatmalari.doc"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>.docx Shablonni Yuklab Olish</span>
+                  </a>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-300 space-y-1.5">
+                  <div className="font-bold text-slate-900 dark:text-white">
+                    Shablon tarkibidagi 8 ta asosiy bo‘lim:
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 text-[10px] text-slate-500">
+                    <div>1. Loyiha dolzarbligi va muammo</div>
+                    <div>2. Maqsad va vazifalar</div>
+                    <div>3. Ilmiy yangilik va kutilayotgan natijalar</div>
+                    <div>4. Metodologiya va tadqiqot dizayni</div>
+                    <div>5. Kalendar ish rejasi (Gantt jadvali)</div>
+                    <div>6. Xarajatlar smetasi va asosnomasi</div>
+                    <div>7. Ilmiy ijrochi jamoa ma’lumotlari</div>
+                    <div>8. Kutilayotgan amaliy samara va xavflar</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* PASTKI ARIZA TOPHIRISH BLOKI: SARLAVHA, IZOH, DROP FILE VA YUBORISH */}
+            <form onSubmit={handleSubmitGrant} className="space-y-3.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div>
+                <label className="block font-bold text-slate-800 dark:text-slate-200 mb-1">
+                  Grant Loyihasi Mavzusi / Sarlavhasi *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Masalan: Raqamli iqtisodiyotda sun’iy intellekt texnologiyalarini qo‘llash..."
+                  value={grantTitle}
+                  onChange={(e) => setGrantTitle(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-800 dark:text-slate-200 mb-1">
+                    Moliyalashtiruvchi Fond / Dastur
+                  </label>
+                  <input
+                    type="text"
+                    value={grantFundingSource}
+                    onChange={(e) => setGrantFundingSource(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-800 dark:text-slate-200 mb-1">
+                    So‘ralayotgan Byudjet (so‘mda)
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="Masalan: 850000000"
+                    value={grantBudget}
+                    onChange={(e) => setGrantBudget(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-800 dark:text-slate-200 mb-1">
+                  Loyiha Izohi va Qisqacha Annotatsiyasi *
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="Loyiha maqsadi, muammo yechimi va kutilayotgan ilmiy natijalar haqida qisqacha izoh..."
+                  value={grantComment}
+                  onChange={(e) => setGrantComment(e.target.value)}
+                  className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs outline-none focus:border-blue-500"
+                />
+              </div>
+
+              {/* DRAG & DROP ARIZA FAYLI MAYDONI */}
+              <div>
+                <label className="block font-bold text-slate-800 dark:text-slate-200 mb-1">
+                  Ariza Hujjatini Biriktirish (.docx yoki .pdf faylni tashlang):
+                </label>
+
+                {grantFileUrl ? (
+                  <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 truncate">
+                      <FileCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+                      <div className="truncate">
+                        <span className="font-bold text-emerald-950 dark:text-emerald-200 truncate block">
+                          {grantFileName || 'Ariza hujjati'}
+                        </span>
+                        <span className="text-[10px] text-emerald-700 dark:text-emerald-400">
+                          Fayl serverga yuklandi va arizaga biriktirildi ✅
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={grantFileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[11px] hover:bg-emerald-700"
+                      >
+                        Ko‘rish
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setGrantFileUrl('');
+                          setGrantFileName('');
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-rose-100 text-rose-700 font-bold text-[11px] hover:bg-rose-200 cursor-pointer"
+                      >
+                        O‘chirish
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    className={`border-2 border-dashed rounded-2xl p-5 text-center transition-all cursor-pointer ${
+                      isDragging
+                        ? 'border-blue-500 bg-blue-50/60 dark:bg-blue-950/40'
+                        : 'border-slate-300 dark:border-slate-700 hover:border-blue-400 bg-slate-50/50 dark:bg-slate-800/40'
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      id="grantPublicFileInput"
+                      accept=".docx,.doc,.pdf"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) uploadGrantFile(f);
+                      }}
+                      disabled={uploadingFile}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="grantPublicFileInput"
+                      className="cursor-pointer flex flex-col items-center justify-center space-y-1.5"
+                    >
+                      <FileUp className="w-7 h-7 text-blue-500" />
+                      <div className="font-bold text-slate-800 dark:text-slate-200 text-xs">
+                        {uploadingFile
+                          ? 'Fayl serverga yuklanmoqda...'
+                          : 'Ariza faylini bu yerga tashlang (Drop) yoki faylni tanlang'}
+                      </div>
+                      <div className="text-[10px] text-slate-400">
+                        Qabul qilinadi: Microsoft Word (.docx, .doc) yoki PDF • Maksimal hajm: 25 MB
+                      </div>
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              {/* Action buttons */}
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
+                <span className="text-[11px] text-slate-400">
+                  Moderator ko‘rib chiqqach, tasdiqlanib e’lon qilinadi
+                </span>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsGrantModalOpen(false)}
+                    className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold cursor-pointer"
+                  >
+                    Bekor qilish
+                  </button>
+
+                  {currentUser?.profile ? (
+                    <button
+                      type="submit"
+                      disabled={submittingGrant || uploadingFile}
+                      className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md transition disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>{submittingGrant ? 'Yuborilmoqda...' : 'Arizani Moderatorga Yuborish 🚀'}</span>
+                    </button>
+                  ) : (
+                    <Link
+                      href="/login?redirect=/scholars?tab=grants"
+                      className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-md transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>Kirish va Yuborish 🔑</span>
+                    </Link>
+                  )}
+                </div>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

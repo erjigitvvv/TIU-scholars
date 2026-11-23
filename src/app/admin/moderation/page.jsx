@@ -391,12 +391,24 @@ export default function AdminModerationPage() {
 
                     {tab === 'grants' && (
                       <>
-                        <span className="px-2.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-md text-xs font-bold">
-                          {t.grantProject}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="px-2.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-md text-xs font-bold">
+                            {t.grantProject}
+                          </span>
+                          {item.grantCode && (
+                            <span className="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-md text-xs font-mono font-bold">
+                              {item.grantCode}
+                            </span>
+                          )}
+                          {item.budgetRequested && (
+                            <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md text-xs font-mono font-bold">
+                              {item.budgetRequested.toLocaleString()} so‘m
+                            </span>
+                          )}
+                        </div>
                         <h3 className="text-base font-bold text-slate-900">{item.title}</h3>
                         <p className="text-sm text-slate-600">
-                          {item.fundingSource} ? {t.role} {item.role} ({item.startYear}?
+                          {item.fundingSource} • {t.role} {item.role} ({item.startYear}–
                           {item.endYear || t.present})
                         </p>
                         <div className="text-xs text-slate-500">
@@ -404,7 +416,38 @@ export default function AdminModerationPage() {
                           <span className="font-semibold text-slate-700">
                             {item.scholar?.fullName}
                           </span>
+                          {item.scholar?.department?.nameUz && (
+                            <span> • {item.scholar.department.nameUz}</span>
+                          )}
                         </div>
+
+                        {item.proposalData && (
+                          <div className="p-3 bg-slate-50 rounded-xl text-xs text-slate-700 space-y-1 border border-slate-200">
+                            <span className="font-bold text-slate-800">Ariza izohi / mazmuni:</span>
+                            <p className="whitespace-pre-line text-slate-600 line-clamp-3">
+                              {typeof item.proposalData === 'string'
+                                ? item.proposalData.startsWith('{')
+                                  ? JSON.parse(item.proposalData).urgency || JSON.parse(item.proposalData).comment || item.proposalData
+                                  : item.proposalData
+                                : JSON.stringify(item.proposalData)}
+                            </p>
+                          </div>
+                        )}
+
+                        {item.applicationFileUrl && (
+                          <div className="pt-1">
+                            <a
+                              href={item.applicationFileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 font-bold text-xs hover:bg-blue-100 transition shadow-2xs"
+                            >
+                              <FileText className="w-4 h-4 text-blue-600" />
+                              <span>📄 Biriktirilgan Ariza Hujjati ({item.applicationFileName || 'Yuklab olish'})</span>
+                              <ExternalLink className="w-3 h-3 text-blue-500" />
+                            </a>
+                          </div>
+                        )}
                       </>
                     )}
 
