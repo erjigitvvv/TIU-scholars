@@ -3,7 +3,6 @@
 import { useState, useEffect, startTransition } from 'react'
 import Link from 'next/link'
 import { Plus, BookOpen, CheckCircle, Clock, XCircle, Trash2, Edit, Eye, Award, Search, RefreshCw, Sparkles, Image as ImageIcon, X } from 'lucide-react'
-import AcademicSyncSection from '@/components/dashboard/AcademicSyncSection'
 
 export default function PublicationsPage() {
   const [publications, setPublications] = useState([])
@@ -298,9 +297,6 @@ export default function PublicationsPage() {
       {successMsg && (
         <div className="neu-card-sm p-4 border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300 rounded-2xl text-sm">{successMsg}</div>
       )}
-
-      {/* Academic Accounts Auto-Sync Section */}
-      <AcademicSyncSection onSyncSuccess={fetchPublications} />
 
       {/* Publications Table */}
       <div className="neu-card rounded-3xl overflow-hidden">
