@@ -18,6 +18,22 @@ export async function GET() {
     const announcements = await prisma.announcement.findMany({
       include: {
         author: { select: { email: true, role: true } },
+        inquiries: {
+          include: {
+            scholar: {
+              select: {
+                id: true,
+                fullName: true,
+                photoUrl: true,
+                academicDegree: true,
+                department: { select: { nameUz: true } },
+                telegramChatId: true,
+                isTelegramConnected: true,
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
       },
       orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }],
     });

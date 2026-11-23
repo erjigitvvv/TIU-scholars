@@ -86,8 +86,11 @@ export async function POST(request) {
   try {
     const body = await request.json();
     const {
-      mode = 'BROADCAST', // 'BROADCAST' | 'DIRECT'
+      mode = 'DIRECT', // 'BROADCAST' | 'DIRECT'
       scholarId = null,
+      scholarIds = null,
+      inquiryId = null,
+      inquiryIds = null,
       title = '',
       messageText = '',
       buttonText = '',
@@ -103,15 +106,21 @@ export async function POST(request) {
     }
 
     if (mode === 'DIRECT') {
-      if (!scholarId) {
+      const targetIds = Array.isArray(scholarIds) && scholarIds.length > 0
+        ? scholarIds
+        : scholarId
+        ? [scholarId]
+        : [];
+
+      if (targetIds.length === 0) {
         return NextResponse.json(
           { success: false, error: 'Xabar yuboriladigan olim tanlanmadi' },
           { status: 400 }
         );
       }
 
-      const scholar = await prisma.scholarProfile.findUnique({
-        where: { id: scholarId },
+      const scholars = await prisma.scholarProfile.findMany({
+        where: { id: { in: targetIds } },
         select: {
           id: true,
           fullName: true,
@@ -121,41 +130,62 @@ export async function POST(request) {
         },
       });
 
-      if (!scholar) {
-        return NextResponse.json({ success: false, error: 'Olim topilmadi' }, { status: 404 });
+      if (!scholars.length) {
+        return NextResponse.json({ success: false, error: 'Olimlar topilmadi' }, { status: 404 });
       }
 
-      let telegramSent = false;
-      if (scholar.telegramChatId) {
-        const res = await sendDirectMessageToScholar({
-          recipientChatId: scholar.telegramChatId,
-          scholarId: scholar.id,
-          title: title.trim(),
-          messageText: messageText.trim(),
-          buttonText: buttonText ? buttonText.trim() : null,
-          buttonUrl: buttonUrl ? buttonUrl.trim() : null,
-          senderName: user.email?.includes('admin') ? 'TIU Administratsiyasi' : 'TIU Ilmiy Bo‘limi (Moderator)',
-        });
-        if (res && res.ok) telegramSent = true;
-      } else {
-        // If scholar's Telegram is not connected, still create an in-app notification
-        await sendDirectMessageToScholar({
-          recipientChatId: null,
-          scholarId: scholar.id,
-          title: title.trim(),
-          messageText: messageText.trim(),
-          buttonText: buttonText ? buttonText.trim() : null,
-          buttonUrl: buttonUrl ? buttonUrl.trim() : null,
+      let telegramSentCount = 0;
+      for (const scholar of scholars) {
+        if (scholar.telegramChatId) {
+          const res = await sendDirectMessageToScholar({
+            recipientChatId: scholar.telegramChatId,
+            scholarId: scholar.id,
+            title: title ? title.trim() : 'TIU Ilmiy Xabarnoma',
+            messageText: messageText.trim(),
+            buttonText: buttonText ? buttonText.trim() : null,
+            buttonUrl: buttonUrl ? buttonUrl.trim() : null,
+            senderName: user.email?.includes('admin') ? 'TIU Administratsiyasi' : 'TIU Ilmiy Bo‘limi (Moderator)',
+          });
+          if (res && res.ok) telegramSentCount++;
+        } else {
+          await sendDirectMessageToScholar({
+            recipientChatId: null,
+            scholarId: scholar.id,
+            title: title ? title.trim() : 'TIU Ilmiy Xabarnoma',
+            messageText: messageText.trim(),
+            buttonText: buttonText ? buttonText.trim() : null,
+            buttonUrl: buttonUrl ? buttonUrl.trim() : null,
+          });
+        }
+      }
+
+      // If inquiryId or inquiryIds were provided, mark them as answered
+      const targetInquiryIds = Array.isArray(inquiryIds) && inquiryIds.length > 0
+        ? inquiryIds
+        : inquiryId
+        ? [inquiryId]
+        : [];
+
+      if (targetInquiryIds.length > 0) {
+        await prisma.announcementInquiry.updateMany({
+          where: { id: { in: targetInquiryIds } },
+          data: {
+            status: 'ANSWERED',
+            answerText: messageText.trim(),
+            answeredAt: new Date(),
+            answeredById: user.id,
+          },
         });
       }
 
+      const names = scholars.map((s) => s.fullName).join(', ');
       return NextResponse.json({
         success: true,
-        telegramSent,
-        recipientName: scholar.fullName,
-        message: telegramSent
-          ? `${scholar.fullName} ning Telegram botiga xabar muvaffaqiyatli yetkazildi!`
-          : `${scholar.fullName} ga portal bildirishnomasi yuborildi (Telegrami ulanmagan).`,
+        sentCount: scholars.length,
+        telegramSentCount,
+        message: telegramSentCount > 0
+          ? `${names} ga xabar yetkazildi (Telegram: ${telegramSentCount} ta)!`
+          : `${names} ga portal bildirishnomasi yetkazildi.`,
       });
     }
 

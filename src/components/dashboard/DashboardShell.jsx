@@ -24,6 +24,7 @@ import {
 import ScholarAvatar from '@/components/ui/ScholarAvatar';
 import NotificationBell from '@/components/shared/NotificationBell';
 import TelegramReminderToast from '@/components/dashboard/TelegramReminderToast';
+import FloatingTelegramChatWidget from '@/components/moderator/FloatingTelegramChatWidget';
 
 const LABELS = {
   uz: {
@@ -331,6 +332,7 @@ export default function DashboardShell({ user, locale = 'uz', children }) {
 
         <main className="flex-1 p-4 sm:p-8 overflow-y-auto">{children}</main>
         <TelegramReminderToast />
+        <FloatingTelegramChatWidget user={user} />
       </div>
     </div>
   );

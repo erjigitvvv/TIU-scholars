@@ -21,9 +21,9 @@ import {
   ShieldCheck,
   Megaphone,
   GraduationCap,
-  Bot,
 } from 'lucide-react';
 import NotificationBell from '@/components/shared/NotificationBell';
+import FloatingTelegramChatWidget from '@/components/moderator/FloatingTelegramChatWidget';
 
 const LABELS = {
   uz: {
@@ -87,11 +87,6 @@ export default function AdminShell({ user, locale = 'uz', children }) {
         { href: '/admin/moderation?type=grants', label: locale === 'ru' ? 'Гранты' : locale === 'en' ? 'Grants' : 'Grantlar' },
         { href: '/admin/moderation?type=supervisions', label: locale === 'ru' ? 'Руководство' : locale === 'en' ? 'Supervisions' : 'Ilmiy rahbarlik' },
       ],
-    },
-    {
-      href: '/admin/telegram',
-      label: 'Telegram Bot Markazi',
-      icon: Bot,
     },
     {
       href: '/admin/supervisions',
@@ -361,6 +356,7 @@ export default function AdminShell({ user, locale = 'uz', children }) {
         </header>
 
         <main className="flex-1 p-4 sm:p-8 overflow-y-auto">{children}</main>
+        <FloatingTelegramChatWidget user={user} />
       </div>
     </div>
   );
