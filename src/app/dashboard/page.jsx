@@ -19,7 +19,6 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { getPublicationPoints } from '@/lib/scoring';
 import ScholarAvatar from '@/components/ui/ScholarAvatar';
-import TelegramStatusCard from '@/components/dashboard/TelegramStatusCard';
 
 const COPY = {
   uz: {
@@ -292,9 +291,6 @@ export default async function DashboardOverview() {
           </Link>
         </div>
       </div>
-
-      {/* Telegram Bot Notification Card */}
-      <TelegramStatusCard />
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">

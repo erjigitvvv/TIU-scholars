@@ -23,6 +23,12 @@ import {
   Mail,
   FileText,
   ShieldCheck,
+  KeyRound,
+  Edit3,
+  CheckCircle2,
+  X,
+  ArrowRight,
+  Clock,
 } from 'lucide-react';
 import ScholarAvatar from '@/components/ui/ScholarAvatar';
 import AcademicSyncSection from '@/components/dashboard/AcademicSyncSection';
@@ -286,6 +292,15 @@ export default function ProfilePage() {
     currentPassword: '',
   });
   const [changingEmail, setChangingEmail] = useState(false);
+  const [currentEmail, setCurrentEmail] = useState('');
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [pwModalOpen, setPwModalOpen] = useState(false);
+  const [pwSuccess3s, setPwSuccess3s] = useState(false);
+  const [pwCountdown, setPwCountdown] = useState(3);
+  const [pwError, setPwError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotSentMsg, setForgotSentMsg] = useState('');
 
   const t = COPY[locale] || COPY.uz;
 
@@ -306,6 +321,7 @@ export default function ProfilePage() {
         setSelectedFacultyId(data.profile.department?.facultyId || '');
       }
       if (data.accountEmail) {
+        setCurrentEmail(data.accountEmail);
         setEmailForm((prev) => ({ ...prev, newEmail: data.accountEmail }));
       }
       if (Array.isArray(data.faculties)) setFaculties(data.faculties);
@@ -461,6 +477,7 @@ export default function ProfilePage() {
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
+    setPwError('');
     setChangingPw(true);
     try {
       const res = await fetch('/api/dashboard/profile/password', {
@@ -469,18 +486,53 @@ export default function ProfilePage() {
         body: JSON.stringify(pwForm),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to change password');
-      setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      showToast(t.pwSuccess, 'success');
+      if (!res.ok) throw new Error(data.error || 'Parolni o‘zgartirishda xatolik yuz berdi');
+      
+      // 3 soniyalik muvaffaqiyat ekrani
+      setPwSuccess3s(true);
+      setPwCountdown(3);
+      let count = 3;
+      const timer = setInterval(() => {
+        count -= 1;
+        setPwCountdown(count);
+        if (count <= 0) {
+          clearInterval(timer);
+          setPwSuccess3s(false);
+          setPwModalOpen(false);
+          setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+          showToast(t.pwSuccess, 'success');
+        }
+      }, 1000);
     } catch (err) {
-      showToast(err.message, 'error');
+      setPwError(err.message);
     } finally {
       setChangingPw(false);
     }
   };
 
+  const handleForgotPassword = async () => {
+    setForgotLoading(true);
+    setForgotSentMsg('');
+    setPwError('');
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: currentEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Xatolik yuz berdi');
+      setForgotSentMsg(data.message || 'Parolni tiklash havolasi emailingizga yuborildi!');
+    } catch (err) {
+      setPwError(err.message);
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   const handleChangeEmail = async (e) => {
     e.preventDefault();
+    setEmailError('');
     setChangingEmail(true);
     try {
       const res = await fetch('/api/dashboard/profile/email', {
@@ -489,11 +541,13 @@ export default function ProfilePage() {
         body: JSON.stringify(emailForm),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to update email');
-      setEmailForm({ newEmail: data.email || emailForm.newEmail, currentPassword: '' });
+      if (!res.ok) throw new Error(data.error || 'Emailni yangilashda xatolik');
+      setCurrentEmail(data.email || emailForm.newEmail);
+      setEmailForm({ newEmail: '', currentPassword: '' });
+      setEmailModalOpen(false);
       showToast(t.emailSuccess, 'success');
     } catch (err) {
-      showToast(err.message, 'error');
+      setEmailError(err.message);
     } finally {
       setChangingEmail(false);
     }
@@ -1065,117 +1119,294 @@ export default function ProfilePage() {
       {/* TAB 4: Security & Password */}
       {activeTab === 'security' && (
         <div className="space-y-4">
-          <form onSubmit={handleChangeEmail} className="neu-card p-6 rounded-3xl space-y-4">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Mail className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              {t.emailTitle}
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                  {t.emailNew}
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={emailForm.newEmail}
-                  onChange={(e) => setEmailForm({ ...emailForm, newEmail: e.target.value })}
-                  placeholder="name@tiu.uz"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                />
+          {/* Email Security Row */}
+          <div className="neu-card p-5 sm:p-6 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/80 dark:border-slate-800 shadow-2xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-100 dark:border-blue-900/40">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Joriy Kirish Emaili
+                  </h4>
+                  <div className="text-sm sm:text-base font-bold text-slate-900 dark:text-white mt-0.5 font-mono">
+                    {currentEmail || 'Yuklanmoqda...'}
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                  {t.emailCurrentPw}
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={emailForm.currentPassword}
-                  onChange={(e) => setEmailForm({ ...emailForm, currentPassword: e.target.value })}
-                  placeholder="••••••••"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end">
+
               <button
-                type="submit"
-                disabled={changingEmail}
-                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-gradient-to-r from-[#0F294A] to-[#1B4275] hover:from-[#163660] hover:to-[#21508C] text-white shadow-md transition-all whitespace-nowrap disabled:opacity-50"
+                type="button"
+                onClick={() => {
+                  setEmailError('');
+                  setEmailForm({ newEmail: '', currentPassword: '' });
+                  setEmailModalOpen(true);
+                }}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition shadow-2xs cursor-pointer shrink-0"
               >
-                <Mail className="w-4 h-4" />
-                {changingEmail ? '...' : t.emailBtn}
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>Emailni o‘zgartirish</span>
               </button>
             </div>
-          </form>
+          </div>
 
-          <form onSubmit={handleChangePassword} className="neu-card p-6 rounded-3xl space-y-4">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Lock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              {t.pwTitle}
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                  {t.pwCurrent}
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={pwForm.currentPassword}
-                  onChange={(e) => setPwForm({ ...pwForm, currentPassword: e.target.value })}
-                  placeholder="••••••••"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                />
+          {/* Password Security Row */}
+          <div className="neu-card p-5 sm:p-6 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/80 dark:border-slate-800 shadow-2xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-100 dark:border-indigo-900/40">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Hisob Paroli
+                  </h4>
+                  <div className="text-sm sm:text-base font-bold text-slate-900 dark:text-white mt-0.5 tracking-widest font-mono">
+                    ••••••••••••
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                  {t.pwNew}
-                </label>
-                <input
-                  type="password"
-                  required
-                  minLength={6}
-                  value={pwForm.newPassword}
-                  onChange={(e) => setPwForm({ ...pwForm, newPassword: e.target.value })}
-                  placeholder="Masalan: Scholar2026!"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                  {t.pwConfirm}
-                </label>
-                <input
-                  type="password"
-                  required
-                  minLength={6}
-                  value={pwForm.confirmPassword}
-                  onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })}
-                  placeholder="••••••••"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end">
+
               <button
-                type="submit"
-                disabled={changingPw}
-                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-gradient-to-r from-[#0F294A] to-[#1B4275] hover:from-[#163660] hover:to-[#21508C] text-white shadow-md transition-all whitespace-nowrap disabled:opacity-50"
+                type="button"
+                onClick={() => {
+                  setPwError('');
+                  setForgotSentMsg('');
+                  setPwSuccess3s(false);
+                  setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                  setPwModalOpen(true);
+                }}
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-[#0F294A] to-[#1B4275] hover:from-[#163660] hover:to-[#21508C] text-white shadow-md transition-all cursor-pointer shrink-0"
               >
-                <Lock className="w-4 h-4" />
-                {changingPw ? '...' : t.pwBtn}
+                <KeyRound className="w-4 h-4" />
+                <span>Parolni o‘zgartirish</span>
               </button>
             </div>
-          </form>
+          </div>
 
+          {/* 2FA Info Card */}
           <div className="neu-card-sm p-5 rounded-2xl flex items-start gap-3">
             <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
             <div>
               <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">{t.twoFaTitle}</h4>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t.twoFaDesc}</p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 1: Email Change Modal */}
+      {emailModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="relative w-full max-w-md p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 flex items-center justify-center">
+                  <Mail className="w-4 h-4" />
+                </div>
+                <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                  Kirish emailini o‘zgartirish
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEmailModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {emailError && (
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs">
+                {emailError}
+              </div>
+            )}
+
+            <form onSubmit={handleChangeEmail} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                  Yangi login emaili
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="masalan: dr.alisher.olimov@tiu.uz"
+                  value={emailForm.newEmail}
+                  onChange={(e) => setEmailForm({ ...emailForm, newEmail: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-hidden focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                  Tasdiqlash uchun joriy parol
+                </label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Joriy parolingizni kiriting"
+                  value={emailForm.currentPassword}
+                  onChange={(e) => setEmailForm({ ...emailForm, currentPassword: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-hidden focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEmailModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                >
+                  Bekor qilish
+                </button>
+                <button
+                  type="submit"
+                  disabled={changingEmail}
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition disabled:opacity-50"
+                >
+                  {changingEmail ? 'Saqlanmoqda...' : 'Saqlash'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 2: Password Change Modal with 3-Second Confirmation Screen */}
+      {pwModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="relative w-full max-w-md p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+            {pwSuccess3s ? (
+              /* 3-Second Animated Confirmation Screen */
+              <div className="py-8 text-center space-y-4">
+                <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20 animate-bounce">
+                  <CheckCircle2 className="w-10 h-10" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
+                    Parol muvaffaqiyatli yangilandi!
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Hisobingiz yangi parol bilan xavfsiz himoyalandi.
+                  </p>
+                </div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[11px] font-mono text-slate-500">
+                  <Clock className="w-3 h-3 text-amber-500 animate-pulse" />
+                  <span>Oyna {pwCountdown} soniyadan so‘ng avtomatik yopiladi...</span>
+                </div>
+              </div>
+            ) : (
+              /* Normal Form View */
+              <>
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 flex items-center justify-center">
+                      <Lock className="w-4 h-4" />
+                    </div>
+                    <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                      Parolni o‘zgartirish
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPwModalOpen(false)}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {pwError && (
+                  <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs">
+                    {pwError}
+                  </div>
+                )}
+
+                {forgotSentMsg && (
+                  <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300 text-xs flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>{forgotSentMsg}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleChangePassword} className="space-y-3.5">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                      Joriy (eski) parol
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      placeholder="Eski parolingizni kiriting"
+                      value={pwForm.currentPassword}
+                      onChange={(e) => setPwForm({ ...pwForm, currentPassword: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-hidden focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                      Yangi parol (kamida 6 ta belgi)
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      minLength={6}
+                      placeholder="Yangi kuchli parol"
+                      value={pwForm.newPassword}
+                      onChange={(e) => setPwForm({ ...pwForm, newPassword: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-hidden focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                      Yangi parolni qayta kiritish
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      minLength={6}
+                      placeholder="Yangi parolni tasdiqlang"
+                      value={pwForm.confirmPassword}
+                      onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-hidden focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  {/* Forgot Password Link */}
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      disabled={forgotLoading}
+                      onClick={handleForgotPassword}
+                      className="text-xs text-blue-600 hover:text-blue-700 dark:text-sky-400 dark:hover:text-sky-300 font-semibold underline underline-offset-2 transition cursor-pointer"
+                    >
+                      {forgotLoading ? 'Pochtaga havola yuborilmoqda...' : 'Parolni unutdingizmi? Pochtaga tiklash havolasini yuborish'}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2.5 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setPwModalOpen(false)}
+                      className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                    >
+                      Bekor qilish
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={changingPw}
+                      className="px-5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition disabled:opacity-50"
+                    >
+                      {changingPw ? 'Tasdiqlanmoqda...' : 'Tasdiqlash'}
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
           </div>
         </div>
       )}
