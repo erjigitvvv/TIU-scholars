@@ -64,6 +64,9 @@ export async function PUT(request, { params }) {
     if (body.status !== undefined) updateData.status = body.status;
     if (body.rejectionReason !== undefined) updateData.rejectionReason = body.rejectionReason;
 
+    if (body.applicationFileUrl !== undefined) updateData.applicationFileUrl = body.applicationFileUrl;
+    if (body.applicationFileName !== undefined) updateData.applicationFileName = body.applicationFileName;
+
     if (body.proposalData !== undefined) {
       updateData.proposalData = typeof body.proposalData === 'string' ? body.proposalData : JSON.stringify(body.proposalData);
     }

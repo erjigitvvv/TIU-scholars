@@ -104,6 +104,7 @@ model ScholarProfile {
   supervisions       Supervision[]
   kpiTargets         KpiTarget[]
   telegramAuthCodes  TelegramAuthCode[]
+  announcementInquiries AnnouncementInquiry[]
 }
 
 model Publication {
@@ -179,6 +180,9 @@ model GrantProject {
 
   // Natijalar bog'lanishi (Publications & Deliverables)
   deliverables    String?        // JSON: [{ type: "ARTICLE"|"PATENT"|"CONFERENCE", title, publicationId, status }]
+
+  applicationFileUrl  String?
+  applicationFileName String?
 
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @default(now()) @updatedAt
@@ -356,10 +360,32 @@ model Announcement {
   status     String    @default("PUBLISHED") // PUBLISHED, DRAFT, ARCHIVED
   isPinned   Boolean   @default(false)
   deadline   DateTime?
+  viewsCount Int       @default(0)
   authorId   String
   author     User      @relation("CreatedAnnouncements", fields: [authorId], references: [id], onDelete: Cascade)
   createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  updatedAt  DateTime  @default(now()) @updatedAt
+
+  inquiries  AnnouncementInquiry[]
+}
+
+model AnnouncementInquiry {
+  id              String         @id @default(cuid())
+  announcementId  String
+  announcement    Announcement   @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  scholarId       String?
+  scholar         ScholarProfile? @relation(fields: [scholarId], references: [id], onDelete: SetNull)
+  telegramChatId  String?
+  authorName      String
+  questionText    String
+  answerText      String?
+  answeredAt      DateTime?
+  answeredById    String?
+  status          String         @default("PENDING") // PENDING, ANSWERED
+  createdAt       DateTime       @default(now())
+
+  @@index([announcementId])
+  @@index([scholarId])
 }
 
 model Notification {

@@ -80,6 +80,8 @@ export async function POST(request) {
       budgetItems = null,
       teamMembers = null,
       documentsList = null,
+      applicationFileUrl = null,
+      applicationFileName = null,
     } = body;
 
     if (!title || !title.trim()) {
@@ -107,6 +109,8 @@ export async function POST(request) {
         budgetItems: budgetItems ? (typeof budgetItems === 'string' ? budgetItems : JSON.stringify(budgetItems)) : null,
         teamMembers: teamMembers ? (typeof teamMembers === 'string' ? teamMembers : JSON.stringify(teamMembers)) : null,
         documentsList: documentsList ? (typeof documentsList === 'string' ? documentsList : JSON.stringify(documentsList)) : null,
+        applicationFileUrl: applicationFileUrl || null,
+        applicationFileName: applicationFileName || null,
         deliverables: JSON.stringify([]),
       },
     });

@@ -26,6 +26,7 @@ import {
   X,
   Layers,
   BookOpen,
+  Download,
 } from 'lucide-react';
 
 export default function GrantsPage() {
@@ -42,6 +43,8 @@ export default function GrantsPage() {
   const [editingGrantId, setEditingGrantId] = useState(null);
   const [savingGrant, setSavingGrant] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
+  const [uploadingProposalFile, setUploadingProposalFile] = useState(false);
+  const [uploadError, setUploadError] = useState('');
 
   // Selected Call Detail Modal
   const [selectedCall, setSelectedCall] = useState(null);
@@ -61,6 +64,8 @@ export default function GrantsPage() {
     budgetRequested: 850000000,
     deadlineDate: '2026-05-15',
     status: 'DRAFT',
+    applicationFileUrl: '',
+    applicationFileName: '',
     proposalData: {
       urgency: '',
       objectives: '',
@@ -119,12 +124,44 @@ export default function GrantsPage() {
     let score = 0;
     if (formData.title.trim()) score += 15;
     if (formData.proposalData.urgency.trim()) score += 15;
-    if (formData.proposalData.objectives.trim()) score += 15;
-    if (formData.proposalData.novelty.trim()) score += 15;
-    if (formData.proposalData.methodology.trim()) score += 15;
+    if (formData.proposalData.objectives.trim()) score += 10;
+    if (formData.proposalData.novelty.trim()) score += 10;
+    if (formData.proposalData.methodology.trim()) score += 10;
     if (totalBudgetCalculated > 0) score += 15;
     if (formData.teamMembers.length > 0) score += 10;
+    if (formData.applicationFileUrl) score += 15;
     return Math.min(100, score);
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingProposalFile(true);
+      setUploadError('');
+      const data = new FormData();
+      data.append('file', file);
+
+      const res = await fetch('/api/dashboard/grants/upload', {
+        method: 'POST',
+        body: data,
+      });
+      const result = await res.json();
+      if (result.success && result.url) {
+        setFormData((prev) => ({
+          ...prev,
+          applicationFileUrl: result.url,
+          applicationFileName: result.originalName || file.name,
+        }));
+      } else {
+        setUploadError(result.error || 'Yuklashda xatolik yuz berdi');
+      }
+    } catch {
+      setUploadError('Faylni yuklashda server xatosi');
+    } finally {
+      setUploadingProposalFile(false);
+    }
   };
 
   const handleOpenNewFromCall = (call) => {
@@ -173,6 +210,8 @@ export default function GrantsPage() {
       budgetRequested: grant.budgetRequested || 0,
       deadlineDate: grant.deadlineDate ? grant.deadlineDate.split('T')[0] : '',
       status: grant.status,
+      applicationFileUrl: grant.applicationFileUrl || '',
+      applicationFileName: grant.applicationFileName || '',
       proposalData: {
         urgency: proposal.urgency || '',
         objectives: proposal.objectives || '',
@@ -207,6 +246,8 @@ export default function GrantsPage() {
         budgetRequested: totalBudgetCalculated,
         deadlineDate: formData.deadlineDate,
         status: targetStatus || formData.status,
+        applicationFileUrl: formData.applicationFileUrl || null,
+        applicationFileName: formData.applicationFileName || null,
         proposalData: formData.proposalData,
         budgetItems: formData.budgetItems,
         teamMembers: formData.teamMembers,
@@ -321,17 +362,66 @@ export default function GrantsPage() {
             </p>
           </div>
 
-          <button
-            onClick={() => {
-              setEditingGrantId(null);
-              setActiveStep(1);
-              setWizardModalOpen(true);
-            }}
-            className="inline-flex items-center gap-2 px-5 py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm shadow-lg active:scale-95 transition-all self-start md:self-auto"
-          >
-            <Plus className="w-5 h-5" />
-            <span>+ Yangi Grant Arizasi</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-3 self-start md:self-auto">
+            <a
+              href="/api/dashboard/grants/template"
+              download="TIU_Grant_Ariza_Shabloni_va_Korsatmalari.doc"
+              className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs border border-white/20 backdrop-blur-md transition shadow-sm"
+              title="Arizani to‘g‘ri yozish bo‘yicha ko‘rsatmalarga ega rasmiy .docx shablon"
+            >
+              <Download className="w-4 h-4 text-emerald-300" />
+              <span>📄 .docx Ko‘rsatmali Shablon</span>
+            </a>
+
+            <button
+              onClick={() => {
+                setEditingGrantId(null);
+                setFormData({
+                  title: '',
+                  role: 'Principal Investigator',
+                  fundingSource: 'O‘zbekiston Respublikasi Innovatsion rivojlanish agentligi',
+                  grantProgram: 'Amaliy tadqiqotlar loyihalari',
+                  startYear: new Date().getFullYear(),
+                  endYear: new Date().getFullYear() + 2,
+                  budgetRequested: 850000000,
+                  deadlineDate: '2026-05-15',
+                  status: 'DRAFT',
+                  applicationFileUrl: '',
+                  applicationFileName: '',
+                  proposalData: {
+                    urgency: '',
+                    objectives: '',
+                    novelty: '',
+                    methodology: '',
+                    workPlanGantt: '',
+                    teamExperience: '',
+                    risks: '',
+                    impact: '',
+                  },
+                  budgetItems: [
+                    { id: 1, category: 'SALARY', title: 'Ilmiy jamoa ish haqi (soliqlar bilan)', amount: 450000000, justification: '12 oylik ish haqi (12% daromad + 12% ijtimoiy soliq)' },
+                    { id: 2, category: 'EQUIPMENT', title: 'Laboratoriya va IT asbob-uskunalari', amount: 200000000, justification: 'Server va yuqori quvvatli hisoblash stansiyasi' },
+                    { id: 3, category: 'TRAVEL', title: 'Xalqaro ilmiy konferensiya va dala tadqiqoti', amount: 80000000, justification: 'Tadqiqot maʼlumotlarini yig‘ish va approbatsiya' },
+                    { id: 4, category: 'SUPPLIES', title: 'Reaktivlar va sarflash materiallari', amount: 70000000, justification: 'Eksperimental namunalar va sinov vositalari' },
+                    { id: 5, category: 'PUBLISHING', title: 'Scopus Q1/Q2 jurnallarida Open Access nashr', amount: 50000000, justification: 'Xalqaro ilmiy jurnallarda natijalarni chop etish' },
+                  ],
+                  teamMembers: [],
+                  documentsList: [
+                    { name: 'Universitet Ilmiy Kengashi Xulosasi', status: 'REQUIRED' },
+                    { name: 'Loyiha Pasporti va Kalendar Reja', status: 'READY' },
+                    { name: 'Xarajatlar Smetasi va Asosnomasi', status: 'READY' },
+                    { name: 'Jamoa Aʼzolari Ilmiy CV-Maʼlumotnomasi', status: 'READY' },
+                  ],
+                });
+                setActiveStep(1);
+                setWizardModalOpen(true);
+              }}
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-lg active:scale-95 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Yangi Grant Arizasi</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -491,6 +581,20 @@ export default function GrantsPage() {
                             <span className="font-mono font-bold text-emerald-600">
                               {g.budgetRequested.toLocaleString()} so‘m
                             </span>
+                          </div>
+                        )}
+                        {g.applicationFileUrl && (
+                          <div className="flex items-center justify-between pt-1">
+                            <span>Biriktirilgan ariza:</span>
+                            <a
+                              href={g.applicationFileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                            >
+                              <FileText className="w-3.5 h-3.5" />
+                              <span className="truncate max-w-[170px]">{g.applicationFileName || 'Yuklangan fayl'}</span>
+                            </a>
                           </div>
                         )}
                       </div>
@@ -996,6 +1100,106 @@ export default function GrantsPage() {
                       <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
                         Arizani topshirishdan oldin Universitet Ilmiy Bo‘limi va Ekspertiza Komissiyasi arizangizni ko‘rib chiqib, davlat/fond tanloviga rasmiy yo‘llanma xati (Endorsement Letter) beradi.
                       </p>
+                    </div>
+
+                    {/* DOCX / PDF PROPOSAL DOCUMENT UPLOAD & TEMPLATE DOWNLOAD */}
+                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                            <FileText className="w-4 h-4 text-blue-600" />
+                            <span>Rasmiy Ariza Hujjati (.docx yoki .pdf)</span>
+                          </h4>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            Ko‘rsatmalarga asosan to‘ldirilgan to‘liq arizangizni yuklang yoki rasmiy shablonni oling
+                          </p>
+                        </div>
+
+                        <a
+                          href="/api/dashboard/grants/template"
+                          download="TIU_Grant_Ariza_Shabloni_va_Korsatmalari.doc"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-bold border border-blue-200 hover:bg-blue-100 transition"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>.docx Shablonni Yuklab Olish</span>
+                        </a>
+                      </div>
+
+                      {uploadError && (
+                        <div className="p-2.5 rounded-xl bg-rose-50 text-rose-700 text-[11px] font-semibold border border-rose-200">
+                          {uploadError}
+                        </div>
+                      )}
+
+                      {formData.applicationFileUrl ? (
+                        <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 truncate">
+                            <FileCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+                            <div className="truncate">
+                              <a
+                                href={formData.applicationFileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-bold text-emerald-900 dark:text-emerald-200 hover:underline truncate"
+                              >
+                                {formData.applicationFileName || 'Yuklangan grant arizasi'}
+                              </a>
+                              <div className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                                Muvaffaqiyatli biriktirildi ✅ (Tekshiruvga tayyor)
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={formData.applicationFileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[11px] hover:bg-emerald-700"
+                            >
+                              Ko‘rish
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setFormData({
+                                  ...formData,
+                                  applicationFileUrl: '',
+                                  applicationFileName: '',
+                                })
+                              }
+                              className="px-2.5 py-1 rounded-lg bg-rose-100 text-rose-700 font-bold text-[11px] hover:bg-rose-200"
+                            >
+                              O‘chirish
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-4 text-center space-y-2 hover:border-blue-400 transition">
+                          <input
+                            type="file"
+                            id="grantProposalInput"
+                            accept=".docx,.doc,.pdf"
+                            onChange={handleFileUpload}
+                            disabled={uploadingProposalFile}
+                            className="hidden"
+                          />
+                          <label
+                            htmlFor="grantProposalInput"
+                            className="cursor-pointer inline-flex flex-col items-center justify-center space-y-1"
+                          >
+                            <FileText className="w-8 h-8 text-blue-500 mx-auto" />
+                            <div className="font-bold text-slate-800 dark:text-slate-200 text-xs">
+                              {uploadingProposalFile
+                                ? 'Fayl serverga yuklanmoqda...'
+                                : 'Arizani yuklash uchun bu yerga bosing (.docx yoki .pdf)'}
+                            </div>
+                            <div className="text-[10px] text-slate-400">
+                              Maksimal hajm: 25 MB • Microsoft Word (.docx, .doc) yoki Adobe PDF
+                            </div>
+                          </label>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">

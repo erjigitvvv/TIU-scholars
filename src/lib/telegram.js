@@ -185,8 +185,14 @@ export async function broadcastAnnouncementToTelegram(announcement) {
       inline_keyboard: [
         [
           {
-            text: "Batafsil ko‘rish 👉",
+            text: "👁 Platformada ko‘rish",
             url: `${siteUrl}/dashboard/announcements`,
+          },
+        ],
+        [
+          {
+            text: "💬 Savol / Izoh yuborish",
+            callback_data: `ann_ask:${announcement.id}`,
           },
         ],
       ],
@@ -202,6 +208,24 @@ export async function broadcastAnnouncementToTelegram(announcement) {
         });
         sentCount++;
       }
+    }
+
+    // In-app Notifications to all active users
+    const allUsers = await prisma.user.findMany({
+      where: { accountStatus: 'ACTIVE' },
+      select: { id: true },
+    });
+
+    for (const u of allUsers) {
+      await prisma.notification.create({
+        data: {
+          userId: u.id,
+          title: `📢 Yangi eʼlon: ${announcement.title}`,
+          message: compactContent || announcement.title,
+          type: 'ANNOUNCEMENT',
+          link: '/dashboard/announcements',
+        },
+      }).catch(() => {});
     }
 
     return sentCount;
@@ -265,4 +289,26 @@ export async function sendCollaborationInviteTelegram({
     replyMarkup,
   });
 }
+
+/**
+ * Moderatorning e'longa berilgan savolga javobini Telegram bot orqali olimga yetkazish
+ */
+export async function sendModeratorAnswerTelegram({
+  recipientChatId,
+  announcementTitle,
+  questionText,
+  answerText,
+}) {
+  const text = `🏛 <b>TIU Ilmiy Bo‘limi (Moderator) Javobi!</b>\n\n` +
+    `📢 <b>E‘lon:</b> «${announcementTitle}»\n` +
+    `❓ <b>Sizning savolingiz:</b> <i>${questionText}</i>\n\n` +
+    `💬 <b>Javob:</b>\n${answerText}\n\n` +
+    `<i>Batafsil maʼlumot portal kabinetingizda mavjud.</i>`;
+
+  return await sendTelegramMessage({
+    chatId: recipientChatId,
+    text,
+  });
+}
+
 

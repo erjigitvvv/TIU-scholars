@@ -31,6 +31,7 @@ if (fs.existsSync(envPath)) {
 const prisma = new PrismaClient();
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const BOT_USERNAME = process.env.TELEGRAM_BOT_USERNAME || 'tiuscholarbot';
+const userStates = new Map();
 
 if (!BOT_TOKEN) {
   console.error('❌ Xatolik: TELEGRAM_BOT_TOKEN topilmadi.');
@@ -264,6 +265,35 @@ async function handlePublicationCallback(cq) {
   }
 }
 
+async function handleAnnouncementInquiryCallback(cq) {
+  const data = cq.data || '';
+  if (!data.startsWith('ann_ask:')) return;
+  const annId = data.replace('ann_ask:', '').trim();
+
+  const announcement = await prisma.announcement.findUnique({
+    where: { id: annId },
+    select: { id: true, title: true },
+  });
+
+  const chatId = cq.message?.chat?.id;
+  if (!chatId || !announcement) {
+    await answerCallbackQuery(cq.id, 'E‘lon topilmadi.');
+    return;
+  }
+
+  userStates.set(String(chatId), {
+    action: 'AWAIT_INQUIRY',
+    announcementId: annId,
+    announcementTitle: announcement.title,
+  });
+
+  await answerCallbackQuery(cq.id, 'Savolingizni yozing...');
+  await sendTelegramMessage(
+    chatId,
+    `✍️ <b>«${announcement.title}» e‘loni bo‘yicha savol yoki izohingizni yozing:</b>\n\n<i>Siz yuborgan savol to‘g‘ridan-to‘g‘ri Ilmiy Bo‘lim Moderatoriga yetkaziladi.</i>`
+  );
+}
+
 async function handleVerification(code, chatId, username, firstName) {
   const normalized = (code || '').trim().toUpperCase();
   const searchCode = normalized.startsWith('TIU-') ? normalized : `TIU-${normalized}`;
@@ -338,6 +368,35 @@ async function processUpdate(update) {
 
   console.log(`[Bot Message] ChatID: ${chatId}, From: @${username || firstName}, Text: "${text}"`);
 
+  // Check if user is in an active inquiry state (answering to an announcement)
+  if (userStates.has(String(chatId))) {
+    const state = userStates.get(String(chatId));
+    if (state.action === 'AWAIT_INQUIRY') {
+      const scholar = await prisma.scholarProfile.findFirst({
+        where: { telegramChatId: String(chatId) },
+      });
+
+      await prisma.announcementInquiry.create({
+        data: {
+          announcementId: state.announcementId,
+          scholarId: scholar?.id || null,
+          telegramChatId: String(chatId),
+          authorName: scholar?.fullName || firstName || username || 'TIU Olimi',
+          questionText: text,
+          status: 'PENDING',
+        },
+      });
+
+      userStates.delete(String(chatId));
+
+      await sendTelegramMessage(
+        chatId,
+        `✅ <b>Savolingiz muvaffaqiyatli qabul qilindi!</b>\n\n«${state.announcementTitle}» e‘loni bo‘yicha savolingiz Ilmiy bo‘lim moderatoriga yetkazildi. Moderator javob yozganda shu yerga bot orqali xabar boradi.`
+      );
+      return;
+    }
+  }
+
   // /start command
   if (text.startsWith('/start')) {
     const parts = text.split(' ');
@@ -391,6 +450,8 @@ async function pollUpdates() {
               await handleCollaborationCallback(update.callback_query);
             } else if (data.startsWith('pub_')) {
               await handlePublicationCallback(update.callback_query);
+            } else if (data.startsWith('ann_ask:')) {
+              await handleAnnouncementInquiryCallback(update.callback_query);
             }
           } else if (update.message) {
             await processUpdate(update);
