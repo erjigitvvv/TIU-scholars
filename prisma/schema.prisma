@@ -80,6 +80,16 @@ model ScholarProfile {
   hIndex             Int                 @default(0)
   totalCitations     Int                 @default(0)
   tiuScore           Float               @default(0)
+  googleScholarId    String?
+  isOrcidConnected   Boolean             @default(false)
+  isScopusConnected  Boolean             @default(false)
+  isScholarConnected Boolean             @default(false)
+  lastAcademicSyncAt DateTime?
+  totalCitationsScopus  Int              @default(0)
+  totalCitationsScholar Int              @default(0)
+  hIndexScopus       Int                 @default(0)
+  hIndexScholar      Int                 @default(0)
+  i10Index           Int                 @default(0)
   telegramChatId     String?             @unique
   telegramUsername   String?
   telegramConnectedAt DateTime?
@@ -106,6 +116,11 @@ model Publication {
   coverImageUrl      String?             // Maqola muqovasi yoki grafik abstrakt (Graphical Abstract) rasmi
   quartile           String              @default("NONE") // Q1, Q2, Q3, Q4, NONE
   citationsCount     Int                 @default(0)
+  isScopusIndexed    Boolean             @default(false)
+  isOrcidVerified    Boolean             @default(false)
+  isScholarIndexed   Boolean             @default(false)
+  scopusEID          String?
+  source             String              @default("MANUAL") // MANUAL, ORCID, SCOPUS, SCHOLAR, CROSSREF
   status             String              @default("PENDING") // PENDING, APPROVED, REJECTED
   rejectionReason    String?
   submittedById      String

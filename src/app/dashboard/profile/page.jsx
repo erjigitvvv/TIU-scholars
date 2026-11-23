@@ -25,6 +25,8 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import ScholarAvatar from '@/components/ui/ScholarAvatar';
+import AcademicSyncSection from '@/components/dashboard/AcademicSyncSection';
+import TelegramStatusCard from '@/components/dashboard/TelegramStatusCard';
 
 const COPY = {
   uz: {
@@ -893,22 +895,17 @@ export default function ProfilePage() {
 
       {/* TAB 3: Integrations & Links */}
       {activeTab === 'links' && (
-        <form onSubmit={handleSubmit} className="neu-card p-6 rounded-3xl space-y-5">
-          <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-200/70 dark:border-slate-800">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Link2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              {t.linksTitle}
-            </h3>
-            <button
-              type="button"
-              onClick={handleSyncOrcid}
-              disabled={syncing}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#0F294A] to-[#1B4275] hover:from-[#163660] hover:to-[#21508C] text-white shadow-md transition-all whitespace-nowrap disabled:opacity-50"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
-              {syncing ? t.syncing : t.syncBtn}
-            </button>
-          </div>
+        <div className="space-y-6">
+          <TelegramStatusCard />
+          <AcademicSyncSection onSyncSuccess={fetchProfile} />
+
+          <form onSubmit={handleSubmit} className="neu-card p-6 rounded-3xl space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-200/70 dark:border-slate-800">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Link2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                {t.linksTitle}
+              </h3>
+            </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
@@ -1062,6 +1059,7 @@ export default function ProfilePage() {
             </button>
           </div>
         </form>
+        </div>
       )}
 
       {/* TAB 4: Security & Password */}

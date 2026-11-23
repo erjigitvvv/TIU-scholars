@@ -3,6 +3,7 @@
 import { useState, useEffect, startTransition } from 'react'
 import Link from 'next/link'
 import { Plus, BookOpen, CheckCircle, Clock, XCircle, Trash2, Edit, Eye, Award, Search, RefreshCw, Sparkles, Image as ImageIcon, X } from 'lucide-react'
+import AcademicSyncSection from '@/components/dashboard/AcademicSyncSection'
 
 export default function PublicationsPage() {
   const [publications, setPublications] = useState([])
@@ -298,6 +299,9 @@ export default function PublicationsPage() {
         <div className="neu-card-sm p-4 border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300 rounded-2xl text-sm">{successMsg}</div>
       )}
 
+      {/* Academic Accounts Auto-Sync Section */}
+      <AcademicSyncSection onSyncSuccess={fetchPublications} />
+
       {/* Publications Table */}
       <div className="neu-card rounded-3xl overflow-hidden">
         {loading ? (
@@ -341,14 +345,31 @@ export default function PublicationsPage() {
                       <div className="text-xs text-slate-500 mt-0.5">{pub.journalOrPublisher} {pub.doi && `• DOI: ${pub.doi}`}</div>
                     </td>
                     <td className="p-4">
-                      <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-800 text-xs font-medium rounded">
-                        {pub.type}
-                      </span>
-                      {pub.quartile && pub.quartile !== 'NONE' && (
-                        <span className="ml-1.5 inline-block px-2 py-0.5 bg-indigo-50 text-indigo-700 text-xs font-bold rounded">
-                          {pub.quartile}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="inline-block px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-medium rounded">
+                          {pub.type}
                         </span>
-                      )}
+                        {pub.quartile && pub.quartile !== 'NONE' && (
+                          <span className="inline-block px-2 py-0.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-xs font-bold rounded">
+                            {pub.quartile}
+                          </span>
+                        )}
+                        {pub.isScopusIndexed && (
+                          <span className="inline-block px-1.5 py-0.5 bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[10px] font-bold rounded">
+                            Scopus
+                          </span>
+                        )}
+                        {pub.isOrcidVerified && (
+                          <span className="inline-block px-1.5 py-0.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[10px] font-bold rounded">
+                            ORCID
+                          </span>
+                        )}
+                        {pub.isScholarIndexed && (
+                          <span className="inline-block px-1.5 py-0.5 bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 text-[10px] font-bold rounded">
+                            Scholar
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="p-4 text-slate-600 dark:text-slate-300">{pub.year}</td>
                     <td className="p-4 text-slate-600 dark:text-slate-300 font-medium">{pub.citationsCount}</td>
