@@ -22,6 +22,8 @@ model User {
   auditLogs       AuditLog[]
   announcements   Announcement[] @relation("CreatedAnnouncements")
   notifications   Notification[] @relation("UserNotifications")
+  academicProjects AcademicProject[] @relation("CreatedAcademicProjects")
+  projectCollaborations ProjectCollaborator[]
 }
 
 model Faculty {
@@ -420,4 +422,73 @@ model EmailVerificationCode {
   @@index([email])
   @@index([code])
 }
+
+model AcademicProject {
+  id               String                @id @default(cuid())
+  code             String                @unique // Masalan: TIU-ART-2026-0001
+  title            String
+  type             String                @default("ARTICLE") // ARTICLE, THESIS, DISSERTATION, AUTOREFERAT, MONOGRAPH, GRANT
+  status           String                @default("DRAFT") // DRAFT, IN_REVIEW, REVISION, SUBMITTED, PUBLISHED, AWARDED, REJECTED
+  abstract         String?
+  keywords         String?
+  targetJournal    String?
+  targetConference String?
+  grantFunder      String?
+  budgetTotal      Float?
+  doi              String?
+  contentBlocks    String?               // JSON string of IMRAD sections or custom content
+  referencesList   String?               // JSON string of citations with DOI metadata
+  creatorId        String
+  creator          User                  @relation("CreatedAcademicProjects", fields: [creatorId], references: [id], onDelete: Cascade)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  collaborators    ProjectCollaborator[]
+  versions         ProjectVersion[]
+
+  @@index([creatorId])
+  @@index([type])
+  @@index([status])
+}
+
+model ProjectCollaborator {
+  id              String           @id @default(cuid())
+  projectId       String
+  project         AcademicProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId          String?
+  user            User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  scholarEmail    String           // Taklif yuborilgan email
+  scholarName     String?
+  role            String           @default("CO_AUTHOR") // CORRESPONDING, FIRST_AUTHOR, CO_AUTHOR, SUPERVISOR, CONSULTANT
+  creditRoles     String?          // JSON array string: ["Conceptualization", "Methodology", "Writing - original draft"]
+  sharePercent    Float            @default(0.0) // 0 - 100%
+  assignedSection String?          // Qaysi bo'lim (masalan, "Metodologiya", "Adabiyotlar tahlili")
+  inviteStatus    String           @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  inviteToken     String?          @unique
+  consentSignedAt DateTime?
+  rejectReason    String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@unique([projectId, scholarEmail])
+  @@index([projectId])
+  @@index([scholarEmail])
+  @@index([inviteStatus])
+}
+
+model ProjectVersion {
+  id              String           @id @default(cuid())
+  projectId       String
+  project         AcademicProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  versionTag      String           // "v1.0", "v1.1", "v2.0"
+  fileUrl         String?
+  fileName        String?
+  fileSize        Int?
+  changesSummary  String?
+  createdById     String
+  createdAt       DateTime         @default(now())
+
+  @@index([projectId])
+}
+
 

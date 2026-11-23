@@ -210,3 +210,59 @@ export async function broadcastAnnouncementToTelegram(announcement) {
     return 0;
   }
 }
+
+/**
+ * Hammualliflikka taklif xabarini Telegram bot orqali interaktiv tugmalar bilan yuborish
+ */
+export async function sendCollaborationInviteTelegram({
+  recipientChatId,
+  senderName,
+  projectTitle,
+  projectType,
+  role,
+  creditRoles,
+  sharePercent,
+  inviteToken,
+}) {
+  const typeLabels = {
+    ARTICLE: 'Ilmiy maqola',
+    THESIS: 'Konferensiya tezisi',
+    DISSERTATION: 'Dissertatsiya',
+    AUTOREFERAT: 'Avtoreferat',
+    MONOGRAPH: 'Monografiya',
+    GRANT: 'Grant arizasi',
+  };
+
+  const typeLabel = typeLabels[projectType] || 'Ilmiy loyiha';
+
+  const text = `🤝 <b>Yangi Hammualliflik Taklifi!</b>\n\n` +
+    `Hurmatli hamkasb, <b>${senderName}</b> sizni birgalikda ilmiy ish yozish uchun taklif qilmoqda:\n\n` +
+    `📌 <b>Mavzu:</b> «${projectTitle}»\n` +
+    `📂 <b>Yo‘nalish:</b> ${typeLabel}\n` +
+    `🎖 <b>Rolingiz:</b> ${role}\n` +
+    (creditRoles ? `🛠 <b>CRediT hissasi:</b> ${creditRoles}\n` : '') +
+    (sharePercent > 0 ? `📊 <b>Ulush:</b> ${sharePercent}%\n` : '') +
+    `\n<i>Ushbu taklifni tasdiqlaysizmi?</i>`;
+
+  const replyMarkup = {
+    inline_keyboard: [
+      [
+        {
+          text: '✅ Qabul qilish',
+          callback_data: `collab_acc:${inviteToken}`,
+        },
+        {
+          text: '❌ Rad etish',
+          callback_data: `collab_rej:${inviteToken}`,
+        },
+      ],
+    ],
+  };
+
+  return await sendTelegramMessage({
+    chatId: recipientChatId,
+    text,
+    replyMarkup,
+  });
+}
+

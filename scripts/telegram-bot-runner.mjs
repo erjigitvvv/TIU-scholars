@@ -57,6 +57,122 @@ async function sendTelegramMessage(chatId, text, replyMarkup = null) {
   }
 }
 
+async function answerCallbackQuery(callbackQueryId, text, showAlert = false) {
+  try {
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        callback_query_id: callbackQueryId,
+        text,
+        show_alert: showAlert,
+      }),
+    });
+  } catch (err) {
+    console.error('answerCallbackQuery error:', err.message);
+  }
+}
+
+async function editMessageText(chatId, messageId, text) {
+  try {
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/editMessageText`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        message_id: messageId,
+        text,
+        parse_mode: 'HTML',
+      }),
+    });
+  } catch (err) {
+    console.error('editMessageText error:', err.message);
+  }
+}
+
+async function handleCollaborationCallback(cq) {
+  const data = cq.data || '';
+  const isAccept = data.startsWith('collab_acc:');
+  const isReject = data.startsWith('collab_rej:');
+  if (!isAccept && !isReject) return;
+
+  const token = data.replace(/^collab_(acc|rej):/, '').trim();
+  const collab = await prisma.projectCollaborator.findUnique({
+    where: { inviteToken: token },
+    include: {
+      project: {
+        include: {
+          creator: {
+            include: { scholarProfile: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (!collab) {
+    await answerCallbackQuery(cq.id, '❌ Ushbu taklif topilmadi yoki muddati o‘tgan.', true);
+    return;
+  }
+
+  const chatId = cq.message?.chat?.id;
+  const messageId = cq.message?.message_id;
+
+  if (isAccept) {
+    await prisma.projectCollaborator.update({
+      where: { id: collab.id },
+      data: {
+        inviteStatus: 'ACCEPTED',
+        consentSignedAt: new Date(),
+      },
+    });
+
+    await answerCallbackQuery(cq.id, 'Hammualliflik qabul qilindi! 🎉', false);
+    if (chatId && messageId) {
+      await editMessageText(
+        chatId,
+        messageId,
+        `✅ <b>Hammualliflik qabul qilindi!</b>\n\n📌 <b>Mavzu:</b> «${collab.project.title}»\nSiz ushbu ilmiy ishga muvaffaqiyatli hammuallif bo‘ldingiz. Endi loyiha kabinetingizda mavjud.`
+      );
+    }
+
+    // Loyiha egasiga xushxabar
+    const creatorChatId = collab.project?.creator?.scholarProfile?.telegramChatId;
+    if (creatorChatId) {
+      await sendTelegramMessage(
+        creatorChatId,
+        `🎉 <b>Xushxabar!</b>\n\nOlim <b>${collab.scholarName || collab.scholarEmail}</b> sizning «${collab.project.title}» nomli ilmiy ishingizga hammualliflik taklifini <b>QABUL QILDI</b>!`
+      );
+    }
+  } else {
+    await prisma.projectCollaborator.update({
+      where: { id: collab.id },
+      data: {
+        inviteStatus: 'REJECTED',
+        rejectReason: 'Telegram orqali rad etildi',
+      },
+    });
+
+    await answerCallbackQuery(cq.id, 'Taklif rad etildi.', false);
+    if (chatId && messageId) {
+      await editMessageText(
+        chatId,
+        messageId,
+        `❌ <b>Hammualliflik taklifi rad etildi.</b>\n\n📌 <b>Mavzu:</b> «${collab.project.title}»`
+      );
+    }
+
+    // Loyiha egasiga xabarnoma
+    const creatorChatId = collab.project?.creator?.scholarProfile?.telegramChatId;
+    if (creatorChatId) {
+      await sendTelegramMessage(
+        creatorChatId,
+        `ℹ️ <b>Hammualliflik taklifi rad etildi:</b>\n\nOlim <b>${collab.scholarName || collab.scholarEmail}</b> sizning «${collab.project.title}» ilmiy ishingizdagi taklifni rad etdi.`
+      );
+    }
+  }
+}
+
 async function handleVerification(code, chatId, username, firstName) {
   const normalized = (code || '').trim().toUpperCase();
   const searchCode = normalized.startsWith('TIU-') ? normalized : `TIU-${normalized}`;
@@ -178,7 +294,11 @@ async function pollUpdates() {
       if (data.ok && Array.isArray(data.result)) {
         for (const update of data.result) {
           offset = update.update_id + 1;
-          await processUpdate(update);
+          if (update.callback_query) {
+            await handleCollaborationCallback(update.callback_query);
+          } else if (update.message) {
+            await processUpdate(update);
+          }
         }
       } else if (!data.ok) {
         console.warn('Telegram API ogohlantirish:', data.description);

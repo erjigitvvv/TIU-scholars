@@ -19,6 +19,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Megaphone,
+  Layers,
 } from 'lucide-react';
 import ScholarAvatar from '@/components/ui/ScholarAvatar';
 import NotificationBell from '@/components/shared/NotificationBell';
@@ -28,6 +29,7 @@ const LABELS = {
   uz: {
     portalTag: 'Muallif Kabineti',
     overview: "Umumiy ko'rsatkichlar",
+    academicProjects: 'Ilmiy Loyihalar & Ustaxona',
     publications: 'Nashrlarim',
     grants: 'Grantlar va loyihalar',
     supervisions: 'Ilmiy rahbarlik',
@@ -41,9 +43,11 @@ const LABELS = {
   ru: {
     portalTag: 'Кабинет автора',
     overview: 'Обзор показателей',
+    academicProjects: 'Научные проекты & Студия',
     publications: 'Мои публикации',
     grants: 'Гранты и проекты',
     supervisions: 'Научное руководство',
+    announcements: 'Объявления',
     profile: 'Настройки профиля',
     publicProfile: 'Публичный профиль',
     publicPortal: 'Главный портал',
@@ -53,6 +57,7 @@ const LABELS = {
   en: {
     portalTag: 'Scholar Cabinet',
     overview: 'Overview',
+    academicProjects: 'Academic Projects & Studio',
     publications: 'My Publications',
     grants: 'Grants & Projects',
     supervisions: 'PhD/DSc Supervisions',
@@ -87,6 +92,7 @@ export default function DashboardShell({ user, locale = 'uz', children }) {
 
   const navItems = [
     { href: '/dashboard', label: t.overview, icon: LayoutDashboard, exact: true },
+    { href: '/dashboard/academic-projects', label: t.academicProjects, icon: Layers },
     { href: '/dashboard/publications', label: t.publications, icon: BookOpen },
     { href: '/dashboard/grants', label: t.grants, icon: Briefcase },
     { href: '/dashboard/supervisions', label: t.supervisions, icon: GraduationCap },
