@@ -436,22 +436,12 @@ export default function PublicationsPage() {
                 {publications.map((pub) => (
                   <tr key={pub.id} className="hover:bg-white/60 dark:hover:bg-slate-800/40 transition-colors">
                     <td className="p-4 max-w-md">
-                      {pub.status === 'APPROVED' ? (
-                        <Link
-                          href={`/publications/${pub.id}`}
-                          className="font-semibold text-slate-900 dark:text-white hover:text-blue-600 transition-colors block"
-                        >
-                          {pub.title}
-                        </Link>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(pub)}
-                          className="font-semibold text-left text-slate-900 dark:text-white hover:text-blue-600 transition-colors block"
-                        >
-                          {pub.title}
-                        </button>
-                      )}
+                      <Link
+                        href={`/dashboard/publications/${pub.id}`}
+                        className="font-semibold text-slate-900 dark:text-white hover:text-emerald-600 transition-colors block"
+                      >
+                        {pub.title}
+                      </Link>
                       <div className="text-xs text-slate-500 mt-0.5">{pub.journalOrPublisher} {pub.doi && `• DOI: ${pub.doi}`}</div>
                     </td>
                     <td className="p-4">
@@ -511,15 +501,15 @@ export default function PublicationsPage() {
                         </span>
                       )}
                     </td>
-                    <td className="p-4 text-right space-x-1 whitespace-nowrap">
-                      {pub.status === 'APPROVED' ? (
-                        <Link
-                          href={`/publications/${pub.id}`}
-                          className="text-xs font-semibold text-blue-600 hover:underline"
-                        >
-                          Ko&apos;rish
-                        </Link>
-                      ) : (
+                    <td className="p-4 text-right space-x-2 whitespace-nowrap">
+                      <Link
+                        href={`/dashboard/publications/${pub.id}`}
+                        className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-lg transition"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Ko‘rish</span>
+                      </Link>
+                      {pub.status !== 'APPROVED' && (
                         <>
                           <button
                             onClick={() => openEditModal(pub)}
