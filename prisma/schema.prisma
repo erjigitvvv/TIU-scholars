@@ -15,7 +15,7 @@ model User {
   accountStatus   String         @default("PENDING") // PENDING, ACTIVE, REJECTED, SUSPENDED
   rejectionReason String?
   createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  updatedAt       DateTime       @default(now()) @updatedAt
 
   scholarProfile  ScholarProfile?
   publications    Publication[]  @relation("SubmittedPublications")
@@ -155,17 +155,33 @@ model PublicationAuthor {
 }
 
 model GrantProject {
-  id            String         @id @default(cuid())
-  scholarId     String
-  scholar       ScholarProfile @relation(fields: [scholarId], references: [id], onDelete: Cascade)
-  title         String
-  role          String
-  fundingSource String
-  startYear     Int
-  endYear       Int?
-  status        String         @default("PENDING")
+  id              String         @id @default(cuid())
+  scholarId       String
+  scholar         ScholarProfile @relation(fields: [scholarId], references: [id], onDelete: Cascade)
+  title           String
+  role            String         @default("Principal Investigator") // PI, CO_PI, RESEARCHER, CONSULTANT
+  fundingSource   String         // Masalan: "Innovatsion rivojlanish agentligi", "Erasmus+", "Horizon Europe"
+  grantProgram    String?        // Tanlov yo'nalishi (masalan: "Amaliy tadqiqotlar 2026", "Yosh olimlar", "Fundamental")
+  grantCode       String?        // Unikal ariza kodi: "TIU-GRT-2026-0012"
+  startYear       Int
+  endYear         Int?
+  budgetRequested Float?         // So'ralayotgan jami byudjet
+  budgetApproved  Float?         // Tasdiqlangan summa
+  deadlineDate    DateTime?      // Topshirish muddati
+  status          String         @default("DRAFT") // DRAFT, SUBMITTED_INTERNAL, APPROVED_BY_MODERATOR, SUBMITTED_FUNDER, UNDER_EVALUATION, WON, REJECTED, COMPLETED
   rejectionReason String?
-  createdAt     DateTime       @default(now())
+
+  // 8 asosiy ariza bo'limlari (JSON)
+  proposalData    String?        // JSON: { urgency, objectives, novelty, methodology, workPlanGantt, teamExperience, risks, impact }
+  budgetItems     String?        // JSON: [{ category: "SALARY"|"EQUIPMENT"|"TRAVEL"|"SUPPLIES", title, amount, justification }]
+  teamMembers     String?        // JSON: [{ name, email, role, institution, degree, sharePercent }]
+  documentsList   String?        // JSON: [{ name, url, status: "UPLOADED"|"REQUIRED" }]
+
+  // Natijalar bog'lanishi (Publications & Deliverables)
+  deliverables    String?        // JSON: [{ type: "ARTICLE"|"PATENT"|"CONFERENCE", title, publicationId, status }]
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @default(now()) @updatedAt
 }
 
 model Supervision {
