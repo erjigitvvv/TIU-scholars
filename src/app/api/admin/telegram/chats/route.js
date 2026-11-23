@@ -88,7 +88,7 @@ export async function GET() {
       id: 'tiu-scholar-bot',
       name: 'TIU-scholar (Rasmiy Bot)',
       username: '@tiuscholarbot',
-      avatar: '🤖',
+      avatar: '/icons/tiu-scholar-logo.jpg',
       isBot: true,
       isOnline: true,
       lastMessage: botMessages[0]

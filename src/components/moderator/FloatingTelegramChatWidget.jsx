@@ -23,6 +23,7 @@ import {
   Users,
   Briefcase,
   Scale,
+  Plus,
 } from 'lucide-react';
 
 const EMOJI_LIST = ['👍', '👏', '🎓', '📚', '📄', '📌', '⚠️', '🔔', '💡', '✅', '🔍', '💬', '🤝', '🚀', '✨', '📝', '🏛️', '⚖️'];
@@ -52,7 +53,7 @@ export default function FloatingTelegramChatWidget({ user }) {
   const [activeChatId, setActiveChatId] = useState('tiu-scholar-bot');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 3 Jildlar (Folders): Default 'ALL' so all scholars appear immediately
+  // 3 Jildlar (Folders): Default 'ALL'
   const [activeFolder, setActiveFolder] = useState('ALL');
 
   // Input, Reply, Category, Emoji & Attachment States
@@ -64,7 +65,7 @@ export default function FloatingTelegramChatWidget({ user }) {
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [attachedFile, setAttachedFile] = useState(null);
 
-  // Poll creation modal
+  // Poll creation modal with dynamic options
   const [showPollModal, setShowPollModal] = useState(false);
   const [pollQuestion, setPollQuestion] = useState('');
   const [pollOptions, setPollOptions] = useState(['Ha, ma‘qullansin', 'Qo‘shimcha tahrir kerak']);
@@ -120,12 +121,10 @@ export default function FloatingTelegramChatWidget({ user }) {
 
   // Filter scholars list by folder and search query
   const filteredScholarChats = scholarChats.filter((sc) => {
-    // Folder filter
     if (activeFolder === 'JURISPRUDENCE' && sc.folder !== 'JURISPRUDENCE') return false;
     if (activeFolder === 'BUSINESS' && sc.folder !== 'BUSINESS') return false;
     if (activeFolder === 'TG_BOT') return false;
 
-    // Search query (case-insensitive on name, faculty, department, degree)
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase().trim();
     const nameMatch = (sc.fullName || sc.name || '').toLowerCase().includes(q);
@@ -135,7 +134,7 @@ export default function FloatingTelegramChatWidget({ user }) {
     return nameMatch || deptMatch || facMatch || degMatch;
   });
 
-  // Handle file upload
+  // Handle file or image upload
   const handleFileUpload = async (e, type = 'FILE') => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -153,14 +152,20 @@ export default function FloatingTelegramChatWidget({ user }) {
 
       const data = await res.json();
       if (res.ok && data.success) {
+        const isImg = file.type.startsWith('image/') || type === 'IMAGE';
         setAttachedFile({
           url: data.fileUrl,
           name: data.fileName,
           size: data.fileSize,
-          type,
+          type: isImg ? 'IMAGE' : 'FILE',
         });
-        setToastMsg({ type: 'success', text: `"${data.fileName}" biriktirildi! 📎` });
-        setTimeout(() => setToastMsg(null), 3000);
+        setToastMsg({
+          type: 'success',
+          text: isImg
+            ? `Rasm biriktirildi! Endi pastdagi maydonga post matnini yozing.`
+            : `"${data.fileName}" biriktirildi! 📎`,
+        });
+        setTimeout(() => setToastMsg(null), 3500);
       } else {
         setToastMsg({ type: 'error', text: data.error || 'Fayl yuklashda xatolik' });
       }
@@ -171,17 +176,33 @@ export default function FloatingTelegramChatWidget({ user }) {
     }
   };
 
+  // Poll option management
+  const handleAddPollOption = () => {
+    if (pollOptions.length < 10) {
+      setPollOptions([...pollOptions, '']);
+    }
+  };
+
+  const handleRemovePollOption = (idx) => {
+    if (pollOptions.length > 2) {
+      setPollOptions(pollOptions.filter((_, i) => i !== idx));
+    }
+  };
+
   // Create Poll message
   const handleCreatePoll = () => {
     if (!pollQuestion.trim()) return;
+    const validOptions = pollOptions.filter((opt) => opt.trim());
+    if (validOptions.length < 2) return;
+
     const pollText = `📊 SO‘ROVNOMA: ${pollQuestion.trim()}\n\n` +
-      pollOptions.map((opt, i) => `${i + 1}. 🔘 ${opt}`).join('\n');
+      validOptions.map((opt, i) => `${i + 1}. 🔘 ${opt.trim()}`).join('\n');
     setInputText((prev) => (prev ? `${prev}\n\n${pollText}` : pollText));
     setShowPollModal(false);
     setPollQuestion('');
   };
 
-  // Send message
+  // Send message or Telegram photo-post with caption
   const handleSendMessage = async (e) => {
     if (e) e.preventDefault();
     if (!inputText.trim() && !attachedFile) return;
@@ -192,18 +213,21 @@ export default function FloatingTelegramChatWidget({ user }) {
     setShowEmojiPicker(false);
 
     let fullMessageText = inputText.trim();
-    if (attachedFile) {
+    const hasImage = attachedFile?.type === 'IMAGE';
+    const hasDoc = attachedFile && attachedFile.type !== 'IMAGE';
+
+    if (hasDoc) {
       fullMessageText += `\n\n📎 Biriktirilgan hujjat: ${window.location.origin}${attachedFile.url} (${attachedFile.name})`;
     }
 
     try {
-      // 1. If currently in TIU-scholar Bot: Broadcast Announcement
+      // 1. TIU-scholar Bot Chat (Announcement Broadcast)
       if (activeChatId === 'tiu-scholar-bot') {
         const res = await fetch('/api/announcements', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            title: `📢 E‘lon: ${inputText.slice(0, 45)}${inputText.length > 45 ? '...' : ''}`,
+            title: `📢 E‘lon: ${inputText.slice(0, 45) || attachedFile?.name || 'Yangi xabar'}`,
             content: fullMessageText,
             category: announcementCategory,
             visibility: 'PUBLIC',
@@ -219,7 +243,8 @@ export default function FloatingTelegramChatWidget({ user }) {
             sender: 'TIU-scholar',
             title: `📢 E‘lon (${announcementCategory})`,
             text: fullMessageText,
-            fileUrl: attachedFile?.url,
+            imageUrl: hasImage ? attachedFile.url : null,
+            fileUrl: hasDoc ? attachedFile.url : null,
             createdAt: new Date().toISOString(),
             isOutgoing: true,
           };
@@ -227,21 +252,21 @@ export default function FloatingTelegramChatWidget({ user }) {
           setBotChat((prev) => ({
             ...prev,
             messages: [...(prev.messages || []), newMsg],
-            lastMessage: { text: `📢 ${newMsg.text}`, time: new Date() },
+            lastMessage: { text: `📢 ${newMsg.text || 'Rasm biriktirildi'}`, time: new Date() },
           }));
 
           setInputText('');
           setAttachedFile(null);
           setToastMsg({
             type: 'success',
-            text: `E‘lon TIU-scholar kanaliga va ${data.telegramBroadcastCount || 'barcha'} ta olim botiga tarqatildi! ✅`,
+            text: `Post TIU-scholar kanaliga va ${data.telegramBroadcastCount || 'barcha'} ta olim botiga tarqatildi! ✅`,
           });
           setTimeout(() => setToastMsg(null), 4000);
         } else {
           setToastMsg({ type: 'error', text: data.error || 'Xatolik' });
         }
       } else {
-        // 2. Scholar Chat: Send direct message / reply to scholar
+        // 2. Scholar Chat: Direct message / reply
         const scholar = activeChat;
         if (!scholar) return;
 
@@ -273,7 +298,8 @@ export default function FloatingTelegramChatWidget({ user }) {
             sender: 'TIU Ilmiy Bo‘limi',
             title: replyingToMessage ? `↩ Javob: ${replyingToMessage.sender}` : 'Moderator javobi',
             text: fullMessageText,
-            fileUrl: attachedFile?.url,
+            imageUrl: hasImage ? attachedFile.url : null,
+            fileUrl: hasDoc ? attachedFile.url : null,
             createdAt: new Date().toISOString(),
             isOutgoing: true,
             replyToId: replyingToMessage?.id,
@@ -292,7 +318,7 @@ export default function FloatingTelegramChatWidget({ user }) {
                   ...sc,
                   unreadCount: Math.max(0, (sc.unreadCount || 0) - (replyingToMessage ? 1 : 0)),
                   messages: [...updatedMessages, newMsg],
-                  lastMessage: { text: newMsg.text, time: new Date(), isOutgoing: true },
+                  lastMessage: { text: newMsg.text || 'Rasm yuborildi', time: new Date(), isOutgoing: true },
                 };
               }
               return sc;
@@ -359,7 +385,7 @@ export default function FloatingTelegramChatWidget({ user }) {
 
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-full overflow-hidden bg-white/20 flex items-center justify-center p-0.5">
-                    <img src="/icons/chat-bubble.jpg" alt="TIU Chat" className="w-full h-full object-cover rounded-full" />
+                    <img src="/icons/tiu-scholar-logo.jpg" alt="TIU Chat" className="w-full h-full object-cover rounded-full" />
                   </div>
                   <h3 className="font-bold text-xs tracking-wide flex items-center gap-1.5">
                     TIU Telegram Messenger
@@ -495,7 +521,7 @@ export default function FloatingTelegramChatWidget({ user }) {
 
                   {/* Chats & Scholars Scroll List */}
                   <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
-                    {/* Show Bot Chat if in ALL or TG_BOT folder */}
+                    {/* 1. Show TIU-scholar Bot Chat with Logo Image */}
                     {(activeFolder === 'ALL' || activeFolder === 'TG_BOT') && botChat && (
                       <div
                         onClick={() => {
@@ -508,8 +534,12 @@ export default function FloatingTelegramChatWidget({ user }) {
                             : 'hover:bg-slate-100 bg-white/80'
                         }`}
                       >
-                        <div className="relative w-11 h-11 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white text-lg shadow-xs shrink-0">
-                          🤖
+                        <div className="relative w-11 h-11 rounded-full bg-blue-600 flex items-center justify-center text-white text-lg shadow-xs shrink-0 overflow-hidden">
+                          <img
+                            src="/icons/tiu-scholar-logo.jpg"
+                            alt="TIU Scholar Bot"
+                            className="w-full h-full object-cover"
+                          />
                           <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white" />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -529,7 +559,7 @@ export default function FloatingTelegramChatWidget({ user }) {
                       </div>
                     )}
 
-                    {/* Scholars list */}
+                    {/* 2. Scholars list */}
                     {activeFolder !== 'TG_BOT' && (
                       <>
                         <div className="px-3 py-1 bg-slate-200/50 text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
@@ -635,12 +665,12 @@ export default function FloatingTelegramChatWidget({ user }) {
 
               {/* RIGHT COLUMN: ACTIVE CHAT CONVERSATION VIEW */}
               <div className="flex-1 flex flex-col bg-[#EFE7DE] relative overflow-hidden">
-                {/* Chat Top Header */}
+                {/* Chat Top Header with TIU-scholar Logo */}
                 <div className="px-4 py-2.5 bg-white border-b border-slate-200 flex items-center justify-between shadow-xs shrink-0">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-sm font-bold shrink-0 shadow-xs overflow-hidden">
+                    <div className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold shrink-0 shadow-xs overflow-hidden">
                       {activeChat?.isBot ? (
-                        '🤖'
+                        <img src="/icons/tiu-scholar-logo.jpg" alt="TIU Scholar" className="w-full h-full object-cover" />
                       ) : activeChat?.avatar ? (
                         <img src={activeChat.avatar} alt={activeChat.fullName} className="w-full h-full object-cover" />
                       ) : (
@@ -776,13 +806,27 @@ export default function FloatingTelegramChatWidget({ user }) {
                               </div>
                             )}
 
-                            {/* Text */}
-                            <p className="text-xs text-slate-800 leading-relaxed whitespace-pre-line">
-                              {msg.text}
-                            </p>
+                            {/* Attached Image: Telegram Photo Post Preview */}
+                            {msg.imageUrl && (
+                              <div className="mb-2 rounded-xl overflow-hidden border border-slate-200/60 max-h-64 bg-black/5">
+                                <img
+                                  src={msg.imageUrl}
+                                  alt="Post image"
+                                  className="w-full h-full object-cover max-h-64 cursor-pointer hover:opacity-95 transition"
+                                  onClick={() => window.open(msg.imageUrl, '_blank')}
+                                />
+                              </div>
+                            )}
 
-                            {/* Attached file if exists */}
-                            {msg.fileUrl && (
+                            {/* Text / Caption */}
+                            {msg.text && (
+                              <p className="text-xs text-slate-800 leading-relaxed whitespace-pre-line">
+                                {msg.text}
+                              </p>
+                            )}
+
+                            {/* Attached document file */}
+                            {msg.fileUrl && !msg.imageUrl && (
                               <div className="mt-2 pt-1.5 border-t border-slate-100">
                                 <a
                                   href={msg.fileUrl}
@@ -814,7 +858,7 @@ export default function FloatingTelegramChatWidget({ user }) {
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* BOTTOM CHAT INPUT AREA: INTEGRATED SINGLE BAR (PAPERCLIP + CATEGORY + INPUT + SMILE + SEND) */}
+                {/* BOTTOM CHAT INPUT AREA: INTEGRATED SINGLE BAR (PAPERCLIP + CATEGORY + INPUT + SMILE INSIDE, SEND OUTSIDE) */}
                 <div className="p-2.5 sm:p-3 bg-white border-t border-slate-200 shrink-0 space-y-2 relative">
                   {/* Reply Banner */}
                   {replyingToMessage && (
@@ -840,24 +884,44 @@ export default function FloatingTelegramChatWidget({ user }) {
                     </div>
                   )}
 
-                  {/* Attached file pill preview */}
+                  {/* TELEGRAM STYLE ATTACHED FILE / IMAGE PREVIEW BANNER */}
                   {attachedFile && (
-                    <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium">
-                      <FileText className="w-3.5 h-3.5 text-emerald-600" />
-                      <span className="truncate max-w-[200px]">{attachedFile.name}</span>
+                    <div className="p-2 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3 shadow-xs">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {attachedFile.type === 'IMAGE' ? (
+                          <div className="w-14 h-14 rounded-xl overflow-hidden border border-slate-200 shrink-0 bg-white shadow-xs">
+                            <img src={attachedFile.url} alt="Attached" className="w-full h-full object-cover" />
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                            <FileText className="w-5 h-5" />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <span className="text-xs font-bold text-slate-800 truncate block">
+                            {attachedFile.name}
+                          </span>
+                          <span className="text-[10px] text-slate-500 block">
+                            {attachedFile.type === 'IMAGE'
+                              ? 'Rasm biriktirildi. Pastdagi maydonga post matnini yozing...'
+                              : 'Hujjat biriktirildi'}
+                          </span>
+                        </div>
+                      </div>
                       <button
                         type="button"
                         onClick={() => setAttachedFile(null)}
-                        className="p-0.5 rounded hover:text-rose-600 cursor-pointer"
+                        className="p-1 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-rose-600 cursor-pointer shrink-0"
+                        title="Biriktirilgan faylni o‘chirish"
                       >
-                        <X className="w-3 h-3" />
+                        <X className="w-4 h-4" />
                       </button>
                     </div>
                   )}
 
                   {/* Popovers: Category Selection Popup */}
                   {showCategoryMenu && (
-                    <div className="absolute bottom-16 left-12 z-50 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 w-64 space-y-1 animate-in fade-in zoom-in-95">
+                    <div className="absolute bottom-16 left-10 z-50 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 w-64 space-y-1 animate-in fade-in zoom-in-95">
                       <div className="px-2 py-1 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                         E‘lon kategoriyasini tanlang:
                       </div>
@@ -959,9 +1023,9 @@ export default function FloatingTelegramChatWidget({ user }) {
                     className="hidden"
                   />
 
-                  {/* MAIN INTEGRATED BAR (ALL IN ONE ROW: PAPERCLIP + CATEGORY + INPUT + SMILE INSIDE, AND TELEGRAM SEND BUTTON ON RIGHT) */}
+                  {/* MAIN INTEGRATED BAR (ALL IN ONE ROW: PAPERCLIP + CATEGORY + INPUT + SMILE INSIDE, SEND OUTSIDE) */}
                   <div className="flex items-center gap-2">
-                    {/* Unified Input Container with Paperclip, Category and Smile INSIDE */}
+                    {/* Unified Input Container */}
                     <div className="flex-1 flex items-center bg-slate-50/80 rounded-2xl border border-slate-200 focus-within:border-[#2AABEE] focus-within:bg-white transition-all px-2 py-1 shadow-xs">
                       {/* 1. Paperclip (Qistirgich 📎) Icon INSIDE Input */}
                       <button
@@ -981,7 +1045,7 @@ export default function FloatingTelegramChatWidget({ user }) {
                         <Paperclip className="w-4 h-4 rotate-45" />
                       </button>
 
-                      {/* 2. Category Selector: FAQAT TEPAGA QARAGAN STRELKA ICONI (ChevronUp ^) */}
+                      {/* 2. Category Selector: FAQAT TEPAGA QARAGAN STRELKA (ChevronUp ^) */}
                       <button
                         type="button"
                         onClick={() => {
@@ -1003,7 +1067,9 @@ export default function FloatingTelegramChatWidget({ user }) {
                       <textarea
                         rows={1}
                         placeholder={
-                          activeChatId === 'tiu-scholar-bot'
+                          attachedFile?.type === 'IMAGE'
+                            ? 'Rasmga izoh (post matnini) yozing...'
+                            : activeChatId === 'tiu-scholar-bot'
                             ? 'Rasmiy e‘lon / xabarni yozing (Telegram bot orqali tarqaladi)...'
                             : replyingToMessage
                             ? `${replyingToMessage.sender} ga Telegram bot orqali javob...`
@@ -1017,10 +1083,11 @@ export default function FloatingTelegramChatWidget({ user }) {
                             handleSendMessage();
                           }
                         }}
-                        className="flex-1 text-xs py-1.5 px-2 bg-transparent border-0 focus:outline-none resize-none max-h-24 font-normal text-slate-800 placeholder:text-slate-400"
+                        style={{ resize: 'none' }}
+                        className="flex-1 text-xs py-1.5 px-2 bg-transparent border-0 focus:outline-none resize-none overflow-hidden max-h-24 font-normal text-slate-800 placeholder:text-slate-400"
                       />
 
-                      {/* 4. Emoji (Smile 😊) Icon INSIDE on the right */}
+                      {/* 4. Emoji (Smile 😊) Icon INSIDE on the right (hech qanday ortiqcha strelkasiz) */}
                       <button
                         type="button"
                         onClick={() => {
@@ -1058,10 +1125,10 @@ export default function FloatingTelegramChatWidget({ user }) {
               </div>
             </div>
 
-            {/* Poll Creation Modal */}
+            {/* DYNAMIC POLL CREATION MODAL WITH MULTIPLE OPTIONS */}
             {showPollModal && (
               <div className="absolute inset-0 z-50 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center p-4">
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl p-5 w-full max-w-sm space-y-3">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl p-5 w-full max-w-md space-y-3.5">
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                     <h4 className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
                       <BarChart2 className="w-4 h-4 text-blue-500" />
@@ -1085,42 +1152,68 @@ export default function FloatingTelegramChatWidget({ user }) {
                       placeholder="Masalan: Yangi ilmiy reja qabul qilinsinmi?"
                       value={pollQuestion}
                       onChange={(e) => setPollQuestion(e.target.value)}
-                      className="w-full text-xs px-3 py-1.5 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500"
+                      className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-medium"
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="block text-[11px] font-bold text-slate-700">Variantlar:</label>
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    <label className="block text-[11px] font-bold text-slate-700">
+                      Javob variantlari ({pollOptions.length}/10):
+                    </label>
                     {pollOptions.map((opt, i) => (
-                      <input
-                        key={i}
-                        type="text"
-                        value={opt}
-                        onChange={(e) => {
-                          const updated = [...pollOptions];
-                          updated[i] = e.target.value;
-                          setPollOptions(updated);
-                        }}
-                        className="w-full text-xs px-3 py-1 rounded-lg border border-slate-200 focus:outline-none"
-                      />
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="text-xs text-slate-400 font-mono w-4">{i + 1}.</span>
+                        <input
+                          type="text"
+                          placeholder={`${i + 1}-variant matni...`}
+                          value={opt}
+                          onChange={(e) => {
+                            const updated = [...pollOptions];
+                            updated[i] = e.target.value;
+                            setPollOptions(updated);
+                          }}
+                          className="flex-1 text-xs px-3 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:border-blue-500"
+                        />
+                        {pollOptions.length > 2 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemovePollOption(i)}
+                            className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
+                            title="Variantni o‘chirish"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     ))}
+
+                    {pollOptions.length < 10 && (
+                      <button
+                        type="button"
+                        onClick={handleAddPollOption}
+                        className="inline-flex items-center gap-1.5 text-xs text-blue-600 font-bold hover:underline cursor-pointer pt-1"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>+ Yana variant qo‘shish</span>
+                      </button>
+                    )}
                   </div>
 
-                  <div className="flex justify-end gap-2 pt-2">
+                  <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
                     <button
                       type="button"
                       onClick={() => setShowPollModal(false)}
-                      className="px-3 py-1.5 rounded-xl border text-xs font-semibold text-slate-600"
+                      className="px-3.5 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
                     >
                       Bekor qilish
                     </button>
                     <button
                       type="button"
                       onClick={handleCreatePoll}
-                      disabled={!pollQuestion.trim()}
-                      className="px-4 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 disabled:opacity-50"
+                      disabled={!pollQuestion.trim() || pollOptions.filter((o) => o.trim()).length < 2}
+                      className="px-4 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 disabled:opacity-50 cursor-pointer shadow-xs"
                     >
-                      Matnga qo‘shish
+                      So‘rovnomani qo‘shish
                     </button>
                   </div>
                 </div>
