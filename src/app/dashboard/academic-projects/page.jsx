@@ -108,6 +108,96 @@ export default function AcademicProjectsPage() {
   // Status message
   const [copiedCitation, setCopiedCitation] = useState(null);
 
+  // Workspace Stepper & Manuscript States
+  const [workspaceStep, setWorkspaceStep] = useState(1);
+  const [imradIntro, setImradIntro] = useState('');
+  const [imradMethods, setImradMethods] = useState('');
+  const [imradResults, setImradResults] = useState('');
+  const [imradConclusion, setImradConclusion] = useState('');
+  const [manuscriptFileUrl, setManuscriptFileUrl] = useState('');
+  const [savingManuscript, setSavingManuscript] = useState(false);
+  const [submittingToMod, setSubmittingToMod] = useState(false);
+  const [workspaceNotice, setWorkspaceNotice] = useState(null);
+
+  useEffect(() => {
+    if (activeProject) {
+      try {
+        const blocks = activeProject.contentBlocks ? JSON.parse(activeProject.contentBlocks) : {};
+        setImradIntro(blocks.imradIntro || '');
+        setImradMethods(blocks.imradMethods || '');
+        setImradResults(blocks.imradResults || '');
+        setImradConclusion(blocks.imradConclusion || '');
+        setManuscriptFileUrl(blocks.manuscriptFileUrl || '');
+      } catch {
+        setImradIntro('');
+        setImradMethods('');
+        setImradResults('');
+        setImradConclusion('');
+        setManuscriptFileUrl('');
+      }
+    }
+  }, [activeProject]);
+
+  const handleSaveManuscript = async () => {
+    if (!activeProject) return;
+    try {
+      setSavingManuscript(true);
+      const blocks = {
+        imradIntro,
+        imradMethods,
+        imradResults,
+        imradConclusion,
+        manuscriptFileUrl,
+      };
+      const res = await fetch(`/api/academic-projects/${activeProject.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contentBlocks: JSON.stringify(blocks),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setActiveProject({ ...activeProject, contentBlocks: JSON.stringify(blocks) });
+        setWorkspaceNotice({ type: 'success', text: 'Qo‘lyozma maʼlumotlari saqlandi! ✅' });
+        setTimeout(() => setWorkspaceNotice(null), 3500);
+      }
+    } catch {
+      setWorkspaceNotice({ type: 'error', text: 'Saqlashda xatolik yuz berdi' });
+    } finally {
+      setSavingManuscript(false);
+    }
+  };
+
+  const handleSubmitToModerator = async () => {
+    if (!activeProject) return;
+    try {
+      setSubmittingToMod(true);
+      const res = await fetch(`/api/academic-projects/${activeProject.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'IN_REVIEW',
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setActiveProject({ ...activeProject, status: 'IN_REVIEW' });
+        setWorkspaceNotice({
+          type: 'success',
+          text: data.message || 'Loyiha TIU Ilmiy Bo‘limi (Moderator) ko‘rib chiqish navbatiga topshirildi! 🚀',
+        });
+        await fetchProjects();
+      } else {
+        setWorkspaceNotice({ type: 'error', text: data.error || 'Topshirishda xatolik yuz berdi' });
+      }
+    } catch {
+      setWorkspaceNotice({ type: 'error', text: 'Tarmoq xatosi yuz berdi' });
+    } finally {
+      setSubmittingToMod(false);
+    }
+  };
+
   const fetchProjects = async () => {
     try {
       setLoading(true);
@@ -651,230 +741,593 @@ export default function AcademicProjectsPage() {
 
               {/* Workspace Body */}
               <div className="p-6 overflow-y-auto space-y-6 flex-1 text-xs">
-                {/* 1. Hammualliflar & CRediT Bo'limi */}
-                <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-3">
-                  <div className="flex items-center justify-between">
+                {/* Stepper Navigation */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 p-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-2xl">
+                  <button
+                    type="button"
+                    onClick={() => setWorkspaceStep(1)}
+                    className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                      workspaceStep === 1
+                        ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                    }`}
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    <span>1. Hammualliflar</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setWorkspaceStep(2)}
+                    className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                      workspaceStep === 2
+                        ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                    }`}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    <span>2. DOI Avtotortish</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setWorkspaceStep(3)}
+                    className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                      workspaceStep === 3
+                        ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                    }`}
+                  >
+                    <FileText className="w-3.5 h-3.5 text-blue-500" />
+                    <span>3. Qo‘lyozma Matni</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setWorkspaceStep(4)}
+                    className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                      workspaceStep === 4
+                        ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                    }`}
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-purple-500" />
+                    <span>4. Ekspertizaga Topshirish</span>
+                  </button>
+                </div>
+
+                {/* Workspace Toast Notification */}
+                {workspaceNotice && (
+                  <div
+                    className={`p-3.5 rounded-2xl font-bold text-xs flex items-center gap-2 border shadow-xs ${
+                      workspaceNotice.type === 'success'
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                        : 'bg-red-50 border-red-200 text-red-800'
+                    }`}
+                  >
+                    {workspaceNotice.type === 'success' ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                    )}
+                    <span>{workspaceNotice.text}</span>
+                  </div>
+                )}
+
+                {/* ======================================================== */}
+                {/* STEP 1: HAMMUALLIFLAR & CREDIT */}
+                {/* ======================================================== */}
+                {workspaceStep === 1 && (
+                  <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                          <Users className="w-4 h-4 text-emerald-600" />
+                          <span>Hammualliflar & CRediT Taqsimoti</span>
+                        </h4>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Har bir olimning ulushi va xalqaro vazifasi. Takliflar Telegram Bot (@tiuscholarbot) orqali tasdiqlanadi.
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={() => setCollabModalOpen(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-xs hover:bg-emerald-700 transition cursor-pointer self-start sm:self-auto"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Hammuallif Qo‘shish</span>
+                      </button>
+                    </div>
+
+                    {/* Collaborators Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                      {activeProject.collaborators?.map((c) => {
+                        let creditList = [];
+                        try {
+                          creditList = c.creditRoles ? JSON.parse(c.creditRoles) : [];
+                        } catch {
+                          creditList = [];
+                        }
+
+                        return (
+                          <div
+                            key={c.id}
+                            className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl p-3 flex flex-col justify-between space-y-2 shadow-xs"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <div className="font-bold text-slate-900 dark:text-white">
+                                  {c.scholarName || c.scholarEmail}
+                                </div>
+                                <div className="text-[11px] text-slate-400">{c.scholarEmail}</div>
+                              </div>
+
+                              <span
+                                className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
+                                  c.inviteStatus === 'ACCEPTED'
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                    : c.inviteStatus === 'REJECTED'
+                                    ? 'bg-red-50 text-red-700 border border-red-200'
+                                    : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                }`}
+                              >
+                                {c.inviteStatus === 'ACCEPTED'
+                                  ? 'Tasdiqlangan ✅'
+                                  : c.inviteStatus === 'REJECTED'
+                                  ? 'Rad etilgan ❌'
+                                  : 'Kutilmoqda ⏳'}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center justify-between text-[11px] pt-2 border-t border-slate-100 dark:border-slate-800">
+                              <span className="font-semibold text-slate-600 dark:text-slate-300">
+                                Rol: {c.role} ({c.sharePercent}%)
+                              </span>
+                              {c.user?.scholarProfile?.isTelegramConnected && (
+                                <span className="text-[10px] font-bold text-teal-600">Telegram ulangan 🤖</span>
+                              )}
+                            </div>
+
+                            {creditList.length > 0 && (
+                              <div className="flex flex-wrap gap-1 pt-1">
+                                {creditList.map((cr, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[9px] font-medium"
+                                  >
+                                    {cr}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setWorkspaceStep(2)}
+                        className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>Keyingi qadam: Adabiyotlar (DOI Avtotortish)</span>
+                        <span>👉</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ======================================================== */}
+                {/* STEP 2: DOI BIBLIOGRAFIYA AVTOTORTISH */}
+                {/* ======================================================== */}
+                {workspaceStep === 2 && (
+                  <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4">
                     <div>
                       <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                        <Users className="w-4 h-4 text-emerald-600" />
-                        <span>Hammualliflar & CRediT Hissasi</span>
+                        <Sparkles className="w-4 h-4 text-amber-500" />
+                        <span>Smart DOI Citation Resolver (Avtomatik Bibliografiya)</span>
                       </h4>
                       <p className="text-[11px] text-slate-500 mt-0.5">
-                        Har bir olimning ulushi va xalqaro vazifasi. Takliflar Telegram Bot (@tiuscholarbot) orqali tasdiqlanadi.
+                        Iqtibos keltirmoqchi bo‘lgan maqolangizning DOI raqamini kiriting — CrossRef orqali APA 7 va IEEE formatidagi rasmiy bibliografiya bir zumda yaratiladi.
                       </p>
                     </div>
 
-                    <button
-                      onClick={() => setCollabModalOpen(true)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-xs hover:bg-emerald-700 transition"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Hammuallif Qo‘shish</span>
-                    </button>
-                  </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder="Masalan: 10.1016/j.jbusres.2023.113840 yoki https://doi.org/..."
+                        value={doiInput}
+                        onChange={(e) => setDoiInput(e.target.value)}
+                        className="flex-1 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 font-mono text-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleResolveDoi}
+                        disabled={doiLoading || !doiInput.trim()}
+                        className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-emerald-600 text-white font-bold text-xs shadow-xs hover:bg-slate-800 transition disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                      >
+                        {doiLoading ? 'Izlanmoqda...' : 'Avtotortish'}
+                      </button>
+                    </div>
 
-                  {/* Collaborators List */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-                    {activeProject.collaborators?.map((c) => {
-                      let creditList = [];
-                      try {
-                        creditList = c.creditRoles ? JSON.parse(c.creditRoles) : [];
-                      } catch {
-                        creditList = [];
-                      }
+                    {doiError && (
+                      <div className="p-3 rounded-xl bg-red-50 text-red-700 text-xs flex items-center gap-2 border border-red-200">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        <span>{doiError}</span>
+                      </div>
+                    )}
 
-                      return (
-                        <div
-                          key={c.id}
-                          className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl p-3 flex flex-col justify-between space-y-2 shadow-xs"
-                        >
-                          <div className="flex items-start justify-between gap-2">
+                    {doiResult && (
+                      <div className="bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800/60 rounded-xl p-4 space-y-3 mt-3 shadow-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-emerald-800 dark:text-emerald-300 text-xs">
+                            Topilgan maqola:
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-mono">{doiResult.doi}</span>
+                        </div>
+
+                        <div className="text-slate-800 dark:text-slate-200 font-semibold">{doiResult.title}</div>
+                        <div className="text-slate-500 text-[11px]">
+                          Mualliflar: {doiResult.authorsFormatted} • {doiResult.journal} ({doiResult.year})
+                        </div>
+
+                        {/* Formatted Citations Options */}
+                        <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                          <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-between gap-2">
                             <div>
-                              <div className="font-bold text-slate-900 dark:text-white">
-                                {c.scholarName || c.scholarEmail}
-                              </div>
-                              <div className="text-[11px] text-slate-400">{c.scholarEmail}</div>
+                              <span className="font-bold text-[10px] text-indigo-600 uppercase">APA 7th:</span>
+                              <p
+                                className="text-[11px] text-slate-700 dark:text-slate-300 mt-0.5"
+                                dangerouslySetInnerHTML={{ __html: doiResult.citations.apa }}
+                              />
                             </div>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => copyToClipboard(doiResult.citations.apa, 'apa')}
+                                className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-white"
+                                title="Nusxalash"
+                              >
+                                {copiedCitation === 'apa' ? (
+                                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                ) : (
+                                  <Copy className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                              <button
+                                onClick={() => handleAddCitationToProject(doiResult.citations.apa)}
+                                className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[10px] cursor-pointer"
+                              >
+                                + Qo‘shish
+                              </button>
+                            </div>
+                          </div>
 
-                            <span
-                              className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
-                                c.inviteStatus === 'ACCEPTED'
-                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                  : c.inviteStatus === 'REJECTED'
-                                  ? 'bg-red-50 text-red-700 border border-red-200'
-                                  : 'bg-amber-50 text-amber-700 border border-amber-200'
-                              }`}
+                          <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-between gap-2">
+                            <div>
+                              <span className="font-bold text-[10px] text-blue-600 uppercase">IEEE:</span>
+                              <p
+                                className="text-[11px] text-slate-700 dark:text-slate-300 mt-0.5"
+                                dangerouslySetInnerHTML={{ __html: doiResult.citations.ieee }}
+                              />
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => copyToClipboard(doiResult.citations.ieee, 'ieee')}
+                                className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-white"
+                                title="Nusxalash"
+                              >
+                                {copiedCitation === 'ieee' ? (
+                                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                ) : (
+                                  <Copy className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                              <button
+                                onClick={() => handleAddCitationToProject(doiResult.citations.ieee)}
+                                className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[10px] cursor-pointer"
+                              >
+                                + Qo‘shish
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Saved References List in Project */}
+                    {activeProject.referencesList && (
+                      <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700">
+                        <div className="font-bold text-xs text-slate-900 dark:text-white mb-2">
+                          Loyihadagi Foydalanilgan Adabiyotlar (
+                          {JSON.parse(activeProject.referencesList || '[]').length} ta):
+                        </div>
+                        <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                          {JSON.parse(activeProject.referencesList || '[]').map((ref, idx) => (
+                            <div
+                              key={idx}
+                              className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 text-[11px] text-slate-700 dark:text-slate-300 flex items-start gap-2"
                             >
-                              {c.inviteStatus === 'ACCEPTED'
-                                ? 'Tasdiqlangan ✅'
-                                : c.inviteStatus === 'REJECTED'
-                                ? 'Rad etilgan ❌'
-                                : 'Kutilmoqda ⏳'}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center justify-between text-[11px] pt-2 border-t border-slate-100 dark:border-slate-800">
-                            <span className="font-semibold text-slate-600 dark:text-slate-300">
-                              Rol: {c.role} ({c.sharePercent}%)
-                            </span>
-                            {c.user?.scholarProfile?.isTelegramConnected && (
-                              <span className="text-[10px] font-bold text-teal-600">Telegram ulangan 🤖</span>
-                            )}
-                          </div>
-
-                          {creditList.length > 0 && (
-                            <div className="flex flex-wrap gap-1 pt-1">
-                              {creditList.map((cr, idx) => (
-                                <span
-                                  key={idx}
-                                  className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[9px] font-medium"
-                                >
-                                  {cr}
-                                </span>
-                              ))}
+                              <span className="font-bold text-slate-400">[{idx + 1}]</span>
+                              <span dangerouslySetInnerHTML={{ __html: ref }} />
                             </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="pt-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                      <button
+                        type="button"
+                        onClick={() => setWorkspaceStep(1)}
+                        className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold text-xs cursor-pointer hover:bg-white"
+                      >
+                        👈 1. Hammualliflar
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setWorkspaceStep(3)}
+                        className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>Keyingi qadam: Qo‘lyozma Matni & IMRAD</span>
+                        <span>👉</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ======================================================== */}
+                {/* STEP 3: QO'LYOZMA MATNI & IMRAD BO'LIMLARI */}
+                {/* ======================================================== */}
+                {workspaceStep === 3 && (
+                  <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-blue-600" />
+                          <span>Qo‘lyozma Matni & IMRAD Tuzilishi</span>
+                        </h4>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Ilmiy ishning asosiy mazmunini to‘ldiring yoki tayyor hujjat fayli havolasini (Word / Google Docs) biriktiring.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleSaveManuscript}
+                        disabled={savingManuscript}
+                        className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition cursor-pointer flex items-center gap-1.5 disabled:opacity-50 self-start sm:self-auto"
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                        <span>{savingManuscript ? 'Saqlanmoqda...' : 'Matnni saqlash'}</span>
+                      </button>
+                    </div>
+
+                    <div className="space-y-3.5">
+                      <div>
+                        <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                          Qo‘lyozma Fayli Havolasi (Google Docs, Word, OneDrive yoki PDF URL):
+                        </label>
+                        <input
+                          type="text"
+                          value={manuscriptFileUrl}
+                          onChange={(e) => setManuscriptFileUrl(e.target.value)}
+                          placeholder="https://docs.google.com/document/d/... yoki https://tiu.uz/files/..."
+                          className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 font-mono text-xs"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                            1. Kirish (Introduction) & Muammoning Qo‘yilishi:
+                          </label>
+                          <textarea
+                            rows={4}
+                            value={imradIntro}
+                            onChange={(e) => setImradIntro(e.target.value)}
+                            placeholder="Mavzuning dolzarbligi va asosiy tadqiqot maqsadi..."
+                            className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 text-xs"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                            2. Metodologiya (Methods) & Eksperimental Baza:
+                          </label>
+                          <textarea
+                            rows={4}
+                            value={imradMethods}
+                            onChange={(e) => setImradMethods(e.target.value)}
+                            placeholder="Qo‘llanilgan uslublar, matematik modellar, namunalar..."
+                            className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 text-xs"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                            3. Natijalar va Tahlil (Results & Discussion):
+                          </label>
+                          <textarea
+                            rows={4}
+                            value={imradResults}
+                            onChange={(e) => setImradResults(e.target.value)}
+                            placeholder="Olingan yangi ilmiy xulosalar, qiyosiy tahlillar..."
+                            className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 text-xs"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                            4. Xulosa va Tavsiyalar (Conclusion):
+                          </label>
+                          <textarea
+                            rows={4}
+                            value={imradConclusion}
+                            onChange={(e) => setImradConclusion(e.target.value)}
+                            placeholder="Amaliy ahamiyati, joriy etish imkoniyatlari..."
+                            className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 text-xs"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                      <button
+                        type="button"
+                        onClick={() => setWorkspaceStep(2)}
+                        className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold text-xs cursor-pointer hover:bg-white"
+                      >
+                        👈 2. Adabiyotlarga qaytish
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setWorkspaceStep(4)}
+                        className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>Keyingi qadam: Ekspertizaga Topshirish</span>
+                        <span>👉</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ======================================================== */}
+                {/* STEP 4: EKSPERTIZAGA TOPSHIRISH & MODERATSIYA */}
+                {/* ======================================================== */}
+                {workspaceStep === 4 && (
+                  <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-5">
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4 text-purple-600" />
+                        <span>TIU Ilmiy Bo‘limi (Moderator) Ekspertizasi</span>
+                      </h4>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Loyihani ilmiy bo‘lim koordinatoriga rasmiy ekspertiza, antiplagiat tekshiruvi va ball hisoblash uchun topshiring.
+                      </p>
+                    </div>
+
+                    {/* Holat Ko'rsatkichi */}
+                    <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                          Loyiha Amaldagi Holati:
+                        </span>
+                        <div className="text-sm font-black text-slate-900 dark:text-white mt-0.5">
+                          {activeProject.status === 'IN_REVIEW' || activeProject.status === 'SUBMITTED' ? (
+                            <span className="text-amber-600 flex items-center gap-1.5">
+                              <Clock className="w-4 h-4 animate-pulse" />
+                              <span>Moderatsiya Navbatida (Ko‘rib chiqilmoqda)</span>
+                            </span>
+                          ) : activeProject.status === 'PUBLISHED' || activeProject.status === 'AWARDED' ? (
+                            <span className="text-emerald-600 flex items-center gap-1.5">
+                              <CheckCircle2 className="w-4 h-4" />
+                              <span>Rasman Tasdiqlangan va Nashr Qilingan ✅</span>
+                            </span>
+                          ) : (
+                            <span className="text-slate-600 flex items-center gap-1.5">
+                              <Edit3 className="w-4 h-4" />
+                              <span>Qoralama (Topshirishga tayyor)</span>
+                            </span>
                           )}
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                      </div>
 
-                {/* 2. Smart DOI Bibliografiya Resolver */}
-                <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-3">
-                  <div>
-                    <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-amber-500" />
-                      <span>Smart DOI Citation Resolver (Avtomatik Bibliografiya)</span>
-                    </h4>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      Iqtibos keltirmoqchi bo‘lgan maqolangizning DOI raqamini kiriting — CrossRef orqali APA 7 va IEEE formatidagi rasmiy bibliografiya bir zumda yaratiladi.
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      placeholder="Masalan: 10.1016/j.jbusres.2023.113840 yoki https://doi.org/..."
-                      value={doiInput}
-                      onChange={(e) => setDoiInput(e.target.value)}
-                      className="flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 font-mono text-xs"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleResolveDoi}
-                      disabled={doiLoading || !doiInput.trim()}
-                      className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-emerald-600 text-white font-bold text-xs shadow-xs hover:bg-slate-800 transition disabled:opacity-50 flex items-center gap-1.5"
-                    >
-                      {doiLoading ? 'Izlanmoqda...' : 'Avtotortish'}
-                    </button>
-                  </div>
-
-                  {doiError && (
-                    <div className="p-3 rounded-xl bg-red-50 text-red-700 text-xs flex items-center gap-2 border border-red-200">
-                      <AlertCircle className="w-4 h-4 shrink-0" />
-                      <span>{doiError}</span>
+                      <span className="font-mono text-xs font-bold px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                        {activeProject.code}
+                      </span>
                     </div>
-                  )}
 
-                  {doiResult && (
-                    <div className="bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800/60 rounded-xl p-4 space-y-3 mt-3 shadow-xs">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-emerald-800 dark:text-emerald-300 text-xs">
-                          Topilgan maqola:
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-mono">{doiResult.doi}</span>
-                      </div>
-
-                      <div className="text-slate-800 dark:text-slate-200 font-semibold">{doiResult.title}</div>
-                      <div className="text-slate-500 text-[11px]">
-                        Mualliflar: {doiResult.authorsFormatted} • {doiResult.journal} ({doiResult.year})
-                      </div>
-
-                      {/* Formatted Citations Options */}
-                      <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                        <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-between gap-2">
-                          <div>
-                            <span className="font-bold text-[10px] text-indigo-600 uppercase">APA 7th:</span>
-                            <p
-                              className="text-[11px] text-slate-700 dark:text-slate-300 mt-0.5"
-                              dangerouslySetInnerHTML={{ __html: doiResult.citations.apa }}
-                            />
+                    {/* Tayyorgarlik Nazorat Varaqasi (Checklist) */}
+                    <div className="space-y-2">
+                      <span className="font-bold text-xs text-slate-700 dark:text-slate-300 block">
+                        Topshirish Nazorat Varaqasi:
+                      </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                          <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Hammualliflar:</span>
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={() => copyToClipboard(doiResult.citations.apa, 'apa')}
-                              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-white"
-                              title="Nusxalash"
-                            >
-                              {copiedCitation === 'apa' ? (
-                                <Check className="w-3.5 h-3.5 text-emerald-600" />
-                              ) : (
-                                <Copy className="w-3.5 h-3.5" />
-                              )}
-                            </button>
-                            <button
-                              onClick={() => handleAddCitationToProject(doiResult.citations.apa)}
-                              className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[10px]"
-                            >
-                              + Qo‘shish
-                            </button>
+                          <div className="text-slate-600 dark:text-slate-400 text-[11px]">
+                            {activeProject.collaborators?.length || 1} kishi belgilangan
                           </div>
                         </div>
 
-                        <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-between gap-2">
-                          <div>
-                            <span className="font-bold text-[10px] text-blue-600 uppercase">IEEE:</span>
-                            <p
-                              className="text-[11px] text-slate-700 dark:text-slate-300 mt-0.5"
-                              dangerouslySetInnerHTML={{ __html: doiResult.citations.ieee }}
-                            />
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                          <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Bibliografiya (DOI):</span>
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={() => copyToClipboard(doiResult.citations.ieee, 'ieee')}
-                              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-white"
-                              title="Nusxalash"
-                            >
-                              {copiedCitation === 'ieee' ? (
-                                <Check className="w-3.5 h-3.5 text-emerald-600" />
-                              ) : (
-                                <Copy className="w-3.5 h-3.5" />
-                              )}
-                            </button>
-                            <button
-                              onClick={() => handleAddCitationToProject(doiResult.citations.ieee)}
-                              className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[10px]"
-                            >
-                              + Qo‘shish
-                            </button>
+                          <div className="text-slate-600 dark:text-slate-400 text-[11px]">
+                            {JSON.parse(activeProject.referencesList || '[]').length} ta manba kiritilgan
+                          </div>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                          <div className="flex items-center gap-1.5 text-blue-600 font-bold text-xs">
+                            <FileText className="w-3.5 h-3.5" />
+                            <span>Qo‘lyozma / Fayl:</span>
+                          </div>
+                          <div className="text-slate-600 dark:text-slate-400 text-[11px] truncate">
+                            {manuscriptFileUrl ? 'Fayl biriktirilgan ✅' : 'IMRAD matni kiritilgan'}
                           </div>
                         </div>
                       </div>
                     </div>
-                  )}
 
-                  {/* Saved References List in Project */}
-                  {activeProject.referencesList && (
-                    <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700">
-                      <div className="font-bold text-xs text-slate-900 dark:text-white mb-2">
-                        Loyihadagi Foydalanilgan Adabiyotlar (
-                        {JSON.parse(activeProject.referencesList || '[]').length} ta):
+                    {/* Topshirish Tugmasi */}
+                    {activeProject.status === 'DRAFT' || activeProject.status === 'REVISION' ? (
+                      <div className="pt-2">
+                        <button
+                          type="button"
+                          onClick={handleSubmitToModerator}
+                          disabled={submittingToMod}
+                          className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-extrabold text-xs shadow-lg transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                          <Send className="w-4 h-4" />
+                          <span>
+                            {submittingToMod
+                              ? 'Topshirilmoqda...'
+                              : '🏛 TIU Ilmiy Bo‘limiga (Moderatorga) Ekspertizaga Topshirish 🚀'}
+                          </span>
+                        </button>
                       </div>
-                      <div className="space-y-1.5 max-h-36 overflow-y-auto">
-                        {JSON.parse(activeProject.referencesList || '[]').map((ref, idx) => (
-                          <div
-                            key={idx}
-                            className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 text-[11px] text-slate-700 dark:text-slate-300 flex items-start gap-2"
-                          >
-                            <span className="font-bold text-slate-400">[{idx + 1}]</span>
-                            <span dangerouslySetInnerHTML={{ __html: ref }} />
-                          </div>
-                        ))}
+                    ) : (
+                      <div className="p-4 rounded-2xl bg-emerald-50 text-emerald-800 text-xs border border-emerald-200 font-medium">
+                        Loyiha muvaffaqiyatli topshirilgan! Hozirda TIU Ilmiy Bo‘limi koordinatori tomonidan ko‘rib chiqilmoqda.
+                      </div>
+                    )}
+
+                    {/* NIMA BO'LADI? (WHAT HAPPENS NEXT INFOGRAPHIC) */}
+                    <div className="p-4 rounded-2xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200/70 dark:border-blue-900/40 space-y-2.5">
+                      <div className="font-bold text-blue-900 dark:text-blue-300 text-xs flex items-center gap-2">
+                        <Award className="w-4 h-4 text-blue-600" />
+                        <span>Topshirilgandan so‘ng keyin nima bo‘ladi?</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-slate-600 dark:text-slate-300">
+                        <div className="flex items-start gap-2">
+                          <span className="font-bold text-blue-600 shrink-0">1.</span>
+                          <span>TIU Ilmiy Bo‘limi moderatori 72 soat ichida loyihani ekspertizadan o‘tkazadi.</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="font-bold text-blue-600 shrink-0">2.</span>
+                          <span>CrossRef orqali DOI va antiplagiat (o‘xshashlik foizi) tekshiriladi.</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="font-bold text-blue-600 shrink-0">3.</span>
+                          <span>Barcha hammualliflarning Telegramiga loyiha holati haqida bot xabari boradi.</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="font-bold text-blue-600 shrink-0">4.</span>
+                          <span>Tasdiqlangach, maqola portal nashrlari safiga o‘tadi va KPI reyting ballari beriladi!</span>
+                        </div>
                       </div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </motion.div>
           </div>
