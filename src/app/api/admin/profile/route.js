@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireModeratorOrAdmin } from '@/lib/auth';
 import { sendTelegramMessage } from '@/lib/telegram';
+import bcrypt from 'bcryptjs';
 
 export async function GET() {
   const user = await requireModeratorOrAdmin();
@@ -50,7 +51,7 @@ export async function GET() {
       orderBy: { nameUz: 'asc' },
     });
 
-    // 3. Official Admin Contacts
+    // 3. Official Super Admin Contacts for Rectorate Escalation
     const adminContacts = {
       name: 'TIU Bosh Administratsiyasi',
       title: 'Bosh Administrator & Rektorat',
@@ -63,10 +64,71 @@ export async function GET() {
       workingHours: 'Dushanba - Juma: 09:00 - 18:00',
     };
 
-    // 4. Fetch recent inquiries sent by this moderator
+    // 4. Moderation Metrics & Performance Aggregates
+    const [
+      pendingPublications,
+      approvedPublications,
+      rejectedPublications,
+      pendingSupervisions,
+      pendingInquiries,
+      totalScholars,
+      moderatorActionsCount,
+    ] = await Promise.all([
+      prisma.publication.count({ where: { status: 'PENDING' } }),
+      prisma.publication.count({ where: { status: 'APPROVED' } }),
+      prisma.publication.count({ where: { status: 'REJECTED' } }),
+      prisma.supervision.count({ where: { status: 'PENDING' } }),
+      prisma.announcementInquiry.count({ where: { status: 'PENDING' } }),
+      prisma.scholarProfile.count(),
+      prisma.auditLog.count({ where: { actorId: user.id } }),
+    ]);
+
+    const totalProcessed = approvedPublications + rejectedPublications;
+    const totalAll = totalProcessed + pendingPublications;
+    const efficiencyRate = totalAll > 0 ? Math.round((totalProcessed / totalAll) * 100) : 100;
+
+    const metrics = {
+      pendingPublications,
+      approvedPublications,
+      rejectedPublications,
+      pendingSupervisions,
+      pendingInquiries,
+      totalScholars,
+      moderatorActionsCount,
+      efficiencyRate,
+    };
+
+    // 5. Fetch notification preferences from AuditLog
+    const latestPrefLog = await prisma.auditLog.findFirst({
+      where: {
+        actorId: user.id,
+        action: 'USER_PREFERENCES',
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    let notificationPreferences = {
+      notifyOnNewSubmission: true,
+      notifyOnAuthorInquiry: true,
+      notifyOnMilestoneDeadline: true,
+      notifyOnAdminResponse: true,
+      telegramAlertSound: true,
+      dailyDigestEmail: false,
+    };
+
+    if (latestPrefLog?.details) {
+      try {
+        notificationPreferences = {
+          ...notificationPreferences,
+          ...JSON.parse(latestPrefLog.details),
+        };
+      } catch {}
+    }
+
+    // 6. Fetch recent inquiries sent by this moderator
     const recentInquiries = await prisma.auditLog.findMany({
       where: {
-        userId: user.id,
+        actorId: user.id,
         action: 'ADMIN_INQUIRY',
       },
       orderBy: { createdAt: 'desc' },
@@ -99,6 +161,8 @@ export async function GET() {
       profile,
       faculties,
       adminContacts,
+      metrics,
+      notificationPreferences,
       recentInquiries: parsedInquiries,
     });
   } catch (error) {
@@ -115,6 +179,112 @@ export async function PUT(request) {
 
   try {
     const body = await request.json();
+    const action = body.action || 'UPDATE_PROFILE';
+
+    // ----------------------------------------------------
+    // ACTION 1: PASSWORD CHANGE (Xavfsizlik & Parol Yangilash)
+    // ----------------------------------------------------
+    if (action === 'CHANGE_PASSWORD') {
+      const { currentPassword, newPassword, confirmPassword } = body;
+
+      if (!currentPassword || !newPassword) {
+        return NextResponse.json(
+          { success: false, error: 'Hozirgi va yangi parolni kiritish shart' },
+          { status: 400 }
+        );
+      }
+
+      if (newPassword.length < 8) {
+        return NextResponse.json(
+          { success: false, error: 'Yangi parol kamida 8 ta belgidan iborat bo‘lishi lozim' },
+          { status: 400 }
+        );
+      }
+
+      if (newPassword !== confirmPassword) {
+        return NextResponse.json(
+          { success: false, error: 'Yangi parol va tasdiqlovchi parol mos kelmadi' },
+          { status: 400 }
+        );
+      }
+
+      const dbUser = await prisma.user.findUnique({
+        where: { id: user.id },
+      });
+
+      if (!dbUser || !dbUser.passwordHash) {
+        return NextResponse.json(
+          { success: false, error: 'Foydalanuvchi hisobi topilmadi' },
+          { status: 404 }
+        );
+      }
+
+      const isCurrentValid = await bcrypt.compare(currentPassword, dbUser.passwordHash);
+      if (!isCurrentValid) {
+        return NextResponse.json(
+          { success: false, error: 'Hozirgi parol noto‘g‘ri kiritildi!' },
+          { status: 400 }
+        );
+      }
+
+      if (currentPassword === newPassword) {
+        return NextResponse.json(
+          { success: false, error: 'Yangi parol avvalgi parol bilan bir xil bo‘lishi mumkin emas' },
+          { status: 400 }
+        );
+      }
+
+      const newPasswordHash = await bcrypt.hash(newPassword, 10);
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash: newPasswordHash },
+      });
+
+      // Audit Log for Security
+      await prisma.auditLog.create({
+        data: {
+          actorId: user.id,
+          action: 'PASSWORD_CHANGE',
+          entityType: 'USER_SECURITY',
+          entityId: user.id,
+          details: JSON.stringify({
+            changedAt: new Date().toISOString(),
+            userEmail: user.email,
+          }),
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Akkaunt paroli muvaffaqiyatli yangilandi! 🔐',
+      });
+    }
+
+    // ----------------------------------------------------
+    // ACTION 2: NOTIFICATION PREFERENCES (Alert Matritsasi)
+    // ----------------------------------------------------
+    if (action === 'UPDATE_NOTIFICATIONS') {
+      const { preferences } = body;
+
+      await prisma.auditLog.create({
+        data: {
+          actorId: user.id,
+          action: 'USER_PREFERENCES',
+          entityType: 'MODERATOR_SETTINGS',
+          entityId: user.id,
+          details: JSON.stringify(preferences || {}),
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Bildirishnoma va alert sozlamalari muvaffaqiyatli saqlandi! 🔔',
+      });
+    }
+
+    // ----------------------------------------------------
+    // ACTION 3: PROFILE DETAILS (Xizmat va Shaxsiy Ma’lumotlar)
+    // ----------------------------------------------------
     const {
       fullName,
       positionUz,
@@ -162,6 +332,21 @@ export async function PUT(request) {
       },
     });
 
+    // Audit Log for Profile Change
+    await prisma.auditLog.create({
+      data: {
+        actorId: user.id,
+        action: 'UPDATE_PROFILE',
+        entityType: 'SCHOLAR_PROFILE',
+        entityId: profile.id,
+        details: JSON.stringify({
+          fullName: updated.fullName,
+          positionUz: updated.positionUz,
+          updatedAt: new Date().toISOString(),
+        }),
+      },
+    });
+
     return NextResponse.json({
       success: true,
       profile: updated,
@@ -169,7 +354,7 @@ export async function PUT(request) {
     });
   } catch (error) {
     console.error('PUT /api/admin/profile error:', error);
-    return NextResponse.json({ success: false, error: 'Saqlashda xatolik' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Saqlashda xatolik yuz berdi' }, { status: 500 });
   }
 }
 
@@ -198,7 +383,7 @@ export async function POST(request) {
     // 1. Log to AuditLog as inquiry
     const auditRecord = await prisma.auditLog.create({
       data: {
-        userId: user.id,
+        actorId: user.id,
         action: 'ADMIN_INQUIRY',
         entityType: 'INQUIRY',
         entityId: `inq-${Date.now()}`,
@@ -242,7 +427,7 @@ export async function POST(request) {
       if (sa.scholarProfile?.telegramChatId) {
         await sendTelegramMessage({
           chatId: sa.scholarProfile.telegramChatId,
-          text: `🏛 <b>Bosh Adminga Yangi Moderator Murojaati!</b>\n\n📌 <b>Mavzu:</b> [${catLabel}] ${subject.trim()}\n👤 <b>Yuboruvchi:</b> ${user.email}\n\n💬 <b>Matn:</b>\n${messageText.trim()}`,
+          text: `🏛 <b>Bosh Adminga Yangi Moderator Murojaati!</b>\n\n📌 <b>Mavzu:</b> [${catLabel}] ${subject.trim()}\n👤 <b>Yuboruvchi:</b> ${user.email}\n🚨 <b>Muhimlik:</b> ${priority}\n\n💬 <b>Matn:</b>\n${messageText.trim()}`,
         }).catch(() => {});
       }
     }

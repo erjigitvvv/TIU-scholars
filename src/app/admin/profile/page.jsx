@@ -22,20 +22,52 @@ import {
   Headphones,
   Save,
   RefreshCw,
+  KeyRound,
+  Bell,
+  BarChart3,
+  Sliders,
+  Check,
+  Lock,
+  Eye,
+  EyeOff,
+  Flame,
+  FileSpreadsheet,
+  CheckCircle,
 } from 'lucide-react';
 
 export default function ModeratorProfilePage() {
-  const [activeTab, setActiveTab] = useState('PROFILE'); // 'PROFILE' | 'PERMISSIONS' | 'CONTACT_ADMIN'
+  const [activeTab, setActiveTab] = useState('PROFILE'); // 'PROFILE' | 'METRICS' | 'NOTIFICATIONS' | 'SECURITY' | 'CONTACT_ADMIN'
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [sendingInquiry, setSendingInquiry] = useState(false);
+  const [updatingPassword, setUpdatingPassword] = useState(false);
   const [statusMsg, setStatusMsg] = useState(null);
 
-  // Profile data
+  // Profile data & metrics
   const [profile, setProfile] = useState(null);
   const [faculties, setFaculties] = useState([]);
   const [adminContacts, setAdminContacts] = useState(null);
   const [recentInquiries, setRecentInquiries] = useState([]);
+  const [metrics, setMetrics] = useState({
+    pendingPublications: 0,
+    approvedPublications: 0,
+    rejectedPublications: 0,
+    pendingSupervisions: 0,
+    pendingInquiries: 0,
+    totalScholars: 0,
+    moderatorActionsCount: 0,
+    efficiencyRate: 100,
+  });
+
+  // Notification toggles
+  const [notifications, setNotifications] = useState({
+    notifyOnNewSubmission: true,
+    notifyOnAuthorInquiry: true,
+    notifyOnMilestoneDeadline: true,
+    notifyOnAdminResponse: true,
+    telegramAlertSound: true,
+    dailyDigestEmail: false,
+  });
 
   // Form states for profile
   const [fullName, setFullName] = useState('');
@@ -47,6 +79,12 @@ export default function ModeratorProfilePage() {
   const [telegramUsername, setTelegramUsername] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
   const [bioUz, setBioUz] = useState('');
+
+  // Form states for password change
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   // Form states for contacting admin
   const [inquirySubject, setInquirySubject] = useState('');
@@ -64,6 +102,8 @@ export default function ModeratorProfilePage() {
         setFaculties(data.faculties || []);
         setAdminContacts(data.adminContacts);
         setRecentInquiries(data.recentInquiries || []);
+        if (data.metrics) setMetrics(data.metrics);
+        if (data.notificationPreferences) setNotifications(data.notificationPreferences);
 
         if (data.profile) {
           setFullName(data.profile.fullName || '');
@@ -88,6 +128,7 @@ export default function ModeratorProfilePage() {
     loadData();
   }, []);
 
+  // 1. Save Profile Details
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -98,6 +139,7 @@ export default function ModeratorProfilePage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          action: 'UPDATE_PROFILE',
           fullName,
           positionUz,
           departmentId,
@@ -124,6 +166,78 @@ export default function ModeratorProfilePage() {
     }
   };
 
+  // 2. Save Notification Preferences
+  const handleSaveNotifications = async () => {
+    setSaving(true);
+    setStatusMsg(null);
+
+    try {
+      const res = await fetch('/api/admin/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'UPDATE_NOTIFICATIONS',
+          preferences: notifications,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setStatusMsg({ type: 'success', text: data.message });
+      } else {
+        setStatusMsg({ type: 'error', text: data.error || 'Saqlashda xatolik' });
+      }
+    } catch {
+      setStatusMsg({ type: 'error', text: 'Tarmoq xatosi' });
+    } finally {
+      setSaving(false);
+      setTimeout(() => setStatusMsg(null), 4000);
+    }
+  };
+
+  // 3. Change Password
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      setStatusMsg({ type: 'error', text: 'Yangi parol va tasdiqlovchi parol mos kelmadi!' });
+      return;
+    }
+    if (newPassword.length < 8) {
+      setStatusMsg({ type: 'error', text: 'Yangi parol kamida 8 ta belgidan iborat bo‘lishi kerak!' });
+      return;
+    }
+
+    setUpdatingPassword(true);
+    setStatusMsg(null);
+
+    try {
+      const res = await fetch('/api/admin/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'CHANGE_PASSWORD',
+          currentPassword,
+          newPassword,
+          confirmPassword,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setStatusMsg({ type: 'success', text: data.message });
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        setStatusMsg({ type: 'error', text: data.error || 'Parolni yangilashda xatolik' });
+      }
+    } catch {
+      setStatusMsg({ type: 'error', text: 'Tarmoq xatosi' });
+    } finally {
+      setUpdatingPassword(false);
+      setTimeout(() => setStatusMsg(null), 5000);
+    }
+  };
+
+  // 4. Send Admin Inquiry
   const handleSendAdminInquiry = async (e) => {
     e.preventDefault();
     if (!inquirySubject.trim() || !inquiryMessage.trim()) return;
@@ -160,12 +274,29 @@ export default function ModeratorProfilePage() {
     }
   };
 
+  // Password strength calculation
+  const getPasswordStrength = (pwd) => {
+    if (!pwd) return { label: 'Kiritilmagan', color: 'bg-slate-200', width: 'w-0' };
+    let score = 0;
+    if (pwd.length >= 8) score++;
+    if (/[A-Z]/.test(pwd)) score++;
+    if (/[0-9]/.test(pwd)) score++;
+    if (/[^A-Za-z0-9]/.test(pwd)) score++;
+
+    if (score <= 1) return { label: 'Zaif', color: 'bg-rose-500', width: 'w-1/4' };
+    if (score === 2) return { label: 'O‘rtacha', color: 'bg-amber-500', width: 'w-2/4' };
+    if (score === 3) return { label: 'Yaxshi', color: 'bg-blue-500', width: 'w-3/4' };
+    return { label: 'Mustahkam', color: 'bg-emerald-500', width: 'w-full' };
+  };
+
+  const strength = getPasswordStrength(newPassword);
+
   if (loading) {
     return (
       <div className="p-8 flex items-center justify-center min-h-[60vh]">
         <div className="flex items-center gap-3 text-slate-500 font-semibold text-sm">
           <RefreshCw className="w-5 h-5 animate-spin text-blue-600" />
-          <span>Moderator profili yuklanmoqda...</span>
+          <span>Moderator boshqaruv paneli yuklanmoqda...</span>
         </div>
       </div>
     );
@@ -173,7 +304,7 @@ export default function ModeratorProfilePage() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
-      {/* Top Banner */}
+      {/* Top Banner with Moderator Identity */}
       <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
         <div className="absolute right-0 top-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -188,13 +319,13 @@ export default function ModeratorProfilePage() {
             <div className="space-y-1">
               <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[11px] font-bold">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Rasmiy TIU Moderatori</span>
+                <span>Rasmiy TIU Moderatori (Ilmiy Bo‘lim)</span>
               </div>
               <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
                 {fullName || 'TIU Moderatori'}
               </h1>
               <p className="text-xs text-blue-200/80 font-medium max-w-xl">
-                {positionUz || 'TIU Ilmiy bo‘lim bosh koordinatori'}
+                {positionUz || 'Ilmiy bo‘lim bosh koordinatori va moderatori'} • {profile?.department?.nameUz || 'Kafedra belgilanmagan'}
               </p>
             </div>
           </div>
@@ -216,74 +347,102 @@ export default function ModeratorProfilePage() {
           <button
             type="button"
             onClick={() => setActiveTab('PROFILE')}
-            className={`px-4 py-2 rounded-xl font-bold transition cursor-pointer flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-xl font-bold transition cursor-pointer flex items-center gap-2 shrink-0 ${
               activeTab === 'PROFILE'
                 ? 'bg-white text-slate-900 shadow-sm'
                 : 'text-white/80 hover:bg-white/10 hover:text-white'
             }`}
           >
             <User className="w-3.5 h-3.5" />
-            <span>Moderator Profil Sozlamalari</span>
+            <span>1. Profil & Xizmat Sozlamalari</span>
           </button>
 
           <button
             type="button"
-            onClick={() => setActiveTab('PERMISSIONS')}
-            className={`px-4 py-2 rounded-xl font-bold transition cursor-pointer flex items-center gap-2 ${
-              activeTab === 'PERMISSIONS'
+            onClick={() => setActiveTab('METRICS')}
+            className={`px-4 py-2 rounded-xl font-bold transition cursor-pointer flex items-center gap-2 shrink-0 ${
+              activeTab === 'METRICS'
                 ? 'bg-white text-slate-900 shadow-sm'
                 : 'text-white/80 hover:bg-white/10 hover:text-white'
             }`}
           >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Moderatorlik Vakolatlari</span>
+            <BarChart3 className="w-3.5 h-3.5 text-emerald-400" />
+            <span>2. Jonli Moderatsiya Metrikalari</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('NOTIFICATIONS')}
+            className={`px-4 py-2 rounded-xl font-bold transition cursor-pointer flex items-center gap-2 shrink-0 ${
+              activeTab === 'NOTIFICATIONS'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-white/80 hover:bg-white/10 hover:text-white'
+            }`}
+          >
+            <Bell className="w-3.5 h-3.5 text-amber-400" />
+            <span>3. Telegram & Alert Matritsasi</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('SECURITY')}
+            className={`px-4 py-2 rounded-xl font-bold transition cursor-pointer flex items-center gap-2 shrink-0 ${
+              activeTab === 'SECURITY'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-white/80 hover:bg-white/10 hover:text-white'
+            }`}
+          >
+            <KeyRound className="w-3.5 h-3.5 text-purple-400" />
+            <span>4. Xavfsizlik & Parol Yangilash</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('CONTACT_ADMIN')}
-            className={`px-4 py-2 rounded-xl font-bold transition cursor-pointer flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-xl font-bold transition cursor-pointer flex items-center gap-2 shrink-0 ${
               activeTab === 'CONTACT_ADMIN'
                 ? 'bg-white text-slate-900 shadow-sm'
                 : 'text-white/80 hover:bg-white/10 hover:text-white'
             }`}
           >
-            <Headphones className="w-3.5 h-3.5 text-blue-600" />
-            <span>Admin Bilan Bog‘lanish & Murojaat</span>
+            <Headphones className="w-3.5 h-3.5 text-blue-400" />
+            <span>5. Adminga Murojaat Markazi</span>
           </button>
         </div>
       </div>
 
-      {/* Alert toast */}
+      {/* Global Status Toast */}
       {statusMsg && (
         <div
-          className={`p-3.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 border shadow-sm ${
+          className={`p-4 rounded-2xl text-xs font-bold flex items-center gap-3 border shadow-sm transition-all ${
             statusMsg.type === 'success'
               ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
               : 'bg-rose-50 border-rose-200 text-rose-800'
           }`}
         >
           {statusMsg.type === 'success' ? (
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
           ) : (
-            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
           )}
           <span>{statusMsg.text}</span>
         </div>
       )}
 
-      {/* TAB 1: MODERATOR PROFILE SETTINGS */}
+      {/* ======================================================== */}
+      {/* TAB 1: MODERATOR PROFILE & SERVICE SETTINGS */}
+      {/* ======================================================== */}
       {activeTab === 'PROFILE' && (
         <form onSubmit={handleSaveProfile} className="space-y-6">
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
-            <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
+            <div className="border-b border-slate-100 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                   <UserCheck className="w-5 h-5 text-blue-600" />
                   Xizmat va Shaxsiy Ma’lumotlar
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Moderator sifatida platformada ko‘rinadigan rasmiy ma’lumotlaringizni boshqaring.
+                  Moderator sifatida platformada va olimlarga ko‘rinadigan rasmiy ma’lumotlaringizni boshqaring.
                 </p>
               </div>
               <button
@@ -403,7 +562,7 @@ export default function ModeratorProfilePage() {
 
               <div className="md:col-span-2">
                 <label className="block font-bold text-slate-700 mb-1.5">
-                  Moderatorlik yo‘nalishi va qisqacha ma’lumot:
+                  Moderatorlik yo‘nalishi va qisqacha xizmat ma’lumoti:
                 </label>
                 <textarea
                   rows={3}
@@ -418,72 +577,314 @@ export default function ModeratorProfilePage() {
         </form>
       )}
 
-      {/* TAB 2: MODERATOR SPECIAL PRIVILEGES & PERMISSIONS (Olimda yo'q, faqat moderatorda) */}
-      {activeTab === 'PERMISSIONS' && (
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
-          <div className="border-b border-slate-100 pb-4">
-            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-emerald-600" />
-              Sizga Berilgan Rasmiy Moderatorlik Huquq va Vakolatlari
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Ushbu vakolatlar faqat TIU Ilmiy Bo‘limi moderatorlariga berilgan bo‘lib, oddiy olim kabinetida mavjud emas.
-            </p>
+      {/* ======================================================== */}
+      {/* TAB 2: LIVE MODERATION GOVERNANCE METRICS */}
+      {/* ======================================================== */}
+      {activeTab === 'METRICS' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Kutilayotgan Nashrlar
+                </span>
+                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                  <Clock className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-3xl font-black text-slate-900">{metrics.pendingPublications}</div>
+              <p className="text-[11px] text-amber-600 font-medium">Ko‘rib chiqish navbatida turibdi</p>
+            </div>
+
+            <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Tasdiqlangan Nashrlar
+                </span>
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-3xl font-black text-slate-900">{metrics.approvedPublications}</div>
+              <p className="text-[11px] text-emerald-600 font-medium">Ekspertizadan o‘tgan va ball berilgan</p>
+            </div>
+
+            <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Rad Etilgan / Qaytarilgan
+                </span>
+                <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                  <AlertTriangle className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-3xl font-black text-slate-900">{metrics.rejectedPublications}</div>
+              <p className="text-[11px] text-rose-600 font-medium">Tahrir yoki asos yetishmaganligi sabab</p>
+            </div>
+
+            <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Moderatsiya Samaradorligi
+                </span>
+                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <Flame className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-3xl font-black text-blue-600">{metrics.efficiencyRate}%</div>
+              <p className="text-[11px] text-blue-600 font-medium">SLA talablariga mos ko‘rsatkich</p>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
-                <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
-                  1
+          {/* Detailed Oversight Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-4">
+              <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Layers className="w-4 h-4 text-blue-600" />
+                Universitet Ilmiy Resurslari Nazorati
+              </h4>
+              <div className="space-y-3 text-xs">
+                <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                  <span className="text-slate-600 font-medium">Jami faol ilmiy xodimlar va professorlar:</span>
+                  <span className="font-bold text-slate-900">{metrics.totalScholars} nafar</span>
                 </div>
-                <span>Maqola va Dissertatsiyalarni Baholash (Moderatsiya)</span>
+                <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                  <span className="text-slate-600 font-medium">Tasdiq kutayotgan dissertatsiya bosqichlari:</span>
+                  <span className="font-bold text-amber-600">{metrics.pendingSupervisions} ta</span>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                  <span className="text-slate-600 font-medium">Javob berilmagan savol va murojaatlar:</span>
+                  <span className="font-bold text-indigo-600">{metrics.pendingInquiries} ta</span>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                  <span className="text-slate-600 font-medium">Sizning tizimdagi jami audit harakatlaringiz:</span>
+                  <span className="font-bold text-slate-900">{metrics.moderatorActionsCount} marta</span>
+                </div>
               </div>
-              <p className="text-[11px] text-slate-600 leading-relaxed pl-9">
-                Olimlar topshirgan nashrlar, ilmiy loyihalar va hisobotlarni qabul qilish, ekspertizadan o‘tkazish, tasdiqlash yoki tahrirga qaytarish huquqi.
-              </p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
-                <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
-                  2
+            <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-4">
+              <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Award className="w-4 h-4 text-emerald-600" />
+                Moderatorlik Standartlari (SLA Qoidalari)
+              </h4>
+              <div className="space-y-2.5 text-xs text-slate-600">
+                <div className="p-3 rounded-2xl bg-emerald-50/60 border border-emerald-100 flex items-start gap-2.5">
+                  <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-slate-900 block">72 soatlik tekshiruv standarti:</span>
+                    Olimlar tomonidan yuklangan har bir nashr 3 ish kuni ichida ekspertizadan o‘tkazilishi lozim.
+                  </div>
                 </div>
-                <span>TIUgram Messenger va Telegram Xabarnomalar</span>
-              </div>
-              <p className="text-[11px] text-slate-600 leading-relaxed pl-9">
-                Universitetning barcha ulangan olimlari botiga kategoriyali e’lonlar, fayllar, rasmiy so‘rovnomalar (Polls) yuborish va ularning savollariga bevosita javob berish.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
-                <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
-                  3
+                <div className="p-3 rounded-2xl bg-blue-50/60 border border-blue-100 flex items-start gap-2.5">
+                  <CheckCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-slate-900 block">Plagiat va DOI tekshiruvi:</span>
+                    Scopus, Web of Science va OAK jurnallari DOI haqiqiyligi hamda o‘xshashlik foizi 15% dan oshmasligi kafolatlanadi.
+                  </div>
                 </div>
-                <span>KPI va Reyting Ballarini Hisoblash</span>
               </div>
-              <p className="text-[11px] text-slate-600 leading-relaxed pl-9">
-                Tasdiqlangan ilmiy ishlar uchun Scopus, Web of Science va OAK jurnallari mezonlariga asosan olimlarga ball taqsimlash.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
-                <div className="w-7 h-7 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
-                  4
-                </div>
-                <span>Olimlar Dosyesi va Hujjatlarini Boshqarish</span>
-              </div>
-              <p className="text-[11px] text-slate-600 leading-relaxed pl-9">
-                Fakultet va kafedralar bo‘yicha ilmiy xodimlar faolligini kuzatish, hisobotlarni eksport qilish va rektoratga taqdim etish.
-              </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* TAB 3: CONTACT SUPER ADMIN & SEND INQUIRY */}
+      {/* ======================================================== */}
+      {/* TAB 3: NOTIFICATIONS & TELEGRAM ALERT MATRIX */}
+      {/* ======================================================== */}
+      {activeTab === 'NOTIFICATIONS' && (
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
+          <div className="border-b border-slate-100 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Bell className="w-5 h-5 text-amber-500" />
+                Bildirishnomalar va Telegram Alert Matritsasi
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Moderatorga yuboriladigan tizim xabarlari va Telegram bot ogohlantirishlarini moslashtiring.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleSaveNotifications}
+              disabled={saving}
+              className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition cursor-pointer flex items-center gap-2 disabled:opacity-50"
+            >
+              <Save className="w-3.5 h-3.5" />
+              <span>{saving ? 'Saqlanmoqda...' : 'Sozlamalarni saqlash'}</span>
+            </button>
+          </div>
+
+          <div className="space-y-4 text-xs">
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+              <div>
+                <span className="font-bold text-slate-800 block">Yangi Ilmiy Nashr Topshirilganda Alert</span>
+                <span className="text-slate-500 text-[11px]">
+                  Olim portalga yangi Scopus, OAK yoki dissertatsiya yuklagan zahoti Telegram botga xabar yuborish.
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={notifications.notifyOnNewSubmission}
+                onChange={(e) => setNotifications({ ...notifications, notifyOnNewSubmission: e.target.checked })}
+                className="w-5 h-5 text-blue-600 rounded cursor-pointer accent-blue-600"
+              />
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+              <div>
+                <span className="font-bold text-slate-800 block">Olimlar Savol yoki Izoh Yozganda (TIUgram)</span>
+                <span className="text-slate-500 text-[11px]">
+                  Olimlar e’lonlar yoki so‘rovnomalar bo‘yicha izoh/savol yo‘llaganda bildirishnoma kelishi.
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={notifications.notifyOnAuthorInquiry}
+                onChange={(e) => setNotifications({ ...notifications, notifyOnAuthorInquiry: e.target.checked })}
+                className="w-5 h-5 text-blue-600 rounded cursor-pointer accent-blue-600"
+              />
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+              <div>
+                <span className="font-bold text-slate-800 block">Dissertatsiya Bosqichi Muddatlari (Deadlines)</span>
+                <span className="text-slate-500 text-[11px]">
+                  Izlanuvchilarning yarim yillik yoki yillik hisobot muddati tugashidan 3 kun oldin eslatma.
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={notifications.notifyOnMilestoneDeadline}
+                onChange={(e) => setNotifications({ ...notifications, notifyOnMilestoneDeadline: e.target.checked })}
+                className="w-5 h-5 text-blue-600 rounded cursor-pointer accent-blue-600"
+              />
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+              <div>
+                <span className="font-bold text-slate-800 block">Bosh Administrator Javobi va Rezolyutsiyalari</span>
+                <span className="text-slate-500 text-[11px]">
+                  Adminga yo‘llagan murojaatingiz ko‘rib chiqilganda tezkor xabar kelishi.
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={notifications.notifyOnAdminResponse}
+                onChange={(e) => setNotifications({ ...notifications, notifyOnAdminResponse: e.target.checked })}
+                className="w-5 h-5 text-blue-600 rounded cursor-pointer accent-blue-600"
+              />
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+              <div>
+                <span className="font-bold text-slate-800 block">Ovozli Telegram Alert Xabarlari</span>
+                <span className="text-slate-500 text-[11px]">
+                  Telegram xabarlari ovozli bildirishnoma (push sound) bilan yuboriladi.
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={notifications.telegramAlertSound}
+                onChange={(e) => setNotifications({ ...notifications, telegramAlertSound: e.target.checked })}
+                className="w-5 h-5 text-blue-600 rounded cursor-pointer accent-blue-600"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* TAB 4: SECURITY & PASSWORD UPDATE */}
+      {/* ======================================================== */}
+      {activeTab === 'SECURITY' && (
+        <div className="max-w-2xl bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
+          <div className="border-b border-slate-100 pb-4">
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <KeyRound className="w-5 h-5 text-purple-600" />
+              Akkaunt Xavfsizligi va Parolni Yangilash
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Moderatorlik hisobingiz xavfsizligini ta’minlash uchun parolingizni muntazam yangilab boring.
+            </p>
+          </div>
+
+          <form onSubmit={handleChangePassword} className="space-y-4 text-xs">
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Hozirgi parolingiz:</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-medium pr-10"
+                  placeholder="Amaldagi parolni kiriting"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Yangi parol (kamida 8 ta belgi):</label>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-medium"
+                placeholder="Yangi mustahkam parol"
+                required
+              />
+
+              {/* Password strength meter */}
+              {newPassword && (
+                <div className="mt-2 space-y-1">
+                  <div className="flex items-center justify-between text-[10px] font-bold text-slate-500">
+                    <span>Parol darajasi:</span>
+                    <span>{strength.label}</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div className={`h-full ${strength.color} ${strength.width} transition-all duration-300`} />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Yangi parolni takrorlang:</label>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-medium"
+                placeholder="Yangi parolni qayta kiriting"
+                required
+              />
+            </div>
+
+            <div className="pt-3 flex justify-end">
+              <button
+                type="submit"
+                disabled={updatingPassword || !currentPassword || !newPassword}
+                className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md transition cursor-pointer flex items-center gap-2 disabled:opacity-50"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span>{updatingPassword ? 'Yangilanmoqda...' : 'Parolni yangilash 🔐'}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* TAB 5: CONTACT SUPER ADMIN & SEND ESCALATION INQUIRY */}
+      {/* ======================================================== */}
       {activeTab === 'CONTACT_ADMIN' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Admin Contact Cards */}
@@ -592,7 +993,7 @@ export default function ModeratorProfilePage() {
             )}
           </div>
 
-          {/* Interactive Inquiry / Message Form */}
+          {/* Interactive Inquiry / Escalation Form */}
           <div className="lg:col-span-7">
             <form onSubmit={handleSendAdminInquiry} className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-5">
               <div className="border-b border-slate-100 pb-3">
