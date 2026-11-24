@@ -13,61 +13,35 @@ import {
   CheckCircle2,
   AlertTriangle,
   Clock,
-  MessageSquare,
   ExternalLink,
   Award,
-  Layers,
-  FileText,
   UserCheck,
   Headphones,
   Save,
   RefreshCw,
   KeyRound,
-  Bell,
-  BarChart3,
-  Sliders,
-  Check,
   Lock,
   Eye,
   EyeOff,
-  Flame,
-  FileSpreadsheet,
-  CheckCircle,
+  AtSign,
+  Smartphone,
 } from 'lucide-react';
 
 export default function ModeratorProfilePage() {
-  const [activeTab, setActiveTab] = useState('PROFILE'); // 'PROFILE' | 'METRICS' | 'NOTIFICATIONS' | 'SECURITY' | 'CONTACT_ADMIN'
+  const [activeTab, setActiveTab] = useState('PROFILE'); // 'PROFILE' | 'SECURITY' | 'CONTACT_ADMIN'
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [sendingInquiry, setSendingInquiry] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [updatingEmail, setUpdatingEmail] = useState(false);
   const [updatingPassword, setUpdatingPassword] = useState(false);
+  const [sendingInquiry, setSendingInquiry] = useState(false);
   const [statusMsg, setStatusMsg] = useState(null);
 
-  // Profile data & metrics
+  // Profile data
   const [profile, setProfile] = useState(null);
+  const [userEmail, setUserEmail] = useState('');
   const [faculties, setFaculties] = useState([]);
   const [adminContacts, setAdminContacts] = useState(null);
   const [recentInquiries, setRecentInquiries] = useState([]);
-  const [metrics, setMetrics] = useState({
-    pendingPublications: 0,
-    approvedPublications: 0,
-    rejectedPublications: 0,
-    pendingSupervisions: 0,
-    pendingInquiries: 0,
-    totalScholars: 0,
-    moderatorActionsCount: 0,
-    efficiencyRate: 100,
-  });
-
-  // Notification toggles
-  const [notifications, setNotifications] = useState({
-    notifyOnNewSubmission: true,
-    notifyOnAuthorInquiry: true,
-    notifyOnMilestoneDeadline: true,
-    notifyOnAdminResponse: true,
-    telegramAlertSound: true,
-    dailyDigestEmail: false,
-  });
 
   // Form states for profile
   const [fullName, setFullName] = useState('');
@@ -75,18 +49,23 @@ export default function ModeratorProfilePage() {
   const [departmentId, setDepartmentId] = useState('');
   const [academicDegree, setAcademicDegree] = useState('PHD');
   const [academicTitle, setAcademicTitle] = useState('DOCENT');
-  const [publicEmail, setPublicEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [telegramUsername, setTelegramUsername] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
   const [bioUz, setBioUz] = useState('');
 
-  // Form states for password change
+  // Form states for Email Change
+  const [newEmail, setNewEmail] = useState('');
+  const [emailCurrentPassword, setEmailCurrentPassword] = useState('');
+
+  // Form states for Password Change
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [showCurrentPass, setShowCurrentPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
 
-  // Form states for contacting admin
+  // Form states for Admin Inquiry
   const [inquirySubject, setInquirySubject] = useState('');
   const [inquiryCategory, setInquiryCategory] = useState('TEXNIK_MUAMMO');
   const [inquiryPriority, setInquiryPriority] = useState('NORMAL');
@@ -99,11 +78,10 @@ export default function ModeratorProfilePage() {
       const data = await res.json();
       if (res.ok && data.success) {
         setProfile(data.profile);
+        setUserEmail(data.user?.email || '');
         setFaculties(data.faculties || []);
         setAdminContacts(data.adminContacts);
         setRecentInquiries(data.recentInquiries || []);
-        if (data.metrics) setMetrics(data.metrics);
-        if (data.notificationPreferences) setNotifications(data.notificationPreferences);
 
         if (data.profile) {
           setFullName(data.profile.fullName || '');
@@ -111,7 +89,7 @@ export default function ModeratorProfilePage() {
           setDepartmentId(data.profile.departmentId || '');
           setAcademicDegree(data.profile.academicDegree || 'PHD');
           setAcademicTitle(data.profile.academicTitle || 'DOCENT');
-          setPublicEmail(data.profile.publicEmail || '');
+          setPhone(data.profile.phone || '');
           setTelegramUsername(data.profile.telegramUsername || '');
           setPhotoUrl(data.profile.photoUrl || '');
           setBioUz(data.profile.bioUz || '');
@@ -128,10 +106,10 @@ export default function ModeratorProfilePage() {
     loadData();
   }, []);
 
-  // 1. Save Profile Details
+  // 1. Save Profile Details (F.I.SH, Telefon, Lavozim, Kafedra, etc.)
   const handleSaveProfile = async (e) => {
     e.preventDefault();
-    setSaving(true);
+    setSavingProfile(true);
     setStatusMsg(null);
 
     try {
@@ -145,7 +123,7 @@ export default function ModeratorProfilePage() {
           departmentId,
           academicDegree,
           academicTitle,
-          publicEmail,
+          phone,
           telegramUsername,
           photoUrl,
           bioUz,
@@ -153,7 +131,7 @@ export default function ModeratorProfilePage() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        setStatusMsg({ type: 'success', text: data.message || 'Profil muvaffaqiyatli yangilandi!' });
+        setStatusMsg({ type: 'success', text: data.message || 'Profil sozlamalari muvaffaqiyatli saqlandi!' });
         setProfile(data.profile);
       } else {
         setStatusMsg({ type: 'error', text: data.error || 'Xatolik yuz berdi' });
@@ -161,14 +139,20 @@ export default function ModeratorProfilePage() {
     } catch {
       setStatusMsg({ type: 'error', text: 'Tarmoq xatosi' });
     } finally {
-      setSaving(false);
+      setSavingProfile(false);
       setTimeout(() => setStatusMsg(null), 4000);
     }
   };
 
-  // 2. Save Notification Preferences
-  const handleSaveNotifications = async () => {
-    setSaving(true);
+  // 2. Change Email
+  const handleChangeEmail = async (e) => {
+    e.preventDefault();
+    if (!newEmail || !emailCurrentPassword) {
+      setStatusMsg({ type: 'error', text: 'Yangi email va amaldagi parolni kiriting' });
+      return;
+    }
+
+    setUpdatingEmail(true);
     setStatusMsg(null);
 
     try {
@@ -176,21 +160,25 @@ export default function ModeratorProfilePage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'UPDATE_NOTIFICATIONS',
-          preferences: notifications,
+          action: 'CHANGE_EMAIL',
+          newEmail,
+          currentPassword: emailCurrentPassword,
         }),
       });
       const data = await res.json();
       if (res.ok && data.success) {
         setStatusMsg({ type: 'success', text: data.message });
+        setUserEmail(data.newEmail);
+        setNewEmail('');
+        setEmailCurrentPassword('');
       } else {
-        setStatusMsg({ type: 'error', text: data.error || 'Saqlashda xatolik' });
+        setStatusMsg({ type: 'error', text: data.error || 'Emailni yangilashda xatolik' });
       }
     } catch {
       setStatusMsg({ type: 'error', text: 'Tarmoq xatosi' });
     } finally {
-      setSaving(false);
-      setTimeout(() => setStatusMsg(null), 4000);
+      setUpdatingEmail(false);
+      setTimeout(() => setStatusMsg(null), 5000);
     }
   };
 
@@ -202,7 +190,7 @@ export default function ModeratorProfilePage() {
       return;
     }
     if (newPassword.length < 8) {
-      setStatusMsg({ type: 'error', text: 'Yangi parol kamida 8 ta belgidan iborat bo‘lishi kerak!' });
+      setStatusMsg({ type: 'error', text: 'Yangi parol kamida 8 ta belgidan iborat bo‘lishi lozim!' });
       return;
     }
 
@@ -296,14 +284,14 @@ export default function ModeratorProfilePage() {
       <div className="p-8 flex items-center justify-center min-h-[60vh]">
         <div className="flex items-center gap-3 text-slate-500 font-semibold text-sm">
           <RefreshCw className="w-5 h-5 animate-spin text-blue-600" />
-          <span>Moderator boshqaruv paneli yuklanmoqda...</span>
+          <span>Moderator profil sozlamalari yuklanmoqda...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+    <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
       {/* Top Banner with Moderator Identity */}
       <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
         <div className="absolute right-0 top-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -319,13 +307,13 @@ export default function ModeratorProfilePage() {
             <div className="space-y-1">
               <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[11px] font-bold">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Rasmiy TIU Moderatori (Ilmiy Bo‘lim)</span>
+                <span>Rasmiy TIU Moderatori</span>
               </div>
               <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
                 {fullName || 'TIU Moderatori'}
               </h1>
               <p className="text-xs text-blue-200/80 font-medium max-w-xl">
-                {positionUz || 'Ilmiy bo‘lim bosh koordinatori va moderatori'} • {profile?.department?.nameUz || 'Kafedra belgilanmagan'}
+                {userEmail} • {positionUz || 'Ilmiy bo‘lim koordinatori'}
               </p>
             </div>
           </div>
@@ -342,7 +330,7 @@ export default function ModeratorProfilePage() {
           </div>
         </div>
 
-        {/* Tab Navigation */}
+        {/* 3 Focused Tabs */}
         <div className="flex items-center gap-2 mt-6 pt-5 border-t border-white/10 overflow-x-auto text-xs">
           <button
             type="button"
@@ -354,33 +342,7 @@ export default function ModeratorProfilePage() {
             }`}
           >
             <User className="w-3.5 h-3.5" />
-            <span>1. Profil & Xizmat Sozlamalari</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('METRICS')}
-            className={`px-4 py-2 rounded-xl font-bold transition cursor-pointer flex items-center gap-2 shrink-0 ${
-              activeTab === 'METRICS'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-white/80 hover:bg-white/10 hover:text-white'
-            }`}
-          >
-            <BarChart3 className="w-3.5 h-3.5 text-emerald-400" />
-            <span>2. Jonli Moderatsiya Metrikalari</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('NOTIFICATIONS')}
-            className={`px-4 py-2 rounded-xl font-bold transition cursor-pointer flex items-center gap-2 shrink-0 ${
-              activeTab === 'NOTIFICATIONS'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-white/80 hover:bg-white/10 hover:text-white'
-            }`}
-          >
-            <Bell className="w-3.5 h-3.5 text-amber-400" />
-            <span>3. Telegram & Alert Matritsasi</span>
+            <span>1. Shaxsiy va Xizmat Ma’lumotlari</span>
           </button>
 
           <button
@@ -393,7 +355,7 @@ export default function ModeratorProfilePage() {
             }`}
           >
             <KeyRound className="w-3.5 h-3.5 text-purple-400" />
-            <span>4. Xavfsizlik & Parol Yangilash</span>
+            <span>2. Email & Parolni O‘zgartirish</span>
           </button>
 
           <button
@@ -406,12 +368,12 @@ export default function ModeratorProfilePage() {
             }`}
           >
             <Headphones className="w-3.5 h-3.5 text-blue-400" />
-            <span>5. Adminga Murojaat Markazi</span>
+            <span>3. Bosh Administratorga Bog‘lanish</span>
           </button>
         </div>
       </div>
 
-      {/* Global Status Toast */}
+      {/* Global Status Feedback Toast */}
       {statusMsg && (
         <div
           className={`p-4 rounded-2xl text-xs font-bold flex items-center gap-3 border shadow-sm transition-all ${
@@ -430,7 +392,7 @@ export default function ModeratorProfilePage() {
       )}
 
       {/* ======================================================== */}
-      {/* TAB 1: MODERATOR PROFILE & SERVICE SETTINGS */}
+      {/* TAB 1: MODERATOR PROFILE & SERVICE DETAILS (Telefon, F.I.SH, Lavozim) */}
       {/* ======================================================== */}
       {activeTab === 'PROFILE' && (
         <form onSubmit={handleSaveProfile} className="space-y-6">
@@ -439,19 +401,19 @@ export default function ModeratorProfilePage() {
               <div>
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                   <UserCheck className="w-5 h-5 text-blue-600" />
-                  Xizmat va Shaxsiy Ma’lumotlar
+                  Xizmat va Aloqa Rekvizitlari
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Moderator sifatida platformada va olimlarga ko‘rinadigan rasmiy ma’lumotlaringizni boshqaring.
+                  Moderator sifatida platformada ko‘rinadigan rasmiy ma’lumotlaringiz va telefon raqamingiz.
                 </p>
               </div>
               <button
                 type="submit"
-                disabled={saving}
+                disabled={savingProfile}
                 className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition cursor-pointer flex items-center gap-2 disabled:opacity-50"
               >
                 <Save className="w-3.5 h-3.5" />
-                <span>{saving ? 'Saqlanmoqda...' : 'O‘zgarishlarni saqlash'}</span>
+                <span>{savingProfile ? 'Saqlanmoqda...' : 'O‘zgarishlarni saqlash'}</span>
               </button>
             </div>
 
@@ -475,7 +437,36 @@ export default function ModeratorProfilePage() {
                   value={positionUz}
                   onChange={(e) => setPositionUz(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-medium"
-                  placeholder="Masalan: Ilmiy bo‘lim bosh koordinatori va moderatori"
+                  placeholder="Masalan: Ilmiy bo‘lim koordinatori va moderatori"
+                />
+              </div>
+
+              {/* TELEFON RAQAMINI O'ZGARTIRISH */}
+              <div>
+                <label className="block font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                  <Smartphone className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Telefon Raqami (Aloqa uchun):</span>
+                </label>
+                <input
+                  type="text"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-medium"
+                  placeholder="+998 90 123 45 67"
+                />
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  Universitet ilmiy bo‘limi va olimlar bilan bog‘lanish uchun asosiy telefon raqamingiz.
+                </span>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1.5">Telegram Username (@belgisiz):</label>
+                <input
+                  type="text"
+                  value={telegramUsername}
+                  onChange={(e) => setTelegramUsername(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-medium"
+                  placeholder="tiu_moderator"
                 />
               </div>
 
@@ -528,28 +519,6 @@ export default function ModeratorProfilePage() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1.5">Xizmat Emaili:</label>
-                <input
-                  type="email"
-                  value={publicEmail}
-                  onChange={(e) => setPublicEmail(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-medium"
-                  placeholder="moderator@tiu.uz"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1.5">Telegram Username (@belgisiz):</label>
-                <input
-                  type="text"
-                  value={telegramUsername}
-                  onChange={(e) => setTelegramUsername(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-medium"
-                  placeholder="tiu_moderator"
-                />
-              </div>
-
-              <div>
                 <label className="block font-bold text-slate-700 mb-1.5">Fotosurat URL manzili (Avatar):</label>
                 <input
                   type="text"
@@ -562,14 +531,14 @@ export default function ModeratorProfilePage() {
 
               <div className="md:col-span-2">
                 <label className="block font-bold text-slate-700 mb-1.5">
-                  Moderatorlik yo‘nalishi va qisqacha xizmat ma’lumoti:
+                  Moderatorlik yo‘nalishi va qabul/konsultatsiya soatlari:
                 </label>
                 <textarea
                   rows={3}
                   value={bioUz}
                   onChange={(e) => setBioUz(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-medium"
-                  placeholder="Ilmiy bo‘limdagi nazorat sohangiz, qabul va konsultatsiya vaqtlari haqida ma'lumot..."
+                  placeholder="Masalan: Maqolalarni qabul qilish va ekspertiza vaqtlari: Dushanba-Juma 14:00 - 17:00..."
                 />
               </div>
             </div>
@@ -578,312 +547,165 @@ export default function ModeratorProfilePage() {
       )}
 
       {/* ======================================================== */}
-      {/* TAB 2: LIVE MODERATION GOVERNANCE METRICS */}
-      {/* ======================================================== */}
-      {activeTab === 'METRICS' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  Kutilayotgan Nashrlar
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                  <Clock className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-3xl font-black text-slate-900">{metrics.pendingPublications}</div>
-              <p className="text-[11px] text-amber-600 font-medium">Ko‘rib chiqish navbatida turibdi</p>
-            </div>
-
-            <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  Tasdiqlangan Nashrlar
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                  <CheckCircle className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-3xl font-black text-slate-900">{metrics.approvedPublications}</div>
-              <p className="text-[11px] text-emerald-600 font-medium">Ekspertizadan o‘tgan va ball berilgan</p>
-            </div>
-
-            <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  Rad Etilgan / Qaytarilgan
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
-                  <AlertTriangle className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-3xl font-black text-slate-900">{metrics.rejectedPublications}</div>
-              <p className="text-[11px] text-rose-600 font-medium">Tahrir yoki asos yetishmaganligi sabab</p>
-            </div>
-
-            <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  Moderatsiya Samaradorligi
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                  <Flame className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-3xl font-black text-blue-600">{metrics.efficiencyRate}%</div>
-              <p className="text-[11px] text-blue-600 font-medium">SLA talablariga mos ko‘rsatkich</p>
-            </div>
-          </div>
-
-          {/* Detailed Oversight Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-4">
-              <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <Layers className="w-4 h-4 text-blue-600" />
-                Universitet Ilmiy Resurslari Nazorati
-              </h4>
-              <div className="space-y-3 text-xs">
-                <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                  <span className="text-slate-600 font-medium">Jami faol ilmiy xodimlar va professorlar:</span>
-                  <span className="font-bold text-slate-900">{metrics.totalScholars} nafar</span>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                  <span className="text-slate-600 font-medium">Tasdiq kutayotgan dissertatsiya bosqichlari:</span>
-                  <span className="font-bold text-amber-600">{metrics.pendingSupervisions} ta</span>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                  <span className="text-slate-600 font-medium">Javob berilmagan savol va murojaatlar:</span>
-                  <span className="font-bold text-indigo-600">{metrics.pendingInquiries} ta</span>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                  <span className="text-slate-600 font-medium">Sizning tizimdagi jami audit harakatlaringiz:</span>
-                  <span className="font-bold text-slate-900">{metrics.moderatorActionsCount} marta</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-4">
-              <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <Award className="w-4 h-4 text-emerald-600" />
-                Moderatorlik Standartlari (SLA Qoidalari)
-              </h4>
-              <div className="space-y-2.5 text-xs text-slate-600">
-                <div className="p-3 rounded-2xl bg-emerald-50/60 border border-emerald-100 flex items-start gap-2.5">
-                  <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold text-slate-900 block">72 soatlik tekshiruv standarti:</span>
-                    Olimlar tomonidan yuklangan har bir nashr 3 ish kuni ichida ekspertizadan o‘tkazilishi lozim.
-                  </div>
-                </div>
-                <div className="p-3 rounded-2xl bg-blue-50/60 border border-blue-100 flex items-start gap-2.5">
-                  <CheckCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold text-slate-900 block">Plagiat va DOI tekshiruvi:</span>
-                    Scopus, Web of Science va OAK jurnallari DOI haqiqiyligi hamda o‘xshashlik foizi 15% dan oshmasligi kafolatlanadi.
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ======================================================== */}
-      {/* TAB 3: NOTIFICATIONS & TELEGRAM ALERT MATRIX */}
-      {/* ======================================================== */}
-      {activeTab === 'NOTIFICATIONS' && (
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
-          <div className="border-b border-slate-100 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Bell className="w-5 h-5 text-amber-500" />
-                Bildirishnomalar va Telegram Alert Matritsasi
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Moderatorga yuboriladigan tizim xabarlari va Telegram bot ogohlantirishlarini moslashtiring.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={handleSaveNotifications}
-              disabled={saving}
-              className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition cursor-pointer flex items-center gap-2 disabled:opacity-50"
-            >
-              <Save className="w-3.5 h-3.5" />
-              <span>{saving ? 'Saqlanmoqda...' : 'Sozlamalarni saqlash'}</span>
-            </button>
-          </div>
-
-          <div className="space-y-4 text-xs">
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
-              <div>
-                <span className="font-bold text-slate-800 block">Yangi Ilmiy Nashr Topshirilganda Alert</span>
-                <span className="text-slate-500 text-[11px]">
-                  Olim portalga yangi Scopus, OAK yoki dissertatsiya yuklagan zahoti Telegram botga xabar yuborish.
-                </span>
-              </div>
-              <input
-                type="checkbox"
-                checked={notifications.notifyOnNewSubmission}
-                onChange={(e) => setNotifications({ ...notifications, notifyOnNewSubmission: e.target.checked })}
-                className="w-5 h-5 text-blue-600 rounded cursor-pointer accent-blue-600"
-              />
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
-              <div>
-                <span className="font-bold text-slate-800 block">Olimlar Savol yoki Izoh Yozganda (TIUgram)</span>
-                <span className="text-slate-500 text-[11px]">
-                  Olimlar e’lonlar yoki so‘rovnomalar bo‘yicha izoh/savol yo‘llaganda bildirishnoma kelishi.
-                </span>
-              </div>
-              <input
-                type="checkbox"
-                checked={notifications.notifyOnAuthorInquiry}
-                onChange={(e) => setNotifications({ ...notifications, notifyOnAuthorInquiry: e.target.checked })}
-                className="w-5 h-5 text-blue-600 rounded cursor-pointer accent-blue-600"
-              />
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
-              <div>
-                <span className="font-bold text-slate-800 block">Dissertatsiya Bosqichi Muddatlari (Deadlines)</span>
-                <span className="text-slate-500 text-[11px]">
-                  Izlanuvchilarning yarim yillik yoki yillik hisobot muddati tugashidan 3 kun oldin eslatma.
-                </span>
-              </div>
-              <input
-                type="checkbox"
-                checked={notifications.notifyOnMilestoneDeadline}
-                onChange={(e) => setNotifications({ ...notifications, notifyOnMilestoneDeadline: e.target.checked })}
-                className="w-5 h-5 text-blue-600 rounded cursor-pointer accent-blue-600"
-              />
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
-              <div>
-                <span className="font-bold text-slate-800 block">Bosh Administrator Javobi va Rezolyutsiyalari</span>
-                <span className="text-slate-500 text-[11px]">
-                  Adminga yo‘llagan murojaatingiz ko‘rib chiqilganda tezkor xabar kelishi.
-                </span>
-              </div>
-              <input
-                type="checkbox"
-                checked={notifications.notifyOnAdminResponse}
-                onChange={(e) => setNotifications({ ...notifications, notifyOnAdminResponse: e.target.checked })}
-                className="w-5 h-5 text-blue-600 rounded cursor-pointer accent-blue-600"
-              />
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
-              <div>
-                <span className="font-bold text-slate-800 block">Ovozli Telegram Alert Xabarlari</span>
-                <span className="text-slate-500 text-[11px]">
-                  Telegram xabarlari ovozli bildirishnoma (push sound) bilan yuboriladi.
-                </span>
-              </div>
-              <input
-                type="checkbox"
-                checked={notifications.telegramAlertSound}
-                onChange={(e) => setNotifications({ ...notifications, telegramAlertSound: e.target.checked })}
-                className="w-5 h-5 text-blue-600 rounded cursor-pointer accent-blue-600"
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ======================================================== */}
-      {/* TAB 4: SECURITY & PASSWORD UPDATE */}
+      {/* TAB 2: ACCOUNT SECURITY (EMAIL VA PAROLNI O'ZGARTIRISH) */}
       {/* ======================================================== */}
       {activeTab === 'SECURITY' && (
-        <div className="max-w-2xl bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
-          <div className="border-b border-slate-100 pb-4">
-            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <KeyRound className="w-5 h-5 text-purple-600" />
-              Akkaunt Xavfsizligi va Parolni Yangilash
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Moderatorlik hisobingiz xavfsizligini ta’minlash uchun parolingizni muntazam yangilab boring.
-            </p>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* 1. EMAILNI O'ZGARTIRISH BLOKI */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-5">
+            <div className="border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <AtSign className="w-5 h-5 text-blue-600" />
+                Kirish Emailini O‘zgartirish
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Tizimga kirish uchun foydalaniladigan rasmiy email manzilingizni yangilang.
+              </p>
+            </div>
 
-          <form onSubmit={handleChangePassword} className="space-y-4 text-xs">
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Hozirgi parolingiz:</label>
-              <div className="relative">
+            <form onSubmit={handleChangeEmail} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-slate-500 mb-1">Amaldagi kirish emaili:</label>
+                <div className="px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-mono font-bold">
+                  {userEmail}
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Yangi email manzili:</label>
                 <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-medium pr-10"
-                  placeholder="Amaldagi parolni kiriting"
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="yangi_email@tiu.uz"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-medium"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  O‘zgarishni tasdiqlash uchun amaldagi parolingiz:
+                </label>
+                <input
+                  type="password"
+                  value={emailCurrentPassword}
+                  onChange={(e) => setEmailCurrentPassword(e.target.value)}
+                  placeholder="Amaldagi parolni kiriting"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-medium"
+                  required
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end">
                 <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  type="submit"
+                  disabled={updatingEmail || !newEmail || !emailCurrentPassword}
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition cursor-pointer flex items-center gap-2 disabled:opacity-50"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  <Mail className="w-3.5 h-3.5" />
+                  <span>{updatingEmail ? 'Yangilanmoqda...' : 'Emailni yangilash'}</span>
                 </button>
               </div>
+            </form>
+          </div>
+
+          {/* 2. PAROLNI O'ZGARTIRISH BLOKI */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-5">
+            <div className="border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <KeyRound className="w-5 h-5 text-purple-600" />
+                Parolni Yangilash
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Moderator hisobingiz xavfsizligi uchun mustahkam paroldan foydalaning.
+              </p>
             </div>
 
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Yangi parol (kamida 8 ta belgi):</label>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-medium"
-                placeholder="Yangi mustahkam parol"
-                required
-              />
-
-              {/* Password strength meter */}
-              {newPassword && (
-                <div className="mt-2 space-y-1">
-                  <div className="flex items-center justify-between text-[10px] font-bold text-slate-500">
-                    <span>Parol darajasi:</span>
-                    <span>{strength.label}</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className={`h-full ${strength.color} ${strength.width} transition-all duration-300`} />
-                  </div>
+            <form onSubmit={handleChangePassword} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Amaldagi parol:</label>
+                <div className="relative">
+                  <input
+                    type={showCurrentPass ? 'text' : 'password'}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-medium pr-10"
+                    placeholder="Hozirgi parolingiz"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPass(!showCurrentPass)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    {showCurrentPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
-              )}
-            </div>
+              </div>
 
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Yangi parolni takrorlang:</label>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-medium"
-                placeholder="Yangi parolni qayta kiriting"
-                required
-              />
-            </div>
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Yangi parol (kamida 8 ta belgi):</label>
+                <div className="relative">
+                  <input
+                    type={showNewPass ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-medium pr-10"
+                    placeholder="Yangi mustahkam parol"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPass(!showNewPass)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    {showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
 
-            <div className="pt-3 flex justify-end">
-              <button
-                type="submit"
-                disabled={updatingPassword || !currentPassword || !newPassword}
-                className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md transition cursor-pointer flex items-center gap-2 disabled:opacity-50"
-              >
-                <Lock className="w-3.5 h-3.5" />
-                <span>{updatingPassword ? 'Yangilanmoqda...' : 'Parolni yangilash 🔐'}</span>
-              </button>
-            </div>
-          </form>
+                {newPassword && (
+                  <div className="mt-2 space-y-1">
+                    <div className="flex items-center justify-between text-[10px] font-bold text-slate-500">
+                      <span>Mustahkamlik:</span>
+                      <span>{strength.label}</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div className={`h-full ${strength.color} ${strength.width} transition-all duration-300`} />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Yangi parolni takrorlang:</label>
+                <input
+                  type={showNewPass ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-medium"
+                  placeholder="Yangi parolni qayta kiriting"
+                  required
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end">
+                <button
+                  type="submit"
+                  disabled={updatingPassword || !currentPassword || !newPassword}
+                  className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md transition cursor-pointer flex items-center gap-2 disabled:opacity-50"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>{updatingPassword ? 'Yangilanmoqda...' : 'Parolni yangilash 🔐'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
       {/* ======================================================== */}
-      {/* TAB 5: CONTACT SUPER ADMIN & SEND ESCALATION INQUIRY */}
+      {/* TAB 3: CONTACT SUPER ADMIN & SEND ESCALATION INQUIRY */}
       {/* ======================================================== */}
       {activeTab === 'CONTACT_ADMIN' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

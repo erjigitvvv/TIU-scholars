@@ -35,6 +35,7 @@ export async function GET() {
             academicDegree: 'PHD',
             academicTitle: 'DOCENT',
             publicEmail: user.email,
+            phone: '+998 95 131 55 55',
           },
           include: {
             department: {
@@ -64,68 +65,7 @@ export async function GET() {
       workingHours: 'Dushanba - Juma: 09:00 - 18:00',
     };
 
-    // 4. Moderation Metrics & Performance Aggregates
-    const [
-      pendingPublications,
-      approvedPublications,
-      rejectedPublications,
-      pendingSupervisions,
-      pendingInquiries,
-      totalScholars,
-      moderatorActionsCount,
-    ] = await Promise.all([
-      prisma.publication.count({ where: { status: 'PENDING' } }),
-      prisma.publication.count({ where: { status: 'APPROVED' } }),
-      prisma.publication.count({ where: { status: 'REJECTED' } }),
-      prisma.supervision.count({ where: { status: 'PENDING' } }),
-      prisma.announcementInquiry.count({ where: { status: 'PENDING' } }),
-      prisma.scholarProfile.count(),
-      prisma.auditLog.count({ where: { actorId: user.id } }),
-    ]);
-
-    const totalProcessed = approvedPublications + rejectedPublications;
-    const totalAll = totalProcessed + pendingPublications;
-    const efficiencyRate = totalAll > 0 ? Math.round((totalProcessed / totalAll) * 100) : 100;
-
-    const metrics = {
-      pendingPublications,
-      approvedPublications,
-      rejectedPublications,
-      pendingSupervisions,
-      pendingInquiries,
-      totalScholars,
-      moderatorActionsCount,
-      efficiencyRate,
-    };
-
-    // 5. Fetch notification preferences from AuditLog
-    const latestPrefLog = await prisma.auditLog.findFirst({
-      where: {
-        actorId: user.id,
-        action: 'USER_PREFERENCES',
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    let notificationPreferences = {
-      notifyOnNewSubmission: true,
-      notifyOnAuthorInquiry: true,
-      notifyOnMilestoneDeadline: true,
-      notifyOnAdminResponse: true,
-      telegramAlertSound: true,
-      dailyDigestEmail: false,
-    };
-
-    if (latestPrefLog?.details) {
-      try {
-        notificationPreferences = {
-          ...notificationPreferences,
-          ...JSON.parse(latestPrefLog.details),
-        };
-      } catch {}
-    }
-
-    // 6. Fetch recent inquiries sent by this moderator
+    // 4. Fetch recent inquiries sent by this moderator
     const recentInquiries = await prisma.auditLog.findMany({
       where: {
         actorId: user.id,
@@ -161,8 +101,6 @@ export async function GET() {
       profile,
       faculties,
       adminContacts,
-      metrics,
-      notificationPreferences,
       recentInquiries: parsedInquiries,
     });
   } catch (error) {
@@ -182,7 +120,7 @@ export async function PUT(request) {
     const action = body.action || 'UPDATE_PROFILE';
 
     // ----------------------------------------------------
-    // ACTION 1: PASSWORD CHANGE (Xavfsizlik & Parol Yangilash)
+    // 1. UPDATE PASSWORD (Parolni Yangilash)
     // ----------------------------------------------------
     if (action === 'CHANGE_PASSWORD') {
       const { currentPassword, newPassword, confirmPassword } = body;
@@ -261,29 +199,81 @@ export async function PUT(request) {
     }
 
     // ----------------------------------------------------
-    // ACTION 2: NOTIFICATION PREFERENCES (Alert Matritsasi)
+    // 2. UPDATE EMAIL (Kirish Emaili va Xizmat Emailini Yangilash)
     // ----------------------------------------------------
-    if (action === 'UPDATE_NOTIFICATIONS') {
-      const { preferences } = body;
+    if (action === 'CHANGE_EMAIL') {
+      const { newEmail, currentPassword } = body;
+      const cleanEmail = (newEmail || '').trim().toLowerCase();
+
+      if (!cleanEmail || !cleanEmail.includes('@')) {
+        return NextResponse.json(
+          { success: false, error: 'To‘g‘ri email manzilini kiriting' },
+          { status: 400 }
+        );
+      }
+
+      if (cleanEmail === user.email.toLowerCase()) {
+        return NextResponse.json(
+          { success: false, error: 'Yangi email amaldagi email bilan bir xil' },
+          { status: 400 }
+        );
+      }
+
+      // Check if current password is provided for email change security
+      const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
+      const isPassValid = await bcrypt.compare(currentPassword || '', dbUser?.passwordHash || '');
+      if (!isPassValid) {
+        return NextResponse.json(
+          { success: false, error: 'Emailni o‘zgartirish uchun amaldagi parolingizni to‘g‘ri kiriting' },
+          { status: 400 }
+        );
+      }
+
+      // Check if another user has this email
+      const existing = await prisma.user.findUnique({
+        where: { email: cleanEmail },
+      });
+      if (existing && existing.id !== user.id) {
+        return NextResponse.json(
+          { success: false, error: 'Ushbu email manzili boshqa foydalanuvchi tomonidan band qilingan' },
+          { status: 400 }
+        );
+      }
+
+      // Update User email and ScholarProfile publicEmail
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { email: cleanEmail },
+      });
+
+      await prisma.scholarProfile.updateMany({
+        where: { userId: user.id },
+        data: { publicEmail: cleanEmail },
+      });
 
       await prisma.auditLog.create({
         data: {
           actorId: user.id,
-          action: 'USER_PREFERENCES',
-          entityType: 'MODERATOR_SETTINGS',
+          action: 'EMAIL_CHANGE',
+          entityType: 'USER_SECURITY',
           entityId: user.id,
-          details: JSON.stringify(preferences || {}),
+          details: JSON.stringify({
+            oldEmail: user.email,
+            newEmail: cleanEmail,
+            changedAt: new Date().toISOString(),
+          }),
         },
       });
 
       return NextResponse.json({
         success: true,
-        message: 'Bildirishnoma va alert sozlamalari muvaffaqiyatli saqlandi! 🔔',
+        newEmail: cleanEmail,
+        message: 'Kirish emaili muvaffaqiyatli yangilandi! Yangi email bilan tizimga kirishingiz mumkin. ✉️',
       });
     }
 
     // ----------------------------------------------------
-    // ACTION 3: PROFILE DETAILS (Xizmat va Shaxsiy Ma’lumotlar)
+    // 3. UPDATE PROFILE & CONTACTS (F.I.SH, Telefon, Kafedra, Lavozim)
     // ----------------------------------------------------
     const {
       fullName,
@@ -292,6 +282,7 @@ export async function PUT(request) {
       academicDegree,
       academicTitle,
       photoUrl,
+      phone,
       publicEmail,
       telegramUsername,
       bioUz,
@@ -308,6 +299,7 @@ export async function PUT(request) {
           userId: user.id,
           fullName: fullName || 'TIU Moderatori',
           departmentId: departmentId || defaultDept?.id,
+          phone: phone || null,
         },
       });
     }
@@ -321,6 +313,7 @@ export async function PUT(request) {
         academicDegree: academicDegree || profile.academicDegree,
         academicTitle: academicTitle || profile.academicTitle,
         photoUrl: photoUrl !== undefined ? photoUrl : profile.photoUrl,
+        phone: phone !== undefined ? phone : profile.phone,
         publicEmail: publicEmail !== undefined ? publicEmail : profile.publicEmail,
         telegramUsername: telegramUsername !== undefined ? telegramUsername : profile.telegramUsername,
         bioUz: bioUz !== undefined ? bioUz : profile.bioUz,
@@ -341,6 +334,7 @@ export async function PUT(request) {
         entityId: profile.id,
         details: JSON.stringify({
           fullName: updated.fullName,
+          phone: updated.phone,
           positionUz: updated.positionUz,
           updatedAt: new Date().toISOString(),
         }),
@@ -350,7 +344,7 @@ export async function PUT(request) {
     return NextResponse.json({
       success: true,
       profile: updated,
-      message: 'Moderator profili muvaffaqiyatli saqlandi! ✅',
+      message: 'Moderator profil sozlamalari muvaffaqiyatli saqlandi! ✅',
     });
   } catch (error) {
     console.error('PUT /api/admin/profile error:', error);

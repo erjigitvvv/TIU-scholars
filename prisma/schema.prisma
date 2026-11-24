@@ -67,6 +67,7 @@ model ScholarProfile {
   researchInterests  String              @default("[]") // JSON string array
   photoUrl           String?
   publicEmail        String?
+  phone              String?
   orcidId            String?
   scopusId           String?
   positionUz         String?
