@@ -313,6 +313,19 @@ export default function ProfilePage() {
   const [pwError, setPwError] = useState('');
   const [emailError, setEmailError] = useState('');
 
+  // Maydonlarni qalam icon orqali tahrirlash holati (Pencil-click inline edit)
+  const [editingFields, setEditingFields] = useState({});
+  const toggleEditField = (field) => {
+    setEditingFields((prev) => ({ ...prev, [field]: !prev[field] }));
+  };
+  const closeEditField = (field) => {
+    setEditingFields((prev) => ({ ...prev, [field]: false }));
+  };
+  const handleSaveField = async (field) => {
+    closeEditField(field);
+    handleSubmit();
+  };
+
   const t = COPY[locale] || COPY.uz;
 
   const showToast = (text, type = 'success') => {
@@ -852,120 +865,436 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Basic Info */}
+          {/* Basic Info with Pencil-click Inline Edit */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
+            {/* 1. To'liq ism-familiya (F.I.Sh.) */}
             <div className="lg:col-span-4">
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                {t.fullName}
-              </label>
-              <input
-                type="text"
-                required
-                value={profile.fullName || ''}
-                onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              {!editingFields.fullName ? (
+                <div className="p-3.5 rounded-2xl bg-white/80 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-3 shadow-2xs hover:border-blue-300 dark:hover:border-blue-700 transition">
+                  <div className="min-w-0 flex-1">
+                    <span className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-0.5">
+                      {t.fullName}
+                    </span>
+                    <span className="block text-sm font-bold text-slate-900 dark:text-white truncate">
+                      {profile.fullName || <span className="text-slate-400 font-normal italic">Kiritilmagan</span>}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleEditField('fullName')}
+                    className="p-2 rounded-xl text-blue-600 hover:text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition shrink-0"
+                    title="F.I.Sh.ni o'zgartirish"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-2xl bg-blue-50/50 dark:bg-blue-950/30 border-2 border-blue-500/80 dark:border-blue-500/60 shadow-sm">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">
+                      {t.fullName}
+                    </label>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleSaveField('fullName')}
+                        className="p-1 rounded-lg text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 transition"
+                        title="Saqlash"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => closeEditField('fullName')}
+                        className="p-1 rounded-lg text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
+                        title="Bekor qilish"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    value={profile.fullName || ''}
+                    onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              )}
             </div>
 
+            {/* 2. Ommaviy email */}
             <div className="lg:col-span-4">
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                {t.publicEmail}
-              </label>
-              <input
-                type="email"
-                value={profile.publicEmail || ''}
-                onChange={(e) => setProfile({ ...profile, publicEmail: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              {!editingFields.publicEmail ? (
+                <div className="p-3.5 rounded-2xl bg-white/80 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-3 shadow-2xs hover:border-blue-300 dark:hover:border-blue-700 transition">
+                  <div className="min-w-0 flex-1">
+                    <span className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-0.5">
+                      {t.publicEmail}
+                    </span>
+                    <span className="block text-sm font-bold text-slate-900 dark:text-white truncate">
+                      {profile.publicEmail || <span className="text-slate-400 font-normal italic">Kiritilmagan</span>}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleEditField('publicEmail')}
+                    className="p-2 rounded-xl text-blue-600 hover:text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition shrink-0"
+                    title="Emailni o'zgartirish"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-2xl bg-blue-50/50 dark:bg-blue-950/30 border-2 border-blue-500/80 dark:border-blue-500/60 shadow-sm">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">
+                      {t.publicEmail}
+                    </label>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleSaveField('publicEmail')}
+                        className="p-1 rounded-lg text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 transition"
+                        title="Saqlash"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => closeEditField('publicEmail')}
+                        className="p-1 rounded-lg text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
+                        title="Bekor qilish"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <input
+                    type="email"
+                    autoFocus
+                    value={profile.publicEmail || ''}
+                    onChange={(e) => setProfile({ ...profile, publicEmail: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              )}
             </div>
 
+            {/* 3. Ilmiy daraja */}
             <div className="lg:col-span-2">
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                {t.degree}
-              </label>
-              <select
-                value={profile.academicDegree || 'NONE'}
-                onChange={(e) => setProfile({ ...profile, academicDegree: e.target.value })}
-                className="w-full px-3 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-sm outline-none"
-              >
-                <option value="NONE">None</option>
-                <option value="PHD">PhD</option>
-                <option value="DSC">DSc</option>
-              </select>
+              {!editingFields.academicDegree ? (
+                <div className="p-3.5 rounded-2xl bg-white/80 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2 shadow-2xs hover:border-blue-300 dark:hover:border-blue-700 transition">
+                  <div className="min-w-0 flex-1">
+                    <span className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-0.5">
+                      {t.degree}
+                    </span>
+                    <span className="inline-block px-2 py-0.5 rounded-md text-xs font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                      {profile.academicDegree || 'NONE'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleEditField('academicDegree')}
+                    className="p-2 rounded-xl text-blue-600 hover:text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition shrink-0"
+                    title="Darajani o'zgartirish"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-2xl bg-blue-50/50 dark:bg-blue-950/30 border-2 border-blue-500/80 dark:border-blue-500/60 shadow-sm">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">
+                      {t.degree}
+                    </label>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleSaveField('academicDegree')}
+                        className="p-1 rounded-lg text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 transition"
+                        title="Saqlash"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => closeEditField('academicDegree')}
+                        className="p-1 rounded-lg text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
+                        title="Bekor qilish"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <select
+                    autoFocus
+                    value={profile.academicDegree || 'NONE'}
+                    onChange={(e) => setProfile({ ...profile, academicDegree: e.target.value })}
+                    className="w-full px-2.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="NONE">None</option>
+                    <option value="PHD">PhD</option>
+                    <option value="DSC">DSc</option>
+                  </select>
+                </div>
+              )}
             </div>
 
+            {/* 4. Ilmiy unvon */}
             <div className="lg:col-span-2">
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                {t.academicTitle}
-              </label>
-              <select
-                value={profile.academicTitle || 'NONE'}
-                onChange={(e) => setProfile({ ...profile, academicTitle: e.target.value })}
-                className="w-full px-3 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-sm outline-none"
-              >
-                <option value="NONE">None</option>
-                <option value="ASSISTANT">Assistant</option>
-                <option value="DOCENT">Docent</option>
-                <option value="PROFESSOR">Professor</option>
-              </select>
+              {!editingFields.academicTitle ? (
+                <div className="p-3.5 rounded-2xl bg-white/80 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2 shadow-2xs hover:border-blue-300 dark:hover:border-blue-700 transition">
+                  <div className="min-w-0 flex-1">
+                    <span className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-0.5">
+                      {t.academicTitle}
+                    </span>
+                    <span className="inline-block px-2 py-0.5 rounded-md text-xs font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300">
+                      {profile.academicTitle || 'NONE'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleEditField('academicTitle')}
+                    className="p-2 rounded-xl text-blue-600 hover:text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition shrink-0"
+                    title="Unvonni o'zgartirish"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-2xl bg-blue-50/50 dark:bg-blue-950/30 border-2 border-blue-500/80 dark:border-blue-500/60 shadow-sm">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">
+                      {t.academicTitle}
+                    </label>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleSaveField('academicTitle')}
+                        className="p-1 rounded-lg text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 transition"
+                        title="Saqlash"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => closeEditField('academicTitle')}
+                        className="p-1 rounded-lg text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
+                        title="Bekor qilish"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <select
+                    autoFocus
+                    value={profile.academicTitle || 'NONE'}
+                    onChange={(e) => setProfile({ ...profile, academicTitle: e.target.value })}
+                    className="w-full px-2.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="NONE">None</option>
+                    <option value="ASSISTANT">Assistant</option>
+                    <option value="DOCENT">Docent</option>
+                    <option value="PROFESSOR">Professor</option>
+                  </select>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Faculty, Department, Position */}
+          {/* Faculty, Department, Position with Pencil-click Inline Edit */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Faculty */}
             <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
-                <Building2 className="w-3.5 h-3.5 text-blue-600" />
-                {t.faculty}
-              </label>
-              <select
-                value={selectedFacultyId}
-                onChange={(e) => {
-                  const fId = e.target.value;
-                  setSelectedFacultyId(fId);
-                  const fac = faculties.find((f) => f.id === fId);
-                  if (fac && fac.departments?.length > 0) {
-                    setProfile({ ...profile, departmentId: fac.departments[0].id });
-                  }
-                }}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-sm outline-none"
-              >
-                {faculties.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {locale === 'ru' ? f.nameRu || f.nameUz : locale === 'en' ? f.nameEn || f.nameUz : f.nameUz}
-                  </option>
-                ))}
-              </select>
+              {!editingFields.faculty ? (
+                <div className="p-3.5 rounded-2xl bg-white/80 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-3 shadow-2xs hover:border-blue-300 dark:hover:border-blue-700 transition">
+                  <div className="min-w-0 flex-1">
+                    <span className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-0.5 flex items-center gap-1.5">
+                      <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                      {t.faculty}
+                    </span>
+                    <span className="block text-xs font-bold text-slate-900 dark:text-white truncate">
+                      {faculties.find((f) => f.id === selectedFacultyId)?.nameUz || <span className="text-slate-400 font-normal italic">Tanlanmagan</span>}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleEditField('faculty')}
+                    className="p-2 rounded-xl text-blue-600 hover:text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition shrink-0"
+                    title="Fakultetni o'zgartirish"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-2xl bg-blue-50/50 dark:bg-blue-950/30 border-2 border-blue-500/80 dark:border-blue-500/60 shadow-sm">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider flex items-center gap-1">
+                      <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                      {t.faculty}
+                    </label>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleSaveField('faculty')}
+                        className="p-1 rounded-lg text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 transition"
+                        title="Saqlash"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => closeEditField('faculty')}
+                        className="p-1 rounded-lg text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
+                        title="Bekor qilish"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <select
+                    autoFocus
+                    value={selectedFacultyId}
+                    onChange={(e) => {
+                      const fId = e.target.value;
+                      setSelectedFacultyId(fId);
+                      const fac = faculties.find((f) => f.id === fId);
+                      if (fac && fac.departments?.length > 0) {
+                        setProfile({ ...profile, departmentId: fac.departments[0].id });
+                      }
+                    }}
+                    className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {faculties.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {locale === 'ru' ? f.nameRu || f.nameUz : locale === 'en' ? f.nameEn || f.nameUz : f.nameUz}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
+            {/* Department */}
             <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                {t.department}
-              </label>
-              <select
-                value={profile.departmentId || ''}
-                onChange={(e) => setProfile({ ...profile, departmentId: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-sm outline-none"
-              >
-                {(faculties.find((f) => f.id === selectedFacultyId)?.departments || []).map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {locale === 'ru' ? d.nameRu || d.nameUz : locale === 'en' ? d.nameEn || d.nameUz : d.nameUz}
-                  </option>
-                ))}
-              </select>
+              {!editingFields.department ? (
+                <div className="p-3.5 rounded-2xl bg-white/80 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-3 shadow-2xs hover:border-blue-300 dark:hover:border-blue-700 transition">
+                  <div className="min-w-0 flex-1">
+                    <span className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-0.5">
+                      {t.department}
+                    </span>
+                    <span className="block text-xs font-bold text-slate-900 dark:text-white truncate">
+                      {(faculties.find((f) => f.id === selectedFacultyId)?.departments || []).find((d) => d.id === profile.departmentId)?.nameUz || <span className="text-slate-400 font-normal italic">Tanlanmagan</span>}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleEditField('department')}
+                    className="p-2 rounded-xl text-blue-600 hover:text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition shrink-0"
+                    title="Kafedrani o'zgartirish"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-2xl bg-blue-50/50 dark:bg-blue-950/30 border-2 border-blue-500/80 dark:border-blue-500/60 shadow-sm">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">
+                      {t.department}
+                    </label>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleSaveField('department')}
+                        className="p-1 rounded-lg text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 transition"
+                        title="Saqlash"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => closeEditField('department')}
+                        className="p-1 rounded-lg text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
+                        title="Bekor qilish"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <select
+                    autoFocus
+                    value={profile.departmentId || ''}
+                    onChange={(e) => setProfile({ ...profile, departmentId: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {(faculties.find((f) => f.id === selectedFacultyId)?.departments || []).map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {locale === 'ru' ? d.nameRu || d.nameUz : locale === 'en' ? d.nameEn || d.nameUz : d.nameUz}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
+            {/* Position */}
             <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                {t.position}
-              </label>
-              <input
-                type="text"
-                placeholder={t.positionPh}
-                value={socialLinks.position}
-                onChange={(e) => setSocialLinks({ ...socialLinks, position: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              {!editingFields.position ? (
+                <div className="p-3.5 rounded-2xl bg-white/80 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-3 shadow-2xs hover:border-blue-300 dark:hover:border-blue-700 transition">
+                  <div className="min-w-0 flex-1">
+                    <span className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-0.5">
+                      {t.position}
+                    </span>
+                    <span className="block text-xs font-bold text-slate-900 dark:text-white truncate">
+                      {socialLinks.position || <span className="text-slate-400 font-normal italic">Kiritilmagan</span>}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleEditField('position')}
+                    className="p-2 rounded-xl text-blue-600 hover:text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition shrink-0"
+                    title="Lavozimni o'zgartirish"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-2xl bg-blue-50/50 dark:bg-blue-950/30 border-2 border-blue-500/80 dark:border-blue-500/60 shadow-sm">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">
+                      {t.position}
+                    </label>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleSaveField('position')}
+                        className="p-1 rounded-lg text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 transition"
+                        title="Saqlash"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => closeEditField('position')}
+                        className="p-1 rounded-lg text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
+                        title="Bekor qilish"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <input
+                    type="text"
+                    autoFocus
+                    placeholder={t.positionPh}
+                    value={socialLinks.position}
+                    onChange={(e) => setSocialLinks({ ...socialLinks, position: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -985,30 +1314,128 @@ export default function ProfilePage() {
       {/* TAB 2: Biography & Scientific Activity */}
       {activeTab === 'bio' && (
         <form onSubmit={handleSubmit} className="neu-card p-6 rounded-3xl space-y-5">
+          {/* Scientific Activity */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-              {t.scientificActivity}
-            </label>
-            <textarea
-              rows={3}
-              placeholder={t.scientificActivityPh}
-              value={socialLinks.scientificActivity}
-              onChange={(e) => setSocialLinks({ ...socialLinks, scientificActivity: e.target.value })}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            {!editingFields.scientificActivity ? (
+              <div className="p-4 rounded-2xl bg-white/80 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800 flex items-start justify-between gap-3 shadow-2xs hover:border-blue-300 dark:hover:border-blue-700 transition">
+                <div className="min-w-0 flex-1 space-y-1">
+                  <span className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    {t.scientificActivity}
+                  </span>
+                  <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed whitespace-pre-wrap">
+                    {socialLinks.scientificActivity || <span className="text-slate-400 italic">Kiritilmagan</span>}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => toggleEditField('scientificActivity')}
+                  className="p-2 rounded-xl text-blue-600 hover:text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition shrink-0"
+                  title="Ilmiy faoliyatni o'zgartirish"
+                >
+                  <Edit3 className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="p-4 rounded-2xl bg-blue-50/50 dark:bg-blue-950/30 border-2 border-blue-500/80 dark:border-blue-500/60 shadow-sm space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">
+                    {t.scientificActivity}
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleSaveField('scientificActivity')}
+                      className="p-1 rounded-lg text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 transition"
+                      title="Saqlash"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => closeEditField('scientificActivity')}
+                      className="p-1 rounded-lg text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
+                      title="Bekor qilish"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                <textarea
+                  rows={3}
+                  autoFocus
+                  placeholder={t.scientificActivityPh}
+                  value={socialLinks.scientificActivity}
+                  onChange={(e) => setSocialLinks({ ...socialLinks, scientificActivity: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-medium outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            )}
           </div>
 
+          {/* Research Interests */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-              {t.interests}
-            </label>
-            <input
-              type="text"
-              placeholder="AI, Machine Learning, FinTech"
-              value={profile.researchInterests || ''}
-              onChange={(e) => setProfile({ ...profile, researchInterests: e.target.value })}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            {!editingFields.researchInterests ? (
+              <div className="p-4 rounded-2xl bg-white/80 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-3 shadow-2xs hover:border-blue-300 dark:hover:border-blue-700 transition">
+                <div className="min-w-0 flex-1 space-y-1">
+                  <span className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    {t.interests}
+                  </span>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {profile.researchInterests ? (
+                      profile.researchInterests.split(',').map((tag, i) => (
+                        <span key={i} className="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 text-xs font-semibold border border-blue-200/60">
+                          {tag.trim()}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-xs text-slate-400 italic">Kiritilmagan</span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => toggleEditField('researchInterests')}
+                  className="p-2 rounded-xl text-blue-600 hover:text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition shrink-0"
+                  title="Yo'nalishlarni o'zgartirish"
+                >
+                  <Edit3 className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="p-4 rounded-2xl bg-blue-50/50 dark:bg-blue-950/30 border-2 border-blue-500/80 dark:border-blue-500/60 shadow-sm space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">
+                    {t.interests}
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleSaveField('researchInterests')}
+                      className="p-1 rounded-lg text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 transition"
+                      title="Saqlash"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => closeEditField('researchInterests')}
+                      className="p-1 rounded-lg text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
+                      title="Bekor qilish"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="AI, Machine Learning, FinTech"
+                  value={profile.researchInterests || ''}
+                  onChange={(e) => setProfile({ ...profile, researchInterests: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            )}
           </div>
 
           {/* Inner Language Sub-tabs for Bio */}
@@ -1039,33 +1466,87 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {bioLang === 'uz' && (
-              <textarea
-                rows={4}
-                placeholder={t.bioPhUz}
-                value={profile.bioUz || ''}
-                onChange={(e) => setProfile({ ...profile, bioUz: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            )}
-            {bioLang === 'ru' && (
-              <textarea
-                rows={4}
-                placeholder={t.bioPhRu}
-                value={profile.bioRu || ''}
-                onChange={(e) => setProfile({ ...profile, bioRu: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            )}
-            {bioLang === 'en' && (
-              <textarea
-                rows={4}
-                placeholder={t.bioPhEn}
-                value={profile.bioEn || ''}
-                onChange={(e) => setProfile({ ...profile, bioEn: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            )}
+            {/* Editable Bio Box */}
+            <div>
+              {!editingFields[`bio_${bioLang}`] ? (
+                <div className="p-4 rounded-2xl bg-white/80 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800 flex items-start justify-between gap-3 shadow-2xs hover:border-blue-300 dark:hover:border-blue-700 transition">
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <span className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                      Biografiya ({bioLang.toUpperCase()})
+                    </span>
+                    <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed whitespace-pre-wrap">
+                      {(bioLang === 'uz' ? profile.bioUz : bioLang === 'ru' ? profile.bioRu : profile.bioEn) || (
+                        <span className="text-slate-400 italic">Biografiya matni kiritilmagan</span>
+                      )}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleEditField(`bio_${bioLang}`)}
+                    className="p-2 rounded-xl text-blue-600 hover:text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition shrink-0"
+                    title="Biografiyani tahrirlash"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="p-4 rounded-2xl bg-blue-50/50 dark:bg-blue-950/30 border-2 border-blue-500/80 dark:border-blue-500/60 shadow-sm space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">
+                      Biografiya ({bioLang.toUpperCase()})
+                    </label>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleSaveField(`bio_${bioLang}`)}
+                        className="p-1 rounded-lg text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 transition"
+                        title="Saqlash"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => closeEditField(`bio_${bioLang}`)}
+                        className="p-1 rounded-lg text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
+                        title="Bekor qilish"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  {bioLang === 'uz' && (
+                    <textarea
+                      rows={4}
+                      autoFocus
+                      placeholder={t.bioPhUz}
+                      value={profile.bioUz || ''}
+                      onChange={(e) => setProfile({ ...profile, bioUz: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-medium outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  )}
+                  {bioLang === 'ru' && (
+                    <textarea
+                      rows={4}
+                      autoFocus
+                      placeholder={t.bioPhRu}
+                      value={profile.bioRu || ''}
+                      onChange={(e) => setProfile({ ...profile, bioRu: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-medium outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  )}
+                  {bioLang === 'en' && (
+                    <textarea
+                      rows={4}
+                      autoFocus
+                      placeholder={t.bioPhEn}
+                      value={profile.bioEn || ''}
+                      onChange={(e) => setProfile({ ...profile, bioEn: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-medium outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="flex justify-end pt-1">

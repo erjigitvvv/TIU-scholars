@@ -46,8 +46,9 @@ export default function GrantsPage() {
   const [uploadingProposalFile, setUploadingProposalFile] = useState(false);
   const [uploadError, setUploadError] = useState('');
 
-  // Selected Call Detail Modal
+  // Selected Call / Grant Detail Modal
   const [selectedCall, setSelectedCall] = useState(null);
+  const [selectedGrantModal, setSelectedGrantModal] = useState(null);
 
   // Deliverables Link Modal
   const [deliverablesModalGrant, setDeliverablesModalGrant] = useState(null);
@@ -122,14 +123,13 @@ export default function GrantsPage() {
   // Readiness Score calculation
   const calculateReadinessScore = () => {
     let score = 0;
-    if (formData.title.trim()) score += 15;
+    if (formData.title.trim()) score += 20;
     if (formData.proposalData.urgency.trim()) score += 15;
-    if (formData.proposalData.objectives.trim()) score += 10;
-    if (formData.proposalData.novelty.trim()) score += 10;
-    if (formData.proposalData.methodology.trim()) score += 10;
-    if (totalBudgetCalculated > 0) score += 15;
+    if (formData.proposalData.objectives.trim()) score += 15;
+    if (formData.proposalData.novelty.trim()) score += 15;
+    if (parseFloat(formData.budgetRequested) > 0) score += 15;
     if (formData.teamMembers.length > 0) score += 10;
-    if (formData.applicationFileUrl) score += 15;
+    if (formData.applicationFileUrl) score += 10;
     return Math.min(100, score);
   };
 
@@ -243,7 +243,7 @@ export default function GrantsPage() {
         grantProgram: formData.grantProgram,
         startYear: formData.startYear,
         endYear: formData.endYear,
-        budgetRequested: totalBudgetCalculated,
+        budgetRequested: parseFloat(formData.budgetRequested) || 0,
         deadlineDate: formData.deadlineDate,
         status: targetStatus || formData.status,
         applicationFileUrl: formData.applicationFileUrl || null,
@@ -560,7 +560,10 @@ export default function GrantsPage() {
                         </span>
                       </div>
 
-                      <h3 className="font-bold text-base text-slate-900 dark:text-white line-clamp-2">
+                      <h3
+                        onClick={() => setSelectedGrantModal({ type: 'MY_GRANT', data: g })}
+                        className="font-bold text-base text-slate-900 dark:text-white line-clamp-2 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition"
+                      >
                         {g.title}
                       </h3>
 
@@ -660,7 +663,10 @@ export default function GrantsPage() {
                     </span>
                   </div>
 
-                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white line-clamp-2">
+                  <h3
+                    onClick={() => setSelectedGrantModal({ type: 'CALL', data: call })}
+                    className="font-extrabold text-base text-slate-900 dark:text-white line-clamp-2 cursor-pointer hover:text-emerald-600 transition"
+                  >
                     {call.title}
                   </h3>
                   <p className="text-xs text-slate-500 font-medium mt-1">{call.funder}</p>
@@ -668,7 +674,10 @@ export default function GrantsPage() {
                     {call.description}
                   </p>
 
-                  <div className="mt-4 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-xs space-y-1">
+                  <div
+                    onClick={() => setSelectedGrantModal({ type: 'CALL', data: call })}
+                    className="mt-4 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-xs space-y-1 cursor-pointer hover:border-emerald-300 transition"
+                  >
                     <div className="flex items-center justify-between">
                       <span className="text-slate-500">Maksimal byudjet:</span>
                       <strong className="text-emerald-700 dark:text-emerald-400 font-mono font-bold">
@@ -686,10 +695,10 @@ export default function GrantsPage() {
 
                 <div className="pt-2 flex items-center justify-between gap-2">
                   <button
-                    onClick={() => setSelectedCall(call)}
+                    onClick={() => setSelectedGrantModal({ type: 'CALL', data: call })}
                     className="text-xs font-bold text-blue-600 hover:underline"
                   >
-                    Batafsil shartlar 👉
+                    Batafsil ma’lumot va shartlar 👉
                   </button>
 
                   <button
@@ -746,7 +755,7 @@ export default function GrantsPage() {
                 {[
                   { step: 1, label: '1. Pasport & Fond' },
                   { step: 2, label: '2. Ilmiy Ariza (8 blok)' },
-                  { step: 3, label: '3. Smart Smeta Kalkulyatori' },
+                  { step: 3, label: '3. Byudjet & Muddat' },
                   { step: 4, label: '4. Jamoa Matrisasi' },
                   { step: 5, label: '5. Audit & Topshirish' },
                 ].map((s) => (
@@ -935,66 +944,93 @@ export default function GrantsPage() {
                   </div>
                 )}
 
-                {/* STEP 3: SMART BUDGET CALCULATOR */}
+                {/* STEP 3: ODDIY VA QULAY BYUDJET */}
                 {activeStep === 3 && (
-                  <div className="space-y-4">
-                    <div className="bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-2xl border border-emerald-200/80 dark:border-emerald-800/60 flex items-center justify-between">
+                  <div className="space-y-5">
+                    <div className="bg-emerald-50 dark:bg-emerald-950/40 p-5 rounded-2xl border border-emerald-200/80 dark:border-emerald-800/60 flex items-center justify-between">
                       <div>
                         <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
-                          Jami Hisoblangan Smetasi:
+                          So‘ralayotgan jami byudjet summasi:
                         </span>
-                        <div className="text-2xl font-extrabold text-emerald-700 dark:text-emerald-400 font-mono mt-0.5">
-                          {totalBudgetCalculated.toLocaleString()} so‘m
+                        <div className="text-2xl md:text-3xl font-extrabold text-emerald-700 dark:text-emerald-400 font-mono mt-1">
+                          {Number(formData.budgetRequested || 0).toLocaleString()} so‘m
                         </div>
                       </div>
-                      <Calculator className="w-8 h-8 text-emerald-600" />
+                      <DollarSign className="w-9 h-9 text-emerald-600" />
                     </div>
 
-                    <div className="space-y-3">
-                      {formData.budgetItems.map((item, idx) => (
-                        <div
-                          key={item.id || idx}
-                          className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs"
-                        >
-                          <div className="flex-1 space-y-1">
-                            <input
-                              type="text"
-                              value={item.title}
-                              onChange={(e) => {
-                                const updated = [...formData.budgetItems];
-                                updated[idx].title = e.target.value;
-                                setFormData({ ...formData, budgetItems: updated });
-                              }}
-                              className="font-bold text-slate-900 dark:text-white bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-500 outline-none w-full"
-                            />
-                            <input
-                              type="text"
-                              placeholder="Xarajat asosnomasi..."
-                              value={item.justification}
-                              onChange={(e) => {
-                                const updated = [...formData.budgetItems];
-                                updated[idx].justification = e.target.value;
-                                setFormData({ ...formData, budgetItems: updated });
-                              }}
-                              className="text-[11px] text-slate-500 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-500 outline-none w-full"
-                            />
-                          </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
+                          Jami talab qilinadigan byudjet miqdori (UZS) *
+                        </label>
+                        <input
+                          type="number"
+                          required
+                          placeholder="Masalan: 850000000"
+                          value={formData.budgetRequested}
+                          onChange={(e) =>
+                            setFormData({ ...formData, budgetRequested: parseFloat(e.target.value) || 0 })
+                          }
+                          className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                        />
+                        <p className="text-[11px] text-slate-400">
+                          Loyiha uchun fonddan so‘ralayotgan umumiy mablag‘ summasi.
+                        </p>
+                      </div>
 
-                          <div className="flex items-center gap-2">
+                      <div className="space-y-1.5">
+                        <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
+                          Loyiha muddati (Yillar)
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
                             <input
                               type="number"
-                              value={item.amount}
-                              onChange={(e) => {
-                                const updated = [...formData.budgetItems];
-                                updated[idx].amount = parseFloat(e.target.value) || 0;
-                                setFormData({ ...formData, budgetItems: updated });
-                              }}
-                              className="w-36 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono font-bold text-right text-xs"
+                              value={formData.startYear}
+                              onChange={(e) =>
+                                setFormData({ ...formData, startYear: parseInt(e.target.value) || new Date().getFullYear() })
+                              }
+                              className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-xs font-semibold"
+                              placeholder="Boshlanish"
                             />
-                            <span className="text-slate-400 font-semibold">so‘m</span>
+                            <span className="text-[10px] text-slate-400 block mt-1">Boshlanish yili</span>
+                          </div>
+                          <div>
+                            <input
+                              type="number"
+                              value={formData.endYear}
+                              onChange={(e) =>
+                                setFormData({ ...formData, endYear: parseInt(e.target.value) || (formData.startYear + 2) })
+                              }
+                              className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-xs font-semibold"
+                              placeholder="Tugash"
+                            />
+                            <span className="text-[10px] text-slate-400 block mt-1">Tugash yili</span>
                           </div>
                         </div>
-                      ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
+                        Xarajatlarning asosiy yo‘nalishlari va maqsadli taqsimoti (Qisqa asosnoma)
+                      </label>
+                      <textarea
+                        rows={4}
+                        placeholder="Masalan: Ilmiy jamoa a’zolari oylik ish haqi (50%), yuqori quvvatli server va laboratoriya uskunalari (25%), xalqaro Q1/Q2 jurnallarda Open Access nashr va xizmat safari (25%)..."
+                        value={formData.proposalData.budgetJustification || ''}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            proposalData: { ...formData.proposalData, budgetJustification: e.target.value },
+                          })
+                        }
+                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs leading-relaxed outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                      <p className="text-[11px] text-slate-400">
+                        Keraksiz hisob-kitoblarsiz, mablag‘ nimalarga sarflanishini umumiy va lo‘nda ko‘rsating.
+                      </p>
                     </div>
                   </div>
                 )}
@@ -1284,6 +1320,198 @@ export default function GrantsPage() {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* RICH GRANT DETAIL MODAL (Cardga bosilganda chiqadigan to'liq modal) */}
+      <AnimatePresence>
+        {selectedGrantModal && (
+          <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 md:p-6 overflow-y-auto">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-5 text-xs max-h-[90vh] overflow-y-auto"
+            >
+              {/* Modal Header */}
+              <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                      {selectedGrantModal.type === 'CALL'
+                        ? 'Ochiq Grant Tanlovi'
+                        : selectedGrantModal.data.grantCode || `TIU-GRT-${selectedGrantModal.data.startYear}`}
+                    </span>
+                    <span
+                      className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+                        selectedGrantModal.type === 'CALL'
+                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                          : selectedGrantModal.data.status === 'WON' || selectedGrantModal.data.status === 'APPROVED'
+                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                          : selectedGrantModal.data.status === 'SUBMITTED_INTERNAL'
+                          ? 'bg-indigo-50 text-indigo-800 border border-indigo-200'
+                          : 'bg-amber-50 text-amber-800 border border-amber-200'
+                      }`}
+                    >
+                      {selectedGrantModal.type === 'CALL'
+                        ? 'Ariza qabul qilinmoqda 🚀'
+                        : selectedGrantModal.data.status === 'WON' || selectedGrantModal.data.status === 'APPROVED'
+                        ? 'Yutilgan (Faol) 🏆'
+                        : selectedGrantModal.data.status === 'SUBMITTED_INTERNAL'
+                        ? 'Universitet Ilmiy Bo‘limi ko‘rigida ⏳'
+                        : 'Qoralama 📝'}
+                    </span>
+                  </div>
+                  <h2 className="text-lg font-extrabold text-slate-900 dark:text-white leading-snug">
+                    {selectedGrantModal.data.title}
+                  </h2>
+                </div>
+                <button
+                  onClick={() => setSelectedGrantModal(null)}
+                  className="p-1.5 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition shrink-0"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Funder & Key Indicators Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 space-y-1">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                    Fond / Dastur
+                  </span>
+                  <div className="font-bold text-slate-800 dark:text-slate-100 text-xs">
+                    {selectedGrantModal.type === 'CALL'
+                      ? selectedGrantModal.data.funder
+                      : selectedGrantModal.data.fundingSource}
+                  </div>
+                  {selectedGrantModal.data.grantProgram && (
+                    <div className="text-[11px] text-slate-500 font-medium">
+                      {selectedGrantModal.data.grantProgram}
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 space-y-1">
+                  <span className="text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider block">
+                    {selectedGrantModal.type === 'CALL' ? 'Maksimal Ajratiladigan Mablag‘' : 'So‘ralgan Byudjet'}
+                  </span>
+                  <div className="text-xl font-extrabold text-emerald-700 dark:text-emerald-400 font-mono">
+                    {selectedGrantModal.type === 'CALL'
+                      ? selectedGrantModal.data.currency === 'UZS'
+                        ? `${(selectedGrantModal.data.maxBudget / 1000000).toLocaleString()} mln so‘m`
+                        : `${selectedGrantModal.data.maxBudget.toLocaleString()} ${selectedGrantModal.data.currency}`
+                      : `${Number(selectedGrantModal.data.budgetRequested || 0).toLocaleString()} so‘m`}
+                  </div>
+                </div>
+              </div>
+
+              {/* Timing & Deadlines with Countdown */}
+              <div className="p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <Clock className="w-5 h-5 text-amber-600 shrink-0" />
+                  <div>
+                    <span className="font-bold text-amber-900 dark:text-amber-200 block text-xs">
+                      {selectedGrantModal.type === 'CALL'
+                        ? `Ariza topshirish oxirgi muddati: ${new Date(selectedGrantModal.data.deadline).toLocaleDateString()}`
+                        : `Ijro muddati: ${selectedGrantModal.data.startYear} - ${selectedGrantModal.data.endYear || selectedGrantModal.data.startYear + 2} yy.`}
+                    </span>
+                    {selectedGrantModal.type === 'CALL' && (
+                      <span className="text-[11px] text-amber-700 dark:text-amber-300">
+                        Davomiyligi: {selectedGrantModal.data.durationMonths} oy
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {selectedGrantModal.type === 'CALL' && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-200/70 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 font-extrabold text-xs shrink-0 font-mono">
+                    ⏳ {Math.max(0, Math.ceil((new Date(selectedGrantModal.data.deadline) - new Date()) / (1000 * 60 * 60 * 24)))} kun qoldi
+                  </div>
+                )}
+              </div>
+
+              {/* Description & Objectives */}
+              <div className="space-y-2">
+                <h4 className="font-bold text-slate-800 dark:text-slate-200 text-xs uppercase tracking-wider">
+                  Grant Tavsifi va Yo‘nalishlari
+                </h4>
+                <p className="text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-2xl border border-slate-200/60 dark:border-slate-700/60">
+                  {selectedGrantModal.data.description ||
+                    'Mazkur ilmiy tadqiqot loyihasi TIU tadqiqotchilari tomonidan amaliy natijalarni ishlab chiqarishga joriy etish va xalqaro nufuzli jurnallarda natijalarni chop etishga qaratilgan.'}
+                </p>
+              </div>
+
+              {/* Priority Areas / Tags */}
+              {selectedGrantModal.data.priorityAreas && selectedGrantModal.data.priorityAreas.length > 0 && (
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                    Ustuvor Ilmiy Yo‘nalishlar:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedGrantModal.data.priorityAreas.map((area, idx) => (
+                      <span
+                        key={idx}
+                        className="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-semibold text-[11px] border border-blue-200/60"
+                      >
+                        {area}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Required Documents / Submission Route Info */}
+              <div className="p-3.5 rounded-2xl bg-blue-50/50 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-800/60 space-y-1.5">
+                <span className="font-bold text-blue-900 dark:text-blue-200 flex items-center gap-1.5 text-xs">
+                  <ShieldCheck className="w-4 h-4 text-blue-600" />
+                  <span>Ariza topshirish va tasdiqlash yo‘nalishi:</span>
+                </span>
+                <p className="text-[11px] text-blue-800 dark:text-blue-300 leading-relaxed">
+                  Platformada to‘ldirilgan yoki biriktirilgan ariza <strong>Universitet Ilmiy Bo‘limi (Moderator)</strong>ga yo‘naltiriladi. Ilmiy Kengash xulosasi va rasmiy qo‘llab-quvvatlash xati berilgach, loyiha davlat/xalqaro portalga ro‘yxatga topshiriladi.
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setSelectedGrantModal(null)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-100"
+                >
+                  Yopish
+                </button>
+
+                {selectedGrantModal.type === 'CALL' ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const call = selectedGrantModal.data;
+                      setSelectedGrantModal(null);
+                      handleOpenNewFromCall(call);
+                    }}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md transition"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Ushbu tanlovga ariza yaratish 🚀</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const g = selectedGrantModal.data;
+                      setSelectedGrantModal(null);
+                      handleOpenEdit(g);
+                    }}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 text-white font-bold shadow-md transition"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                    <span>Ariza Studiyasida Ochish ✏️</span>
+                  </button>
+                )}
+              </div>
+            </motion.div>
           </div>
         )}
       </AnimatePresence>

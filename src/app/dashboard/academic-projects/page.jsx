@@ -53,6 +53,54 @@ const CREDIT_TAXONOMY = [
   'Funding acquisition',
 ];
 
+const getProjectSteps = (type) => {
+  switch (type) {
+    case 'DISSERTATION':
+      return [
+        { step: 1, label: '1. Ixtisoslik & Rahbar', icon: GraduationCap },
+        { step: 2, label: '2. OAK Radari & Kvota', icon: Sparkles },
+        { step: 3, label: '3. Boblar & Qo‘lyozma', icon: FileText },
+        { step: 4, label: '4. Kafedra & Himoya', icon: ShieldCheck },
+      ];
+    case 'AUTOREFERAT':
+      return [
+        { step: 1, label: '1. Dissertatsiya Asosi', icon: Award },
+        { step: 2, label: '2. 3 Tildagi Annotatsiya', icon: Sparkles },
+        { step: 3, label: '3. Qo‘lyozma & Tarqatish', icon: FileText },
+        { step: 4, label: '4. Ilmiy Kengash E’loni', icon: ShieldCheck },
+      ];
+    case 'MONOGRAPH':
+      return [
+        { step: 1, label: '1. Kengash & Mavzu', icon: BookOpen },
+        { step: 2, label: '2. Taqrizchilar Xulosasi', icon: Users },
+        { step: 3, label: '3. Qo‘lyozma & ISBN', icon: FileText },
+        { step: 4, label: '4. Nashriyot / Ekspertiza', icon: ShieldCheck },
+      ];
+    case 'THESIS':
+      return [
+        { step: 1, label: '1. Konferensiya & Jamoa', icon: FileText },
+        { step: 2, label: '2. Tezis Matni (1-3 bet)', icon: Sparkles },
+        { step: 3, label: '3. Taalluqli Manbalar', icon: BookOpen },
+        { step: 4, label: '4. To‘plamga Yuborish', icon: ShieldCheck },
+      ];
+    case 'GRANT':
+      return [
+        { step: 1, label: '1. Fond & Byudjet', icon: Briefcase },
+        { step: 2, label: '2. Ilmiy Yangilik', icon: Sparkles },
+        { step: 3, label: '3. Tadqiqot Jamoasi', icon: Users },
+        { step: 4, label: '4. Ilmiy Bo‘limga Yuborish', icon: ShieldCheck },
+      ];
+    case 'ARTICLE':
+    default:
+      return [
+        { step: 1, label: '1. CRediT Jamoasi', icon: Users },
+        { step: 2, label: '2. DOI & Manbalar', icon: Sparkles },
+        { step: 3, label: '3. IMRAD Qo‘lyozma', icon: FileText },
+        { step: 4, label: '4. Ekspertizaga Topshirish', icon: ShieldCheck },
+      ];
+  }
+};
+
 export default function AcademicProjectsPage() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -741,59 +789,26 @@ export default function AcademicProjectsPage() {
 
               {/* Workspace Body */}
               <div className="p-6 overflow-y-auto space-y-6 flex-1 text-xs">
-                {/* Stepper Navigation */}
+                {/* Stepper Navigation (Dynamic by Project Type) */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 p-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-2xl">
-                  <button
-                    type="button"
-                    onClick={() => setWorkspaceStep(1)}
-                    className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer ${
-                      workspaceStep === 1
-                        ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 shadow-sm'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                    }`}
-                  >
-                    <Users className="w-3.5 h-3.5" />
-                    <span>1. Hammualliflar</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setWorkspaceStep(2)}
-                    className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer ${
-                      workspaceStep === 2
-                        ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 shadow-sm'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                    }`}
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                    <span>2. DOI Avtotortish</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setWorkspaceStep(3)}
-                    className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer ${
-                      workspaceStep === 3
-                        ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 shadow-sm'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                    }`}
-                  >
-                    <FileText className="w-3.5 h-3.5 text-blue-500" />
-                    <span>3. Qo‘lyozma Matni</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setWorkspaceStep(4)}
-                    className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer ${
-                      workspaceStep === 4
-                        ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 shadow-sm'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                    }`}
-                  >
-                    <ShieldCheck className="w-3.5 h-3.5 text-purple-500" />
-                    <span>4. Ekspertizaga Topshirish</span>
-                  </button>
+                  {getProjectSteps(activeProject.type).map((st) => {
+                    const StepIcon = st.icon;
+                    return (
+                      <button
+                        key={st.step}
+                        type="button"
+                        onClick={() => setWorkspaceStep(st.step)}
+                        className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                          workspaceStep === st.step
+                            ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                        }`}
+                      >
+                        <StepIcon className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>{st.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {/* Workspace Toast Notification */}
@@ -815,10 +830,38 @@ export default function AcademicProjectsPage() {
                 )}
 
                 {/* ======================================================== */}
-                {/* STEP 1: HAMMUALLIFLAR & CREDIT */}
+                {/* STEP 1: HAMMUALLIFLAR & CREDIT / PASPORT */}
                 {/* ======================================================== */}
                 {workspaceStep === 1 && (
                   <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4">
+                    {/* Contextual Banner for Project Type */}
+                    {activeProject.type === 'DISSERTATION' && (
+                      <div className="p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 flex items-center gap-3">
+                        <GraduationCap className="w-5 h-5 text-blue-600 shrink-0" />
+                        <div className="text-[11px] text-blue-900 dark:text-blue-200 leading-relaxed">
+                          <strong>🎓 Dissertatsiya Ilmiy Pasporti:</strong> Ixtisoslik shifri bo‘yicha ilmiy rahbar va ilmiy maslahatchini biriktiring. Barcha hammualliflik va ilmiy yordamchilar CRediT tizimida aks etadi.
+                        </div>
+                      </div>
+                    )}
+
+                    {activeProject.type === 'MONOGRAPH' && (
+                      <div className="p-3.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 flex items-center gap-3">
+                        <BookOpen className="w-5 h-5 text-indigo-600 shrink-0" />
+                        <div className="text-[11px] text-indigo-900 dark:text-indigo-200 leading-relaxed">
+                          <strong>📚 Monografiya Kengash Asosi:</strong> Kafedra va Universitet Ilmiy Kengashi tomonidan tasdiqlangan mualliflar jamoasi va ularning boblar bo‘yicha mas’uliyati.
+                        </div>
+                      </div>
+                    )}
+
+                    {activeProject.type === 'GRANT' && (
+                      <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-center gap-3">
+                        <Briefcase className="w-5 h-5 text-emerald-600 shrink-0" />
+                        <div className="text-[11px] text-emerald-900 dark:text-emerald-200 leading-relaxed">
+                          <strong>💼 Grant Tadqiqot Jamoasi:</strong> Loyiha rahbari (PI) va ijrochilar ro‘yxati. Jamoa a’zolari shaxsiy kabinet va Telegram orqali taklifni tasdiqlaydilar.
+                        </div>
+                      </div>
+                    )}
+
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
                         <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
@@ -919,10 +962,39 @@ export default function AcademicProjectsPage() {
                 )}
 
                 {/* ======================================================== */}
-                {/* STEP 2: DOI BIBLIOGRAFIYA AVTOTORTISH */}
+                {/* STEP 2: DOI BIBLIOGRAFIYA & KVOTA / MANBALAR */}
                 {/* ======================================================== */}
                 {workspaceStep === 2 && (
                   <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4">
+                    {/* Specialized Guidance for Dissertation & Monograph */}
+                    {activeProject.type === 'DISSERTATION' && (
+                      <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-amber-600" />
+                          <h5 className="font-bold text-xs text-amber-900 dark:text-amber-200">
+                            🎓 OAK Dissertatsiya Kvotalari & Nashrlar Radari
+                          </h5>
+                        </div>
+                        <ul className="text-[11px] text-amber-800 dark:text-amber-300 space-y-1 list-disc pl-4 leading-relaxed">
+                          <li><strong>Kamida 15 ta OAK jurnali</strong> (OAK ro‘yxatiga kiritilgan ilmiy nashrlar).</li>
+                          <li><strong>Kamida 2 ta Scopus / Web of Science</strong> indekslangan xalqaro maqola.</li>
+                          <li><strong>Kamida 3 ta xalqaro / respublika ilmiy konferensiya</strong> aprobatsiyasi.</li>
+                        </ul>
+                        <div className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold pt-1">
+                          💡 Dissertatsiyangizning rasmiy himoyaga tayyorgarlik foizini real vaqtda hisoblash uchun <strong>&ldquo;Smart Ilmiy Asboblar &gt; OAK Radari&rdquo;</strong> modulidan ham foydalanishingiz mumkin.
+                        </div>
+                      </div>
+                    )}
+
+                    {activeProject.type === 'AUTOREFERAT' && (
+                      <div className="p-3.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 flex items-center gap-3">
+                        <Award className="w-5 h-5 text-purple-600 shrink-0" />
+                        <div className="text-[11px] text-purple-900 dark:text-purple-200 leading-relaxed">
+                          <strong>📜 3 Tildagi Annotatsiya (UZ/RU/EN):</strong> Avtoreferat uchun OAK standartidagi 3 tildagi qisqacha mazmun va dissertatsiya ilmiy yangiliklari ro‘yxati.
+                        </div>
+                      </div>
+                    )}
+
                     <div>
                       <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
                         <Sparkles className="w-4 h-4 text-amber-500" />
