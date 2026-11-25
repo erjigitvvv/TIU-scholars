@@ -50,6 +50,7 @@ const DICT = {
     cols: {
       rank: '#',
       fullName: 'F.I.Sh.',
+      position: 'Lavozimi',
       dept: 'Kafedra',
       faculty: 'Fakultet',
       scopusWos: 'Scopus/WoS',
@@ -110,6 +111,7 @@ const DICT = {
     cols: {
       rank: '#',
       fullName: 'ФИО',
+      position: 'Должность',
       dept: 'Кафедра',
       faculty: 'Факультет',
       scopusWos: 'Scopus/WoS',
@@ -170,6 +172,7 @@ const DICT = {
     cols: {
       rank: '#',
       fullName: 'Full Name',
+      position: 'Position',
       dept: 'Department',
       faculty: 'Faculty',
       scopusWos: 'Scopus/WoS',
@@ -480,6 +483,7 @@ export default function AdminReportsPage() {
                   <tr className="bg-slate-100/70 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 text-[11px] font-mono uppercase text-slate-500">
                     <th className="py-3.5 px-4">{t.cols.rank}</th>
                     <th className="py-3.5 px-4">{t.cols.fullName}</th>
+                    <th className="py-3.5 px-4">{t.cols.position}</th>
                     <th className="py-3.5 px-4">{t.cols.dept}</th>
                     <th className="py-3.5 px-3 text-center">{t.cols.scopusWos}</th>
                     <th className="py-3.5 px-3 text-center">{t.cols.oak}</th>
@@ -492,25 +496,51 @@ export default function AdminReportsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200/70 dark:divide-slate-800 text-sm">
-                  {filteredRows.map((s) => (
-                    <tr key={s.id || s.rank + s.email} className="hover:bg-white/60 dark:hover:bg-slate-800/50 transition-colors">
-                      <td className="py-3 px-4 font-mono text-slate-500">{s.rank}</td>
-                      <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">{s.fullName}</td>
-                      <td className="py-3 px-4 text-xs text-slate-600 dark:text-slate-300">{s.department}</td>
-                      <td className="py-3 px-3 text-center font-mono">{s.scopusWos}</td>
-                      <td className="py-3 px-3 text-center font-mono">{s.oak}</td>
-                      <td className="py-3 px-3 text-center font-mono">{s.totalPubs}</td>
-                      <td className="py-3 px-3 text-center font-mono">{s.totalCitations}</td>
-                      <td className="py-3 px-3 text-center font-mono">{s.hIndex}</td>
-                      <td className="py-3 px-3 text-center font-mono">{s.grants}</td>
-                      <td className="py-3 px-3 text-center font-mono font-semibold text-emerald-600 dark:text-emerald-400">
-                        {s.kpiPercent}%
-                      </td>
-                      <td className="py-3 px-4 text-right font-mono font-extrabold text-blue-700 dark:text-sky-400">
-                        {s.tiuScore}
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredRows.map((s) => {
+                    const posText =
+                      locale === 'ru'
+                        ? s.positionRu || s.position
+                        : locale === 'en'
+                        ? s.positionEn || s.position
+                        : s.position;
+                    return (
+                      <tr key={s.id || s.rank + s.email} className="hover:bg-white/60 dark:hover:bg-slate-800/50 transition-colors">
+                        <td className="py-3 px-4 font-mono text-slate-500">{s.rank}</td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-slate-200/80 dark:border-slate-700 bg-blue-50 dark:bg-slate-800 flex items-center justify-center font-bold text-xs text-blue-700 dark:text-sky-300">
+                              {s.photoUrl ? (
+                                <img
+                                  src={s.photoUrl}
+                                  alt={s.fullName}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <span>{s.fullName?.[0]?.toUpperCase() || '?'}</span>
+                              )}
+                            </div>
+                            <span className="font-bold text-slate-900 dark:text-white">{s.fullName}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-xs font-medium text-slate-600 dark:text-slate-300">
+                          {posText || '—'}
+                        </td>
+                        <td className="py-3 px-4 text-xs text-slate-600 dark:text-slate-300">{s.department}</td>
+                        <td className="py-3 px-3 text-center font-mono">{s.scopusWos}</td>
+                        <td className="py-3 px-3 text-center font-mono">{s.oak}</td>
+                        <td className="py-3 px-3 text-center font-mono">{s.totalPubs}</td>
+                        <td className="py-3 px-3 text-center font-mono">{s.totalCitations}</td>
+                        <td className="py-3 px-3 text-center font-mono">{s.hIndex}</td>
+                        <td className="py-3 px-3 text-center font-mono">{s.grants}</td>
+                        <td className="py-3 px-3 text-center font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                          {s.kpiPercent}%
+                        </td>
+                        <td className="py-3 px-4 text-right font-mono font-extrabold text-blue-700 dark:text-sky-400">
+                          {s.tiuScore}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}

@@ -437,6 +437,10 @@ export async function GET(request) {
         id: s.id,
         rank: idx + 1,
         fullName: s.fullName,
+        photoUrl: s.photoUrl || null,
+        position: s.positionUz || '',
+        positionRu: s.positionRu || '',
+        positionEn: s.positionEn || '',
         email: s.user?.email || '',
         faculty: s.department?.faculty?.nameUz || '',
         department: s.department?.nameUz || '',
@@ -457,6 +461,7 @@ export async function GET(request) {
     const headers = [
       'Rank',
       'Full Name',
+      'Position',
       'Email',
       'Faculty',
       'Department',
@@ -475,6 +480,7 @@ export async function GET(request) {
     const exportRows = rowsData.map((r) => [
       r.rank,
       r.fullName,
+      r.position || '—',
       r.email,
       r.faculty,
       r.department,
