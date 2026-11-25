@@ -2,9 +2,87 @@
 
 import { useState, useEffect, startTransition } from 'react'
 import Link from 'next/link'
+import { useLocale } from '@/lib/useLocale'
 import { Plus, BookOpen, CheckCircle, Clock, XCircle, Trash2, Edit, Eye, Award, Search, RefreshCw, Sparkles, Image as ImageIcon, X } from 'lucide-react'
 
+const PUBS_DICT = {
+  uz: {
+    title: 'Nashrlarim',
+    subtitle: 'Scopus, Web of Science, OAK maqolalari, monografiyalar va PDF fayllarni boshqaring.',
+    orcidTooltip: 'ORCID profilidan maqolalar va iqtiboslarni avtomatik import qilish',
+    syncing: 'Sinxronlanmoqda...',
+    syncOrcid: 'ORCID dan tortish',
+    addPub: "Nashr qo'shish",
+    pendingTitle: 'Hammualliflik Tasdig‘ingiz Kutilmoqda',
+    pendingUnit: 'ta nashr',
+    pendingDesc: 'Hamkasblaringiz ushbu ilmiy ishlarga sizni hammuallif sifatida ko‘rsatgan. Iltimos, ko‘rib chiqib o‘z tasdig‘ingizni bering.',
+    review: 'Ko‘rib chiqish',
+    approveBtn: 'Tasdiqlash',
+    rejectBtn: 'Rad etish',
+    rejectPrompt: 'Rad etish sababini kiriting (ixtiyoriy):',
+    loading: 'Yuklanmoqda...',
+    empty: "Hozircha nashrlar qo'shilmagan.",
+    colTitle: 'Sarlavha & Jurnal',
+    colType: 'Turi / Kvartil',
+    colYear: 'Yil',
+    colCitations: 'Iqtiboslar',
+    colViewsScore: "Ko'rishlar / Ball",
+    colStatus: 'Holat',
+    colActions: 'Amallar',
+  },
+  ru: {
+    title: 'Мои публикации',
+    subtitle: 'Управляйте статьями Scopus, Web of Science, ВАК, монографиями и PDF-файлами.',
+    orcidTooltip: 'Автоматический импорт статей и цитирований из профиля ORCID',
+    syncing: 'Синхронизация...',
+    syncOrcid: 'Импорт из ORCID',
+    addPub: 'Добавить публикацию',
+    pendingTitle: 'Ожидается подтверждение соавторства',
+    pendingUnit: 'публ.',
+    pendingDesc: 'Коллеги указали вас в качестве соавтора этих работ. Пожалуйста, просмотрите и подтвердите.',
+    review: 'Просмотреть',
+    approveBtn: 'Подтвердить',
+    rejectBtn: 'Отклонить',
+    rejectPrompt: 'Укажите причину отклонения (необязательно):',
+    loading: 'Загрузка...',
+    empty: 'Публикации пока не добавлены.',
+    colTitle: 'Название и журнал',
+    colType: 'Тип / Квартиль',
+    colYear: 'Год',
+    colCitations: 'Цитирования',
+    colViewsScore: 'Просмотры / Балл',
+    colStatus: 'Статус',
+    colActions: 'Действия',
+  },
+  en: {
+    title: 'My Publications',
+    subtitle: 'Manage your Scopus, Web of Science, OAK articles, monographs, and PDF files.',
+    orcidTooltip: 'Automatically import publications and citations from your ORCID profile',
+    syncing: 'Syncing...',
+    syncOrcid: 'Import from ORCID',
+    addPub: 'Add Publication',
+    pendingTitle: 'Co-Author Approvals Pending',
+    pendingUnit: 'items',
+    pendingDesc: 'Colleagues listed you as a co-author on these works. Please review and confirm your authorship.',
+    review: 'Review',
+    approveBtn: 'Approve',
+    rejectBtn: 'Reject',
+    rejectPrompt: 'Enter rejection reason (optional):',
+    loading: 'Loading...',
+    empty: 'No publications added yet.',
+    colTitle: 'Title & Journal',
+    colType: 'Type / Quartile',
+    colYear: 'Year',
+    colCitations: 'Citations',
+    colViewsScore: 'Views / Score',
+    colStatus: 'Status',
+    colActions: 'Actions',
+  },
+}
+
 export default function PublicationsPage() {
+  const locale = useLocale('uz')
+  const tx = PUBS_DICT[locale] || PUBS_DICT.uz
   const [publications, setPublications] = useState([])
   const [allScholars, setAllScholars] = useState([])
   const [pendingApprovals, setPendingApprovals] = useState([])
@@ -301,27 +379,29 @@ export default function PublicationsPage() {
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
             <BookOpen className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            Nashrlarim / My Publications
+            {tx.title}
           </h2>
           <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-1">
-            Scopus, Web of Science, OAK maqolalari, monografiyalar va PDF fayllarni boshqaring.
+            {tx.subtitle}
           </p>
         </div>
         <div className="flex items-center gap-2.5 flex-wrap">
           <button
+            type="button"
             onClick={handleSyncOrcid}
             disabled={syncOrcidLoading}
-            className="inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-xs transition-all whitespace-nowrap shrink-0 disabled:opacity-50"
-            title="ORCID profilidan maqolalar va iqtiboslarni avtomatik import qilish"
+            className="glass-btn inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-emerald-700 dark:text-emerald-300 whitespace-nowrap shrink-0 disabled:opacity-50 cursor-pointer"
+            title={tx.orcidTooltip}
           >
             <RefreshCw className={`w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 ${syncOrcidLoading ? 'animate-spin' : ''}`} />
-            <span>{syncOrcidLoading ? 'Sinxronlanmoqda...' : 'ORCID dan tortish'}</span>
+            <span>{syncOrcidLoading ? tx.syncing : tx.syncOrcid}</span>
           </button>
           <button
+            type="button"
             onClick={openAddModal}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-[#0F294A] to-[#1B4275] hover:from-[#163660] hover:to-[#21508C] text-white shadow-md transition-all whitespace-nowrap shrink-0"
+            className="glass-btn-primary inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap shrink-0 cursor-pointer"
           >
-            <Plus className="w-4 h-4" /> Nashr qo&apos;shish
+            <Plus className="w-4 h-4" /> {tx.addPub}
           </button>
         </div>
       </div>
@@ -335,17 +415,17 @@ export default function PublicationsPage() {
 
       {/* Tasdiqlash kutilayotgan nashrlar (Pending Co-Author Approvals) */}
       {pendingApprovals.length > 0 && (
-        <div className="bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent border border-amber-300 dark:border-amber-700/60 rounded-3xl p-5 space-y-3 shadow-sm">
+        <div className="neu-card border border-amber-300/80 dark:border-amber-700/60 rounded-3xl p-5 space-y-3">
           <div className="flex items-center gap-3">
             <span className="w-9 h-9 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-bold text-base shadow-xs">
               ⚠️
             </span>
             <div>
               <h3 className="font-extrabold text-sm text-amber-900 dark:text-amber-200">
-                Hammualliflik Tasdig‘ingiz Kutilmoqda ({pendingApprovals.length} ta nashr)
+                {tx.pendingTitle} ({pendingApprovals.length} {tx.pendingUnit})
               </h3>
               <p className="text-xs text-amber-800/80 dark:text-amber-400 mt-0.5">
-                Hamkasblaringiz ushbu ilmiy ishlarga sizni hammuallif sifatida ko‘rsatgan. Iltimos, ko‘rib chiqib o‘z tasdig‘ingizni bering.
+                {tx.pendingDesc}
               </p>
             </div>
           </div>
@@ -354,7 +434,7 @@ export default function PublicationsPage() {
             {pendingApprovals.map((pub) => (
               <div
                 key={pub.id}
-                className="bg-white dark:bg-slate-900 border border-amber-200/90 dark:border-amber-900/60 rounded-2xl p-4 flex flex-col justify-between space-y-3 shadow-xs hover:shadow-md transition"
+                className="neu-card-sm rounded-2xl p-4 flex flex-col justify-between space-y-3 transition"
               >
                 <div>
                   <div className="flex items-center gap-2 mb-1.5">
@@ -380,29 +460,30 @@ export default function PublicationsPage() {
                   <button
                     type="button"
                     onClick={() => setReviewModalPub(pub)}
-                    className="text-xs font-bold text-blue-600 hover:text-blue-800 dark:text-blue-400 flex items-center gap-1.5"
+                    className="text-xs font-bold text-blue-600 hover:text-blue-800 dark:text-blue-400 flex items-center gap-1.5 cursor-pointer"
                   >
                     <Eye className="w-3.5 h-3.5" />
-                    <span>Ko‘rib chiqish</span>
+                    <span>{tx.review}</span>
                   </button>
 
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => handleRespondCoauthor(pub.id, 'APPROVE')}
-                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition active:scale-95"
+                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition active:scale-95 cursor-pointer inline-flex items-center gap-1"
                     >
-                      ✅ Tasdiqlash
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      <span>{tx.approveBtn}</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => {
-                        const reason = prompt('Rad etish sababini kiriting (ixtiyoriy):')
+                        const reason = prompt(tx.rejectPrompt)
                         handleRespondCoauthor(pub.id, 'REJECT', reason || '')
                       }}
-                      className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs transition"
+                      className="glass-btn px-3 py-1.5 rounded-xl text-slate-700 dark:text-slate-300 font-semibold text-xs cursor-pointer"
                     >
-                      Rad etish
+                      {tx.rejectBtn}
                     </button>
                   </div>
                 </div>
@@ -415,21 +496,21 @@ export default function PublicationsPage() {
       {/* Publications Table */}
       <div className="neu-card rounded-3xl overflow-hidden">
         {loading ? (
-          <div className="p-10 text-center text-slate-500 text-sm">Yuklanmoqda...</div>
+          <div className="p-10 text-center text-slate-500 text-sm">{tx.loading}</div>
         ) : publications.length === 0 ? (
-          <div className="p-12 text-center text-slate-500 text-sm">Hozircha nashrlar qo&apos;shilmagan.</div>
+          <div className="p-12 text-center text-slate-500 text-sm">{tx.empty}</div>
         ) : (
           <div className="overflow-x-auto max-h-[65vh]">
             <table className="w-full text-left border-collapse">
               <thead className="sticky top-0 z-10 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur-md">
                 <tr className="border-b border-slate-200/80 dark:border-slate-800 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  <th className="p-4">Title & Journal</th>
-                  <th className="p-4">Type / Quartile</th>
-                  <th className="p-4">Year</th>
-                  <th className="p-4">Citations</th>
-                  <th className="p-4">Ko&apos;rishlar / Ball</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4 text-right">Actions</th>
+                  <th className="p-4">{tx.colTitle}</th>
+                  <th className="p-4">{tx.colType}</th>
+                  <th className="p-4">{tx.colYear}</th>
+                  <th className="p-4">{tx.colCitations}</th>
+                  <th className="p-4">{tx.colViewsScore}</th>
+                  <th className="p-4">{tx.colStatus}</th>
+                  <th className="p-4 text-right">{tx.colActions}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200/70 dark:divide-slate-800/70 text-sm">

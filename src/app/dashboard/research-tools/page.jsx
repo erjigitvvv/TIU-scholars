@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLocale } from '@/lib/useLocale';
 import {
   Sparkles,
   Compass,
@@ -29,7 +30,45 @@ import {
   Bookmark,
 } from 'lucide-react';
 
+const TOOLS_DICT = {
+  uz: {
+    badge: 'Smart Tadqiqot Muhiti • TIU Scholars',
+    title: 'Smart Ilmiy Tadqiqot Asboblari',
+    subtitle:
+      'OAK dissertatsiya mezonlari nazorati, CrossRef DOI avtotortish, xavfsiz jurnallar tavsiyasi va IMRAD konstruktori orqali ilmiy ishingizni tez va professional yakunlang.',
+    writeImrad: 'IMRAD Qo‘lyozma Yozish',
+    tab1: '1. OAK Dissertatsiya Kompasi',
+    tab2: '2. Smart DOI & BibTeX Markazi',
+    tab3: '3. Jurnal Tanlash & Xavfsizlik',
+    tab4: '4. IMRAD Qo‘lyozma & Eksport',
+  },
+  ru: {
+    badge: 'Умная научная среда • TIU Scholars',
+    title: 'Умные инструменты исследователя',
+    subtitle:
+      'Контроль критериев ВАК для диссертации, автозагрузка CrossRef DOI, рекомендации проверенных журналов и конструктор IMRAD для быстрой и качественной подготовки научных работ.',
+    writeImrad: 'Написать рукопись IMRAD',
+    tab1: '1. Компас диссертации ВАК',
+    tab2: '2. Центр Smart DOI и BibTeX',
+    tab3: '3. Выбор и проверка журнала',
+    tab4: '4. Рукопись IMRAD и экспорт',
+  },
+  en: {
+    badge: 'Smart Research Workspace • TIU Scholars',
+    title: 'Smart Research Tools',
+    subtitle:
+      'Track dissertation publication criteria, auto-fetch CrossRef DOI metadata, verify safe peer-reviewed journals, and draft structured IMRAD manuscripts effortlessly.',
+    writeImrad: 'Draft IMRAD Manuscript',
+    tab1: '1. OAK Dissertation Compass',
+    tab2: '2. Smart DOI & BibTeX Hub',
+    tab3: '3. Journal Finder & Safety',
+    tab4: '4. IMRAD Builder & Export',
+  },
+};
+
 export default function SmartResearchToolsPage() {
+  const locale = useLocale('uz');
+  const tx = TOOLS_DICT[locale] || TOOLS_DICT.uz;
   const [activeTab, setActiveTab] = useState('OAK_RADAR'); // 'OAK_RADAR' | 'BIBLIO' | 'JOURNAL_FINDER' | 'IMRAD'
 
   // ========================================================
@@ -254,46 +293,46 @@ export default function SmartResearchToolsPage() {
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
       {/* Top Header Banner */}
-      <div className="bg-gradient-to-r from-emerald-700 via-teal-800 to-cyan-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="neu-card rounded-3xl p-6 sm:p-8 relative overflow-hidden">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-1.5">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-emerald-200 text-xs font-bold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>Smart Research Workspace • TIU Scholars</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-sky-950/60 text-blue-700 dark:text-sky-300 text-xs font-bold uppercase tracking-wider border border-blue-200/70 dark:border-sky-800">
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>{tx.badge}</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-              Smart Ilmiy Tadqiqot Asboblari
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white">
+              {tx.title}
             </h1>
-            <p className="text-xs sm:text-sm text-emerald-100 max-w-2xl leading-relaxed">
-              OAK dissertatsiya mezonlari nazorati, CrossRef DOI avtotortish, xavfsiz jurnallar tavsiyasi va IMRAD konstruktori orqali ilmiy ishingizni tez va professional yakunlang.
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
+              {tx.subtitle}
             </p>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
             <button
+              type="button"
               onClick={() => setActiveTab('IMRAD')}
-              className="px-4 py-2.5 rounded-xl bg-white text-emerald-900 font-bold text-xs shadow-md hover:bg-emerald-50 transition cursor-pointer flex items-center gap-1.5"
+              className="glass-btn-primary px-4 py-2.5 rounded-xl font-bold text-xs cursor-pointer flex items-center gap-1.5"
             >
-              <FileText className="w-4 h-4 text-emerald-700" />
-              <span>IMRAD Qo‘lyozma Yozish</span>
+              <FileText className="w-4 h-4" />
+              <span>{tx.writeImrad}</span>
             </button>
           </div>
         </div>
 
         {/* 4 Main Module Tabs */}
-        <div className="flex items-center gap-2 mt-6 pt-5 border-t border-white/10 overflow-x-auto text-xs">
+        <div className="flex items-center gap-2 mt-6 pt-5 border-t border-slate-200/70 dark:border-slate-800 overflow-x-auto text-xs">
           <button
             type="button"
             onClick={() => setActiveTab('OAK_RADAR')}
             className={`px-4 py-2.5 rounded-xl font-bold transition cursor-pointer flex items-center gap-2 shrink-0 ${
               activeTab === 'OAK_RADAR'
-                ? 'bg-white text-slate-900 shadow-md'
-                : 'text-white/80 hover:bg-white/10 hover:text-white'
+                ? 'glass-btn-primary shadow-md'
+                : 'glass-btn text-slate-700 dark:text-slate-200'
             }`}
           >
-            <Compass className="w-4 h-4 text-emerald-600" />
-            <span>1. OAK Dissertatsiya Kompasi</span>
+            <Compass className={`w-4 h-4 ${activeTab === 'OAK_RADAR' ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'}`} />
+            <span>{tx.tab1}</span>
           </button>
 
           <button
@@ -301,12 +340,12 @@ export default function SmartResearchToolsPage() {
             onClick={() => setActiveTab('BIBLIO')}
             className={`px-4 py-2.5 rounded-xl font-bold transition cursor-pointer flex items-center gap-2 shrink-0 ${
               activeTab === 'BIBLIO'
-                ? 'bg-white text-slate-900 shadow-md'
-                : 'text-white/80 hover:bg-white/10 hover:text-white'
+                ? 'glass-btn-primary shadow-md'
+                : 'glass-btn text-slate-700 dark:text-slate-200'
             }`}
           >
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <span>2. Smart DOI & BibTeX Markazi</span>
+            <Sparkles className={`w-4 h-4 ${activeTab === 'BIBLIO' ? 'text-white' : 'text-amber-500'}`} />
+            <span>{tx.tab2}</span>
           </button>
 
           <button
@@ -314,12 +353,12 @@ export default function SmartResearchToolsPage() {
             onClick={() => setActiveTab('JOURNAL_FINDER')}
             className={`px-4 py-2.5 rounded-xl font-bold transition cursor-pointer flex items-center gap-2 shrink-0 ${
               activeTab === 'JOURNAL_FINDER'
-                ? 'bg-white text-slate-900 shadow-md'
-                : 'text-white/80 hover:bg-white/10 hover:text-white'
+                ? 'glass-btn-primary shadow-md'
+                : 'glass-btn text-slate-700 dark:text-slate-200'
             }`}
           >
-            <Search className="w-4 h-4 text-blue-500" />
-            <span>3. Jurnal Tanlash & Xavfsizlik</span>
+            <Search className={`w-4 h-4 ${activeTab === 'JOURNAL_FINDER' ? 'text-white' : 'text-blue-500'}`} />
+            <span>{tx.tab3}</span>
           </button>
 
           <button
@@ -327,12 +366,12 @@ export default function SmartResearchToolsPage() {
             onClick={() => setActiveTab('IMRAD')}
             className={`px-4 py-2.5 rounded-xl font-bold transition cursor-pointer flex items-center gap-2 shrink-0 ${
               activeTab === 'IMRAD'
-                ? 'bg-white text-slate-900 shadow-md'
-                : 'text-white/80 hover:bg-white/10 hover:text-white'
+                ? 'glass-btn-primary shadow-md'
+                : 'glass-btn text-slate-700 dark:text-slate-200'
             }`}
           >
-            <FileText className="w-4 h-4 text-purple-500" />
-            <span>4. IMRAD Qo‘lyozma & Eksport</span>
+            <FileText className={`w-4 h-4 ${activeTab === 'IMRAD' ? 'text-white' : 'text-purple-500'}`} />
+            <span>{tx.tab4}</span>
           </button>
         </div>
       </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useLocale } from '@/lib/useLocale';
 import {
   GraduationCap,
   Plus,
@@ -39,7 +40,177 @@ const STAGE_CONFIG = {
   TERMINATED: { label: 'To‘xtatilgan', color: 'bg-red-50 text-red-700 border-red-200' },
 };
 
+const SUP_DICT = {
+  uz: {
+    badge: 'Akademik Salohiyat & Ilmiy Maktab',
+    title: 'Ilmiy Rahbarligim',
+    subtitle: 'Izlanuvchilar (PhD, DSc, Magistr) tadqiqotlari, muddatlari va himoya bosqichlarini yagona tizimda boshqaring.',
+    addStudentBtn: 'Yangi Izlanuvchi Qo‘shish',
+    kpiTotalTitle: 'Jami Izlanuvchilar',
+    kpiTotalSub: 'barchasi ro‘yxati',
+    kpiActiveTitle: 'Faol Jarayonda',
+    kpiActiveSub: 'tadqiqot va reja',
+    kpiOverdueTitle: 'Muddati Yaqin/O‘tgan',
+    kpiOverdueWarn: 'tezkor e’tibor talab',
+    kpiOverdueOk: 'muddatlar joyida',
+    kpiInactiveTitle: 'Harakatsizlar',
+    kpiInactiveWarn: '45+ kun uchrashuvsiz',
+    kpiInactiveOk: 'aloqa faol',
+    kpiDoneTitle: 'Himoya Qilgan',
+    kpiDoneSub: 'OAK tasdiqlangan',
+    searchPlaceholder: 'Izlanuvchi F.I.SH yoki mavzu...',
+    stageLabel: 'Bosqich:',
+    stageAll: 'Barcha bosqichlar',
+    stageSubmitted: 'Ko‘rib chiqilmoqda (Kafedra)',
+    stageActive: 'Faol tadqiqot & Reja',
+    stagePubs: 'Nashr talabi bajarilgan',
+    stagePreDefense: 'Himoya oldi (Checklist)',
+    stageCompleted: 'Muvaffaqiyatli himoya qilingan',
+    stageDraft: 'Qoralama arizalar',
+    stageHold: 'Muzlatilganlar',
+    loading: 'Yuklanmoqda...',
+    emptyTitle: 'Izlanuvchilar topilmadi',
+    emptyDesc: 'Hozircha ilmiy rahbarligingizdagi shogirdlar kiritilmagan yoki qidiruv bo‘yicha natija yo‘q.',
+    addStudentShort: 'Yangi shogird qo‘shish',
+    codePrefix: 'Shifr',
+    nearestDeadline: 'Eng yaqin muddat',
+    noMeetingWarning: '45+ kundan buyon ilmiy uchrashuv qayd etilmagan',
+    pubsUnit: 'ta nashr',
+    reportsUnit: 'ta hisobot',
+    viewProcess: 'Jarayonni ko‘rish',
+    degrees: {
+      PHD: 'PhD (Falsafa doktori)',
+      DSC: 'DSc (Fan doktori)',
+      MASTER: 'Magistr',
+      INDEPENDENT_RESEARCHER: 'Mustaqil izlanuvchi',
+    },
+    stages: {
+      A_DRAFT: 'Qoralama',
+      A_SUBMITTED_DEPARTMENT: 'Kafedra ko‘rib chiqmoqda',
+      A_DEPARTMENT_APPROVED: 'Buyruq kutilmoqda',
+      B_ACTIVE_RESEARCH: 'Faol tadqiqot & Reja',
+      C_PUBLICATIONS_READY: 'Nashrlar talabi bajarilgan',
+      D_PRE_DEFENSE: 'Himoya oldi (Checklist)',
+      E_COMPLETED: 'Himoya qilingan (Tasdiqlangan)',
+      ON_HOLD: 'To‘xtatib turilgan',
+      TERMINATED: 'To‘xtatilgan',
+    },
+  },
+  ru: {
+    badge: 'Академический потенциал и научная школа',
+    title: 'Моё научное руководство',
+    subtitle: 'Управляйте исследованиями докторантов (PhD, DSc, магистрантов), сроками и этапами защиты в единой системе.',
+    addStudentBtn: 'Добавить соискателя',
+    kpiTotalTitle: 'Всего соискателей',
+    kpiTotalSub: 'общий список',
+    kpiActiveTitle: 'В процессе',
+    kpiActiveSub: 'исследование и план',
+    kpiOverdueTitle: 'Сроки истекают/просрочены',
+    kpiOverdueWarn: 'требует внимания',
+    kpiOverdueOk: 'сроки в норме',
+    kpiInactiveTitle: 'Неактивные',
+    kpiInactiveWarn: '45+ дней без встреч',
+    kpiInactiveOk: 'связь активна',
+    kpiDoneTitle: 'Защитились',
+    kpiDoneSub: 'утверждено ВАК',
+    searchPlaceholder: 'ФИО соискателя или тема...',
+    stageLabel: 'Этап:',
+    stageAll: 'Все этапы',
+    stageSubmitted: 'На рассмотрении (Кафедра)',
+    stageActive: 'Активное исследование и план',
+    stagePubs: 'Требования по публикациям выполнены',
+    stagePreDefense: 'Предзащита (Чек-лист)',
+    stageCompleted: 'Успешно защищено',
+    stageDraft: 'Черновики заявок',
+    stageHold: 'Приостановленные',
+    loading: 'Загрузка...',
+    emptyTitle: 'Соискатели не найдены',
+    emptyDesc: 'Подопечные под вашим руководством пока не добавлены или ничего не найдено по поиску.',
+    addStudentShort: 'Добавить ученика',
+    codePrefix: 'Шифр',
+    nearestDeadline: 'Ближайший срок',
+    noMeetingWarning: 'Более 45 дней не зафиксирована научная встреча',
+    pubsUnit: 'публ.',
+    reportsUnit: 'отчётов',
+    viewProcess: 'Открыть процесс',
+    degrees: {
+      PHD: 'PhD (Доктор философии)',
+      DSC: 'DSc (Доктор наук)',
+      MASTER: 'Магистр',
+      INDEPENDENT_RESEARCHER: 'Самостоятельный соискатель',
+    },
+    stages: {
+      A_DRAFT: 'Черновик',
+      A_SUBMITTED_DEPARTMENT: 'На рассмотрении кафедры',
+      A_DEPARTMENT_APPROVED: 'Ожидается приказ',
+      B_ACTIVE_RESEARCH: 'Активное исследование',
+      C_PUBLICATIONS_READY: 'Публикации готовы',
+      D_PRE_DEFENSE: 'Предзащита (Чек-лист)',
+      E_COMPLETED: 'Защищено (Утверждено)',
+      ON_HOLD: 'Приостановлено',
+      TERMINATED: 'Прекращено',
+    },
+  },
+  en: {
+    badge: 'Academic Capacity & Research School',
+    title: 'My Academic Supervision',
+    subtitle: 'Manage PhD, DSc, and Master researchers, milestones, and defense stages in a unified cockpit.',
+    addStudentBtn: 'Add Researcher',
+    kpiTotalTitle: 'Total Researchers',
+    kpiTotalSub: 'complete roster',
+    kpiActiveTitle: 'Active Research',
+    kpiActiveSub: 'research & roadmap',
+    kpiOverdueTitle: 'Due Soon / Overdue',
+    kpiOverdueWarn: 'urgent attention needed',
+    kpiOverdueOk: 'on schedule',
+    kpiInactiveTitle: 'Inactive',
+    kpiInactiveWarn: '45+ days without meeting',
+    kpiInactiveOk: 'active contact',
+    kpiDoneTitle: 'Defended',
+    kpiDoneSub: 'OAK approved',
+    searchPlaceholder: 'Researcher name or topic...',
+    stageLabel: 'Stage:',
+    stageAll: 'All stages',
+    stageSubmitted: 'Under Review (Department)',
+    stageActive: 'Active Research & Plan',
+    stagePubs: 'Publications Requirement Met',
+    stagePreDefense: 'Pre-Defense (Checklist)',
+    stageCompleted: 'Successfully Defended',
+    stageDraft: 'Draft Applications',
+    stageHold: 'On Hold',
+    loading: 'Loading...',
+    emptyTitle: 'No researchers found',
+    emptyDesc: 'No mentees have been added under your supervision yet, or no results match your search.',
+    addStudentShort: 'Add Researcher',
+    codePrefix: 'Code',
+    nearestDeadline: 'Next deadline',
+    noMeetingWarning: 'No supervision meeting logged in 45+ days',
+    pubsUnit: 'pubs',
+    reportsUnit: 'reports',
+    viewProcess: 'View progress',
+    degrees: {
+      PHD: 'PhD (Doctor of Philosophy)',
+      DSC: 'DSc (Doctor of Science)',
+      MASTER: 'Master',
+      INDEPENDENT_RESEARCHER: 'Independent Researcher',
+    },
+    stages: {
+      A_DRAFT: 'Draft',
+      A_SUBMITTED_DEPARTMENT: 'Department Review',
+      A_DEPARTMENT_APPROVED: 'Order Pending',
+      B_ACTIVE_RESEARCH: 'Active Research & Plan',
+      C_PUBLICATIONS_READY: 'Publications Ready',
+      D_PRE_DEFENSE: 'Pre-Defense (Checklist)',
+      E_COMPLETED: 'Defended (Approved)',
+      ON_HOLD: 'On Hold',
+      TERMINATED: 'Terminated',
+    },
+  },
+};
+
 export default function SupervisionsPage() {
+  const locale = useLocale('uz');
+  const tx = SUP_DICT[locale] || SUP_DICT.uz;
   const [supervisions, setSupervisions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -142,23 +313,24 @@ export default function SupervisionsPage() {
   return (
     <div className="space-y-6">
       {/* Header & Stats Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="neu-card flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 sm:p-7 rounded-3xl">
         <div>
-          <div className="flex items-center gap-2 text-indigo-600 font-semibold text-sm mb-1">
-            <GraduationCap className="w-5 h-5" />
-            <span>Akademik Salohiyat & Ilmiy Maktab</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-sky-950/60 text-blue-700 dark:text-sky-300 font-bold text-xs mb-2 border border-blue-200/70 dark:border-sky-800">
+            <GraduationCap className="w-4 h-4" />
+            <span>{tx.badge}</span>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">Ilmiy Rahbarligim</h1>
-          <p className="text-slate-500 text-sm mt-1">
-            Izlanuvchilar (PhD, DSc, Magistr) tadqiqotlari, muddatlari va himoya bosqichlarini yagona tizimda boshqaring.
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white">{tx.title}</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+            {tx.subtitle}
           </p>
         </div>
         <button
+          type="button"
           onClick={() => setShowAddModal(true)}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-xl shadow-sm transition-all"
+          className="glass-btn-primary inline-flex items-center justify-center gap-2 px-5 py-2.5 font-semibold text-sm rounded-xl cursor-pointer shrink-0"
         >
           <Plus className="w-4 h-4" />
-          <span>Yangi Izlanuvchi Qo‘shish</span>
+          <span>{tx.addStudentBtn}</span>
         </button>
       </div>
 
@@ -167,117 +339,117 @@ export default function SupervisionsPage() {
         <button
           type="button"
           onClick={() => { setSpecialFilter('ALL'); setStageFilter('ALL'); }}
-          className={`p-4 rounded-2xl border text-left transition-all ${
+          className={`neu-card-sm p-4 rounded-2xl text-left transition-all cursor-pointer ${
             specialFilter === 'ALL' && stageFilter === 'ALL'
-              ? 'bg-blue-50/80 border-blue-300 ring-2 ring-blue-500/20 shadow-xs'
-              : 'bg-white hover:bg-slate-50 border-slate-200 shadow-2xs'
+              ? 'ring-2 ring-blue-500/40 bg-blue-50/60 dark:bg-sky-950/40 border border-blue-300/70'
+              : 'border border-transparent hover:border-blue-300/50'
           }`}
         >
-          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Jami Izlanuvchilar</div>
-          <div className="text-2xl font-black text-slate-900 mt-1">{totalCount}</div>
-          <div className="text-[11px] text-slate-400 mt-1">barchasi ro‘yxati</div>
+          <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{tx.kpiTotalTitle}</div>
+          <div className="text-2xl font-black text-slate-900 dark:text-white mt-1">{totalCount}</div>
+          <div className="text-[11px] text-slate-400 mt-1">{tx.kpiTotalSub}</div>
         </button>
 
         <button
           type="button"
           onClick={() => { setSpecialFilter('ALL'); setStageFilter('B_ACTIVE_RESEARCH'); }}
-          className={`p-4 rounded-2xl border text-left transition-all ${
+          className={`neu-card-sm p-4 rounded-2xl text-left transition-all cursor-pointer ${
             stageFilter === 'B_ACTIVE_RESEARCH'
-              ? 'bg-indigo-50 border-indigo-300 ring-2 ring-indigo-500/20 shadow-xs'
-              : 'bg-white hover:bg-slate-50 border-slate-200 shadow-2xs'
+              ? 'ring-2 ring-indigo-500/40 bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-300/70'
+              : 'border border-transparent hover:border-indigo-300/50'
           }`}
         >
-          <div className="text-xs font-bold text-indigo-600 uppercase tracking-wider">Faol Jarayonda</div>
-          <div className="text-2xl font-black text-indigo-600 mt-1">{activeCount}</div>
-          <div className="text-[11px] text-slate-400 mt-1">tadqiqot va reja</div>
+          <div className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">{tx.kpiActiveTitle}</div>
+          <div className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1">{activeCount}</div>
+          <div className="text-[11px] text-slate-400 mt-1">{tx.kpiActiveSub}</div>
         </button>
 
         <button
           type="button"
           onClick={() => setSpecialFilter(specialFilter === 'OVERDUE' ? 'ALL' : 'OVERDUE')}
-          className={`p-4 rounded-2xl border text-left transition-all ${
+          className={`neu-card-sm p-4 rounded-2xl text-left transition-all cursor-pointer ${
             specialFilter === 'OVERDUE'
-              ? 'bg-rose-100/80 border-rose-400 ring-2 ring-rose-500/30 shadow-xs'
+              ? 'ring-2 ring-rose-500/40 bg-rose-100/70 dark:bg-rose-950/50 border border-rose-400/70'
               : overdueCount > 0
-              ? 'bg-rose-50/50 border-rose-200 hover:border-rose-300 shadow-2xs'
-              : 'bg-white hover:bg-slate-50 border-slate-200 shadow-2xs'
+              ? 'border border-rose-300/60 dark:border-rose-800/60 hover:border-rose-400'
+              : 'border border-transparent hover:border-rose-300/50'
           }`}
         >
-          <div className="text-xs font-bold text-rose-600 uppercase tracking-wider flex items-center justify-between">
-            <span>Muddati Yaqin/O‘tgan</span>
+          <div className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider flex items-center justify-between">
+            <span>{tx.kpiOverdueTitle}</span>
             {overdueCount > 0 && <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />}
           </div>
-          <div className="text-2xl font-black text-rose-600 mt-1">{overdueCount}</div>
+          <div className="text-2xl font-black text-rose-600 dark:text-rose-400 mt-1">{overdueCount}</div>
           <div className="text-[11px] text-rose-500/90 mt-1">
-            {overdueCount > 0 ? 'tezkor e’tibor talab' : 'muddatlar joyida'}
+            {overdueCount > 0 ? tx.kpiOverdueWarn : tx.kpiOverdueOk}
           </div>
         </button>
 
         <button
           type="button"
           onClick={() => setSpecialFilter(specialFilter === 'INACTIVE' ? 'ALL' : 'INACTIVE')}
-          className={`p-4 rounded-2xl border text-left transition-all ${
+          className={`neu-card-sm p-4 rounded-2xl text-left transition-all cursor-pointer ${
             specialFilter === 'INACTIVE'
-              ? 'bg-amber-100/80 border-amber-400 ring-2 ring-amber-500/30 shadow-xs'
+              ? 'ring-2 ring-amber-500/40 bg-amber-100/70 dark:bg-amber-950/50 border border-amber-400/70'
               : inactiveCount > 0
-              ? 'bg-amber-50/50 border-amber-200 hover:border-amber-300 shadow-2xs'
-              : 'bg-white hover:bg-slate-50 border-slate-200 shadow-2xs'
+              ? 'border border-amber-300/60 dark:border-amber-800/60 hover:border-amber-400'
+              : 'border border-transparent hover:border-amber-300/50'
           }`}
         >
-          <div className="text-xs font-bold text-amber-700 uppercase tracking-wider flex items-center justify-between">
-            <span>Harakatsizlar</span>
+          <div className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider flex items-center justify-between">
+            <span>{tx.kpiInactiveTitle}</span>
             {inactiveCount > 0 && <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />}
           </div>
-          <div className="text-2xl font-black text-amber-700 mt-1">{inactiveCount}</div>
+          <div className="text-2xl font-black text-amber-700 dark:text-amber-400 mt-1">{inactiveCount}</div>
           <div className="text-[11px] text-amber-600/90 mt-1">
-            {inactiveCount > 0 ? '45+ kun uchrashuvsiz' : 'aloqa faol'}
+            {inactiveCount > 0 ? tx.kpiInactiveWarn : tx.kpiInactiveOk}
           </div>
         </button>
 
         <button
           type="button"
           onClick={() => { setSpecialFilter('ALL'); setStageFilter('E_COMPLETED'); }}
-          className={`p-4 rounded-2xl border text-left transition-all col-span-2 lg:col-span-1 ${
+          className={`neu-card-sm p-4 rounded-2xl text-left transition-all col-span-2 lg:col-span-1 cursor-pointer ${
             stageFilter === 'E_COMPLETED'
-              ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20 shadow-xs'
-              : 'bg-white hover:bg-slate-50 border-slate-200 shadow-2xs'
+              ? 'ring-2 ring-emerald-500/40 bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-300/70'
+              : 'border border-transparent hover:border-emerald-300/50'
           }`}
         >
-          <div className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Himoya Qilgan</div>
-          <div className="text-2xl font-black text-emerald-600 mt-1">{completedCount}</div>
-          <div className="text-[11px] text-slate-400 mt-1">OAK tasdiqlangan</div>
+          <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">{tx.kpiDoneTitle}</div>
+          <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{completedCount}</div>
+          <div className="text-[11px] text-slate-400 mt-1">{tx.kpiDoneSub}</div>
         </button>
       </div>
 
       {/* Filters & Search */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+      <div className="neu-card-sm flex flex-col md:flex-row items-center justify-between gap-3 p-4 sm:p-5 rounded-2xl">
         <div className="relative w-full md:w-80">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Izlanuvchi F.I.SH yoki mavzu..."
+            placeholder={tx.searchPlaceholder}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full pl-9 pr-4 py-2 text-sm bg-slate-50/80 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
         <div className="flex items-center gap-2.5 w-full md:w-auto">
           <Filter className="w-4 h-4 text-slate-400 shrink-0" />
-          <span className="text-xs font-semibold text-slate-500 whitespace-nowrap">Bosqich:</span>
+          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">{tx.stageLabel}</span>
           <div className="relative w-full md:w-64">
             <select
               value={stageFilter}
               onChange={(e) => setStageFilter(e.target.value)}
               className="w-full appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 py-2 pl-3.5 pr-8 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-xs"
             >
-              <option value="ALL">Barcha bosqichlar ({supervisions.length})</option>
-              <option value="A_SUBMITTED_DEPARTMENT">Ko‘rib chiqilmoqda (Kafedra)</option>
-              <option value="B_ACTIVE_RESEARCH">Faol tadqiqot & Reja</option>
-              <option value="C_PUBLICATIONS_READY">Nashr talabi bajarilgan</option>
-              <option value="D_PRE_DEFENSE">Himoya oldi (Checklist)</option>
-              <option value="E_COMPLETED">Muvaffaqiyatli himoya qilingan</option>
-              <option value="A_DRAFT">Qoralama arizalar</option>
-              <option value="ON_HOLD">Muzlatilganlar</option>
+              <option value="ALL">{tx.stageAll} ({supervisions.length})</option>
+              <option value="A_SUBMITTED_DEPARTMENT">{tx.stageSubmitted}</option>
+              <option value="B_ACTIVE_RESEARCH">{tx.stageActive}</option>
+              <option value="C_PUBLICATIONS_READY">{tx.stagePubs}</option>
+              <option value="D_PRE_DEFENSE">{tx.stagePreDefense}</option>
+              <option value="E_COMPLETED">{tx.stageCompleted}</option>
+              <option value="A_DRAFT">{tx.stageDraft}</option>
+              <option value="ON_HOLD">{tx.stageHold}</option>
             </select>
             <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
@@ -286,21 +458,23 @@ export default function SupervisionsPage() {
 
       {/* Main List */}
       {loading ? (
-        <div className="text-center py-12 text-slate-400 bg-white rounded-2xl border border-slate-200">
-          Yuklanmoqda...
+        <div className="neu-card rounded-3xl text-center py-12 text-slate-400">
+          {tx.loading}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-2xl border border-slate-200 p-6">
-          <GraduationCap className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <h3 className="text-base font-semibold text-slate-800">Izlanuvchilar topilmadi</h3>
-          <p className="text-sm text-slate-500 mt-1 max-w-sm mx-auto">
-            Hozircha ilmiy rahbarligingizdagi shogirdlar kiritilmagan yoki qidiruv bo‘yicha natija yo‘q.
+        <div className="neu-card rounded-3xl text-center py-16 p-6">
+          <GraduationCap className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+          <h3 className="text-base font-semibold text-slate-800 dark:text-white">{tx.emptyTitle}</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
+            {tx.emptyDesc}
           </p>
           <button
+            type="button"
             onClick={() => setShowAddModal(true)}
-            className="mt-4 px-4 py-2 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700"
+            className="glass-btn-primary mt-4 px-5 py-2.5 text-xs font-bold rounded-xl cursor-pointer inline-flex items-center gap-1.5"
           >
-            Yangi shogird qo‘shish
+            <Plus className="w-4 h-4" />
+            <span>{tx.addStudentShort}</span>
           </button>
         </div>
       ) : (
@@ -311,76 +485,76 @@ export default function SupervisionsPage() {
               <Link
                 key={sup.id}
                 href={`/dashboard/supervisions/${sup.id}`}
-                className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs hover:shadow-md hover:border-indigo-400 transition-all flex flex-col justify-between group cursor-pointer"
+                className="neu-card-sm rounded-3xl p-5 hover:border-indigo-400/70 transition-all flex flex-col justify-between group cursor-pointer"
               >
                 <div>
                   {/* Top Bar: Degree Badge & Stage Badge */}
                   <div className="flex items-center justify-between gap-2 mb-3">
-                    <span className="px-2.5 py-1 text-xs font-bold bg-indigo-50 text-indigo-700 rounded-md">
-                      {DEGREE_LABELS[sup.degreeType] || sup.degreeType}
+                    <span className="px-2.5 py-1 text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 rounded-md">
+                      {tx.degrees[sup.degreeType] || DEGREE_LABELS[sup.degreeType] || sup.degreeType}
                     </span>
                     <span className={`px-2.5 py-1 text-xs font-medium rounded-full border ${stageStyle.color}`}>
-                      {stageStyle.label}
+                      {tx.stages[sup.stage] || stageStyle.label}
                     </span>
                   </div>
 
                   {/* Student Name & Thesis Topic */}
-                  <h3 className="text-base font-bold text-slate-900 leading-snug group-hover:text-indigo-600 transition-colors">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white leading-snug group-hover:text-indigo-600 dark:group-hover:text-sky-400 transition-colors">
                     {sup.studentName}
                   </h3>
-                  <p className="text-xs text-slate-600 mt-1.5 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">
                     {sup.dissertationTitle}
                   </p>
 
                   {/* Specialty Code */}
                   {sup.specialtyCode && (
                     <div className="text-xs text-slate-400 mt-2 font-mono">
-                      Shifr: {sup.specialtyCode} {sup.specialtyName ? `— ${sup.specialtyName}` : ''}
+                      {tx.codePrefix}: {sup.specialtyCode} {sup.specialtyName ? `— ${sup.specialtyName}` : ''}
                     </div>
                   )}
 
                   {/* Nearest Milestone / Alerts */}
-                  <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
+                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
                     {sup.nearestMilestone && (
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-500 flex items-center gap-1.5">
+                        <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                           <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                          <span>Eng yaqin muddat:</span>
+                          <span>{tx.nearestDeadline}:</span>
                         </span>
                         <span
                           className={`font-medium ${
-                            sup.isOverdue ? 'text-rose-600 font-bold flex items-center gap-1' : 'text-slate-700'
+                            sup.isOverdue ? 'text-rose-600 dark:text-rose-400 font-bold flex items-center gap-1' : 'text-slate-700 dark:text-slate-300'
                           }`}
                         >
                           {sup.isOverdue && <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />}
-                          {new Date(sup.nearestMilestone.dueDate).toLocaleDateString('uz-UZ')} ({sup.nearestMilestone.title})
+                          {new Date(sup.nearestMilestone.dueDate).toLocaleDateString(locale === 'ru' ? 'ru-RU' : locale === 'en' ? 'en-US' : 'uz-UZ')} ({sup.nearestMilestone.title})
                         </span>
                       </div>
                     )}
 
                     {sup.needsMeetingNotice && (
-                      <div className="flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-200">
+                      <div className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800/50">
                         <Clock className="w-3.5 h-3.5 shrink-0" />
-                        <span>45+ kundan buyon ilmiy uchrashuv qayd etilmagan</span>
+                        <span>{tx.noMeetingWarning}</span>
                       </div>
                     )}
                   </div>
                 </div>
 
                 {/* Bottom Bar: Action link to full card */}
-                <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
+                <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                   <div className="flex items-center gap-3 text-xs text-slate-400">
                     <span className="flex items-center gap-1">
                       <BookOpen className="w-3.5 h-3.5" />
-                      {sup.publicationsCount || 0} ta nashr
+                      {sup.publicationsCount || 0} {tx.pubsUnit}
                     </span>
                     <span className="flex items-center gap-1">
                       <FileText className="w-3.5 h-3.5" />
-                      {sup.reportsCount || 0} ta hisobot
+                      {sup.reportsCount || 0} {tx.reportsUnit}
                     </span>
                   </div>
-                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 group-hover:translate-x-0.5 transition-transform">
-                    <span>Jarayonni ko‘rish</span>
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-sky-400 group-hover:translate-x-0.5 transition-transform">
+                    <span>{tx.viewProcess}</span>
                     <ChevronRight className="w-4 h-4" />
                   </span>
                 </div>

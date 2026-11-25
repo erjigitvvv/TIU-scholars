@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLocale } from '@/lib/useLocale';
 import {
   ShieldCheck,
   User,
@@ -27,7 +28,54 @@ import {
   Smartphone,
 } from 'lucide-react';
 
+const MOD_PROFILE_DICT = {
+  uz: {
+    loading: 'Moderator profil sozlamalari yuklanmoqda...',
+    roleBadge: 'Rasmiy TIU Moderatori',
+    defaultName: 'TIU Moderatori',
+    defaultPosition: 'Ilmiy bo‘lim koordinatori',
+    contactAdminBtn: 'Adminga murojaat',
+    tabProfile: '1. Shaxsiy va Xizmat Ma’lumotlari',
+    tabSecurity: '2. Email & Parolni O‘zgartirish',
+    tabContactAdmin: '3. Bosh Administratorga Bog‘lanish',
+    detailsTitle: 'Xizmat va Aloqa Rekvizitlari',
+    detailsSubtitle: 'Moderator sifatida platformada ko‘rinadigan rasmiy ma’lumotlaringiz va telefon raqamingiz.',
+    saving: 'Saqlanmoqda...',
+    saveChanges: 'O‘zgarishlarni saqlash',
+  },
+  ru: {
+    loading: 'Загрузка настроек профиля модератора...',
+    roleBadge: 'Официальный модератор TIU',
+    defaultName: 'Модератор TIU',
+    defaultPosition: 'Координатор научного отдела',
+    contactAdminBtn: 'Обратиться к админу',
+    tabProfile: '1. Личные и служебные данные',
+    tabSecurity: '2. Изменение Email и пароля',
+    tabContactAdmin: '3. Связь с главным администратором',
+    detailsTitle: 'Служебные и контактные реквизиты',
+    detailsSubtitle: 'Официальные данные и номер телефона модератора, отображаемые на платформе.',
+    saving: 'Сохранение...',
+    saveChanges: 'Сохранить изменения',
+  },
+  en: {
+    loading: 'Loading moderator profile settings...',
+    roleBadge: 'Official TIU Moderator',
+    defaultName: 'TIU Moderator',
+    defaultPosition: 'Research Office Coordinator',
+    contactAdminBtn: 'Contact Admin',
+    tabProfile: '1. Personal & Service Details',
+    tabSecurity: '2. Change Email & Password',
+    tabContactAdmin: '3. Contact Head Administrator',
+    detailsTitle: 'Service & Contact Information',
+    detailsSubtitle: 'Your official moderator details and contact phone displayed across the platform.',
+    saving: 'Saving...',
+    saveChanges: 'Save Changes',
+  },
+};
+
 export default function ModeratorProfilePage() {
+  const locale = useLocale('uz');
+  const tx = MOD_PROFILE_DICT[locale] || MOD_PROFILE_DICT.uz;
   const [activeTab, setActiveTab] = useState('PROFILE'); // 'PROFILE' | 'SECURITY' | 'CONTACT_ADMIN'
   const [loading, setLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -284,7 +332,7 @@ export default function ModeratorProfilePage() {
       <div className="p-8 flex items-center justify-center min-h-[60vh]">
         <div className="flex items-center gap-3 text-slate-500 font-semibold text-sm">
           <RefreshCw className="w-5 h-5 animate-spin text-blue-600" />
-          <span>Moderator profil sozlamalari yuklanmoqda...</span>
+          <span>{tx.loading}</span>
         </div>
       </div>
     );
@@ -293,27 +341,26 @@ export default function ModeratorProfilePage() {
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
       {/* Top Banner with Moderator Identity */}
-      <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="neu-card rounded-3xl p-6 sm:p-8 relative overflow-hidden">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-1 flex items-center justify-center overflow-hidden shrink-0 shadow-lg">
+            <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl bg-blue-50/70 dark:bg-slate-800/80 border border-blue-200/70 dark:border-slate-700 p-1 flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
               {photoUrl ? (
                 <img src={photoUrl} alt="Avatar" className="w-full h-full object-cover rounded-xl" />
               ) : (
-                <ShieldCheck className="w-10 h-10 text-emerald-400" />
+                <ShieldCheck className="w-10 h-10 text-emerald-500" />
               )}
             </div>
             <div className="space-y-1">
-              <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[11px] font-bold">
+              <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-700/60 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Rasmiy TIU Moderatori</span>
+                <span>{tx.roleBadge}</span>
               </div>
-              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
-                {fullName || 'TIU Moderatori'}
+              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+                {fullName || tx.defaultName}
               </h1>
-              <p className="text-xs text-blue-200/80 font-medium max-w-xl">
-                {userEmail} • {positionUz || 'Ilmiy bo‘lim koordinatori'}
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium max-w-xl">
+                {userEmail} • {positionUz || tx.defaultPosition}
               </p>
             </div>
           </div>
@@ -322,53 +369,53 @@ export default function ModeratorProfilePage() {
             <button
               type="button"
               onClick={() => setActiveTab('CONTACT_ADMIN')}
-              className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer"
+              className="glass-btn-primary px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 cursor-pointer"
             >
               <Headphones className="w-4 h-4" />
-              <span>Adminga murojaat</span>
+              <span>{tx.contactAdminBtn}</span>
             </button>
           </div>
         </div>
 
         {/* 3 Focused Tabs */}
-        <div className="flex items-center gap-2 mt-6 pt-5 border-t border-white/10 overflow-x-auto text-xs">
+        <div className="flex items-center gap-2 mt-6 pt-5 border-t border-slate-200/70 dark:border-slate-800 overflow-x-auto text-xs">
           <button
             type="button"
             onClick={() => setActiveTab('PROFILE')}
-            className={`px-4 py-2 rounded-xl font-bold transition cursor-pointer flex items-center gap-2 shrink-0 ${
+            className={`px-4 py-2.5 rounded-xl font-bold transition cursor-pointer flex items-center gap-2 shrink-0 ${
               activeTab === 'PROFILE'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-white/80 hover:bg-white/10 hover:text-white'
+                ? 'glass-btn-primary shadow-sm'
+                : 'glass-btn text-slate-700 dark:text-slate-200'
             }`}
           >
-            <User className="w-3.5 h-3.5" />
-            <span>1. Shaxsiy va Xizmat Ma’lumotlari</span>
+            <User className={`w-3.5 h-3.5 ${activeTab === 'PROFILE' ? 'text-white' : 'text-blue-600'}`} />
+            <span>{tx.tabProfile}</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('SECURITY')}
-            className={`px-4 py-2 rounded-xl font-bold transition cursor-pointer flex items-center gap-2 shrink-0 ${
+            className={`px-4 py-2.5 rounded-xl font-bold transition cursor-pointer flex items-center gap-2 shrink-0 ${
               activeTab === 'SECURITY'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-white/80 hover:bg-white/10 hover:text-white'
+                ? 'glass-btn-primary shadow-sm'
+                : 'glass-btn text-slate-700 dark:text-slate-200'
             }`}
           >
-            <KeyRound className="w-3.5 h-3.5 text-purple-400" />
-            <span>2. Email & Parolni O‘zgartirish</span>
+            <KeyRound className={`w-3.5 h-3.5 ${activeTab === 'SECURITY' ? 'text-white' : 'text-purple-500'}`} />
+            <span>{tx.tabSecurity}</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('CONTACT_ADMIN')}
-            className={`px-4 py-2 rounded-xl font-bold transition cursor-pointer flex items-center gap-2 shrink-0 ${
+            className={`px-4 py-2.5 rounded-xl font-bold transition cursor-pointer flex items-center gap-2 shrink-0 ${
               activeTab === 'CONTACT_ADMIN'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-white/80 hover:bg-white/10 hover:text-white'
+                ? 'glass-btn-primary shadow-sm'
+                : 'glass-btn text-slate-700 dark:text-slate-200'
             }`}
           >
-            <Headphones className="w-3.5 h-3.5 text-blue-400" />
-            <span>3. Bosh Administratorga Bog‘lanish</span>
+            <Headphones className={`w-3.5 h-3.5 ${activeTab === 'CONTACT_ADMIN' ? 'text-white' : 'text-blue-500'}`} />
+            <span>{tx.tabContactAdmin}</span>
           </button>
         </div>
       </div>
@@ -396,24 +443,24 @@ export default function ModeratorProfilePage() {
       {/* ======================================================== */}
       {activeTab === 'PROFILE' && (
         <form onSubmit={handleSaveProfile} className="space-y-6">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
-            <div className="border-b border-slate-100 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="neu-card rounded-3xl p-6 sm:p-8 space-y-6">
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <UserCheck className="w-5 h-5 text-blue-600" />
-                  Xizmat va Aloqa Rekvizitlari
+                  {tx.detailsTitle}
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Moderator sifatida platformada ko‘rinadigan rasmiy ma’lumotlaringiz va telefon raqamingiz.
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {tx.detailsSubtitle}
                 </p>
               </div>
               <button
                 type="submit"
                 disabled={savingProfile}
-                className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition cursor-pointer flex items-center gap-2 disabled:opacity-50"
+                className="glass-btn-primary px-5 py-2.5 rounded-xl font-bold text-xs cursor-pointer flex items-center gap-2 disabled:opacity-50"
               >
                 <Save className="w-3.5 h-3.5" />
-                <span>{savingProfile ? 'Saqlanmoqda...' : 'O‘zgarishlarni saqlash'}</span>
+                <span>{savingProfile ? tx.saving : tx.saveChanges}</span>
               </button>
             </div>
 

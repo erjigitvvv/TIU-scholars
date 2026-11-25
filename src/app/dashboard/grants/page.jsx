@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLocale } from '@/lib/useLocale';
 import {
   Briefcase,
   Plus,
@@ -29,7 +30,78 @@ import {
   Download,
 } from 'lucide-react';
 
+const GRANTS_DICT = {
+  uz: {
+    badge: 'Research Grant & Funding Engine',
+    title: 'Grant Loyihalari & Smart Ariza Studiyasi',
+    subtitle: 'Ochiq grant tanlovlarini qidirish, rasmiy ilmiy arizani bosqichma-bosqich tayyorlash, jamoa shakllantirish va natijalarni monitoring qilish.',
+    templateBtn: '📄 .docx Ko‘rsatmali Shablon',
+    newGrantBtn: 'Yangi Grant Arizasi',
+    kpiMine: 'Mening Loyihalarim',
+    kpiMineSub: 'Arizalar va yutilgan grantlar',
+    kpiWon: 'Yutilgan (Faol) Grantlar',
+    kpiWonSub: 'Moliyalashtirilayotgan',
+    kpiCalls: 'Ochiq Tanlovlar (Calls)',
+    kpiCallsSub: 'Hozirda ariza qabulida',
+    kpiPending: 'Tasdiqda Kutilayotgan',
+    kpiPendingSub: 'Universitet / Fond ko‘rigida',
+    tabMine: 'Mening Grant Loyihalarim',
+    tabCalls: 'Ochiq Grant Tanlovlari Katalogi',
+    loading: 'Yuklanmoqda...',
+    emptyTitle: 'Hozircha grant loyihalari mavjud emas',
+    emptyDesc: 'Ochiq grant tanlovlaridan birini tanlang yoki yangi ilmiy grant arizasini tayyorlashni boshlang.',
+    viewCallsBtn: 'Ochiq Tanlovlarni Ko‘rish',
+    unitTa: 'ta',
+  },
+  ru: {
+    badge: 'Research Grant & Funding Engine',
+    title: 'Грантовые проекты и студия заявок',
+    subtitle: 'Поиск открытых грантовых конкурсов, поэтапная подготовка официальной заявки, формирование команды и мониторинг результатов.',
+    templateBtn: '📄 Шаблон с инструкцией (.docx)',
+    newGrantBtn: 'Новая заявка на грант',
+    kpiMine: 'Мои проекты',
+    kpiMineSub: 'Заявки и выигранные гранты',
+    kpiWon: 'Выигранные (активные)',
+    kpiWonSub: 'Финансируются сейчас',
+    kpiCalls: 'Открытые конкурсы',
+    kpiCallsSub: 'Идёт приём заявок',
+    kpiPending: 'На рассмотрении',
+    kpiPendingSub: 'Проверка в научном отделе',
+    tabMine: 'Мои грантовые проекты',
+    tabCalls: 'Каталог открытых грантов',
+    loading: 'Загрузка...',
+    emptyTitle: 'Грантовых проектов пока нет',
+    emptyDesc: 'Выберите один из открытых конкурсов или создайте новую заявку на научный грант.',
+    viewCallsBtn: 'Смотреть конкурсы',
+    unitTa: 'шт.',
+  },
+  en: {
+    badge: 'Research Grant & Funding Engine',
+    title: 'Grant Projects & Smart Proposal Studio',
+    subtitle: 'Discover open funding calls, prepare structured scientific proposals, assemble research teams, and track project deliverables.',
+    templateBtn: '📄 .docx Guided Template',
+    newGrantBtn: 'New Grant Proposal',
+    kpiMine: 'My Projects',
+    kpiMineSub: 'Proposals & active awards',
+    kpiWon: 'Awarded (Active) Grants',
+    kpiWonSub: 'Currently funded',
+    kpiCalls: 'Open Funding Calls',
+    kpiCallsSub: 'Accepting applications',
+    kpiPending: 'Awaiting Approval',
+    kpiPendingSub: 'Under University review',
+    tabMine: 'My Grant Projects',
+    tabCalls: 'Open Funding Calls',
+    loading: 'Loading...',
+    emptyTitle: 'No grant projects yet',
+    emptyDesc: 'Browse open funding calls or start drafting a new research grant proposal.',
+    viewCallsBtn: 'Browse Open Calls',
+    unitTa: '',
+  },
+};
+
 export default function GrantsPage() {
+  const locale = useLocale('uz');
+  const L = GRANTS_DICT[locale] || GRANTS_DICT.uz;
   const [activeTab, setActiveTab] = useState('MY_GRANTS'); // 'MY_GRANTS' | 'OPEN_CALLS'
   const [grants, setGrants] = useState([]);
   const [openCalls, setOpenCalls] = useState([]);
@@ -345,153 +417,146 @@ export default function GrantsPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 rounded-3xl p-7 text-white shadow-xl relative overflow-hidden">
-        <div className="absolute right-0 top-0 bottom-0 w-96 bg-white/5 transform skew-x-12 pointer-events-none" />
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-xs font-semibold tracking-wide uppercase">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>Research Grant & Funding Engine</span>
-            </div>
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
-              Grant Loyihalari & Smart Ariza Studiyasi
-            </h1>
-            <p className="text-blue-100 text-sm max-w-2xl leading-relaxed">
-              Ochiq grant tanlovlarini qidirish, 8 ta ilmiy bo‘limli rasmiy arizani tayyorlash, jonli smeta kalkulyatori va yutilgan loyiha natijalarini monitoring qilish.
-            </p>
+      {/* Unified Neumorphic Header Banner */}
+      <div className="neu-card rounded-3xl p-6 sm:p-7 flex flex-col md:flex-row md:items-center justify-between gap-5">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-sky-950/60 text-blue-700 dark:text-sky-300 border border-blue-200/70 dark:border-sky-800 text-[11px] font-bold tracking-wide uppercase">
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            <span>{L.badge}</span>
           </div>
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            {L.title}
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm max-w-2xl leading-relaxed">
+            {L.subtitle}
+          </p>
+        </div>
 
-          <div className="flex flex-wrap items-center gap-3 self-start md:self-auto">
-            <a
-              href="/api/dashboard/grants/template"
-              download="TIU_Grant_Ariza_Shabloni_va_Korsatmalari.doc"
-              className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs border border-white/20 backdrop-blur-md transition shadow-sm"
-              title="Arizani to‘g‘ri yozish bo‘yicha ko‘rsatmalarga ega rasmiy .docx shablon"
-            >
-              <Download className="w-4 h-4 text-emerald-300" />
-              <span>📄 .docx Ko‘rsatmali Shablon</span>
-            </a>
+        <div className="flex flex-wrap items-center gap-3 self-start md:self-auto shrink-0">
+          <a
+            href="/api/dashboard/grants/template"
+            download="TIU_Grant_Ariza_Shabloni_va_Korsatmalari.doc"
+            className="glass-btn inline-flex items-center gap-2 px-4 py-3 rounded-2xl text-slate-700 dark:text-slate-200 font-bold text-xs transition"
+            title="Arizani to‘g‘ri yozish bo‘yicha ko‘rsatmalarga ega rasmiy .docx shablon"
+          >
+            <Download className="w-4 h-4 text-blue-600 dark:text-sky-400" />
+            <span>{L.templateBtn}</span>
+          </a>
 
-            <button
-              onClick={() => {
-                setEditingGrantId(null);
-                setFormData({
-                  title: '',
-                  role: 'Principal Investigator',
-                  fundingSource: 'O‘zbekiston Respublikasi Innovatsion rivojlanish agentligi',
-                  grantProgram: 'Amaliy tadqiqotlar loyihalari',
-                  startYear: new Date().getFullYear(),
-                  endYear: new Date().getFullYear() + 2,
-                  budgetRequested: 850000000,
-                  deadlineDate: '2026-05-15',
-                  status: 'DRAFT',
-                  applicationFileUrl: '',
-                  applicationFileName: '',
-                  proposalData: {
-                    urgency: '',
-                    objectives: '',
-                    novelty: '',
-                    methodology: '',
-                    workPlanGantt: '',
-                    teamExperience: '',
-                    risks: '',
-                    impact: '',
-                  },
-                  budgetItems: [
-                    { id: 1, category: 'SALARY', title: 'Ilmiy jamoa ish haqi (soliqlar bilan)', amount: 450000000, justification: '12 oylik ish haqi (12% daromad + 12% ijtimoiy soliq)' },
-                    { id: 2, category: 'EQUIPMENT', title: 'Laboratoriya va IT asbob-uskunalari', amount: 200000000, justification: 'Server va yuqori quvvatli hisoblash stansiyasi' },
-                    { id: 3, category: 'TRAVEL', title: 'Xalqaro ilmiy konferensiya va dala tadqiqoti', amount: 80000000, justification: 'Tadqiqot maʼlumotlarini yig‘ish va approbatsiya' },
-                    { id: 4, category: 'SUPPLIES', title: 'Reaktivlar va sarflash materiallari', amount: 70000000, justification: 'Eksperimental namunalar va sinov vositalari' },
-                    { id: 5, category: 'PUBLISHING', title: 'Scopus Q1/Q2 jurnallarida Open Access nashr', amount: 50000000, justification: 'Xalqaro ilmiy jurnallarda natijalarni chop etish' },
-                  ],
-                  teamMembers: [],
-                  documentsList: [
-                    { name: 'Universitet Ilmiy Kengashi Xulosasi', status: 'REQUIRED' },
-                    { name: 'Loyiha Pasporti va Kalendar Reja', status: 'READY' },
-                    { name: 'Xarajatlar Smetasi va Asosnomasi', status: 'READY' },
-                    { name: 'Jamoa Aʼzolari Ilmiy CV-Maʼlumotnomasi', status: 'READY' },
-                  ],
-                });
-                setActiveStep(1);
-                setWizardModalOpen(true);
-              }}
-              className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-lg active:scale-95 transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              <span>+ Yangi Grant Arizasi</span>
-            </button>
-          </div>
+          <button
+            onClick={() => {
+              setEditingGrantId(null);
+              setFormData({
+                title: '',
+                role: 'Principal Investigator',
+                fundingSource: 'O‘zbekiston Respublikasi Innovatsion rivojlanish agentligi',
+                grantProgram: 'Amaliy tadqiqotlar loyihalari',
+                startYear: new Date().getFullYear(),
+                endYear: new Date().getFullYear() + 2,
+                budgetRequested: 850000000,
+                deadlineDate: '2026-05-15',
+                status: 'DRAFT',
+                applicationFileUrl: '',
+                applicationFileName: '',
+                proposalData: {
+                  urgency: '',
+                  objectives: '',
+                  novelty: '',
+                  methodology: '',
+                  workPlanGantt: '',
+                  teamExperience: '',
+                  risks: '',
+                  impact: '',
+                },
+                budgetItems: [
+                  { id: 1, category: 'SALARY', title: 'Ilmiy jamoa ish haqi', amount: 450000000, justification: '' },
+                ],
+                teamMembers: [],
+                documentsList: [
+                  { name: 'Universitet Ilmiy Kengashi Xulosasi', status: 'REQUIRED' },
+                  { name: 'Loyiha Pasporti va Kalendar Reja', status: 'READY' },
+                  { name: 'Xarajatlar Smetasi va Asosnomasi', status: 'READY' },
+                  { name: 'Jamoa Aʼzolari Ilmiy CV-Maʼlumotnomasi', status: 'READY' },
+                ],
+              });
+              setActiveStep(1);
+              setWizardModalOpen(true);
+            }}
+            className="glass-btn-primary inline-flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>{L.newGrantBtn}</span>
+          </button>
         </div>
       </div>
 
       {/* KPI Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase">
-            <span>Mening Loyihalarim</span>
-            <Briefcase className="w-4 h-4 text-blue-600" />
+        <div className="neu-card-sm rounded-2xl p-5">
+          <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold uppercase tracking-wider">
+            <span>{L.kpiMine}</span>
+            <Briefcase className="w-4 h-4 text-blue-600 dark:text-sky-400" />
           </div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white mt-2">{grants.length} ta</div>
-          <p className="text-xs text-slate-400 mt-1">Arizalar va yutilgan grantlar</p>
+          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-2">
+            {grants.length} {L.unitTa}
+          </div>
+          <p className="text-xs text-slate-400 mt-1">{L.kpiMineSub}</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase">
-            <span>Yutilgan (Faol) Grantlar</span>
+        <div className="neu-card-sm rounded-2xl p-5">
+          <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold uppercase tracking-wider">
+            <span>{L.kpiWon}</span>
             <Award className="w-4 h-4 text-emerald-600" />
           </div>
-          <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-2">
-            {grants.filter((g) => g.status === 'WON' || g.status === 'APPROVED').length} ta
+          <div className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-2">
+            {grants.filter((g) => g.status === 'WON' || g.status === 'APPROVED' || g.status === 'COMPLETED').length} {L.unitTa}
           </div>
-          <p className="text-xs text-slate-400 mt-1">Moliyalashtirilayotgan</p>
+          <p className="text-xs text-slate-400 mt-1">{L.kpiWonSub}</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase">
-            <span>Ochiq Tanlovlar (Calls)</span>
-            <Calendar className="w-4 h-4 text-indigo-600" />
+        <div className="neu-card-navy rounded-2xl p-5 text-white">
+          <div className="flex items-center justify-between text-blue-200 text-[11px] font-bold uppercase tracking-wider">
+            <span>{L.kpiCalls}</span>
+            <Calendar className="w-4 h-4 text-amber-400" />
           </div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white mt-2">{openCalls.length} ta</div>
-          <p className="text-xs text-slate-400 mt-1">Hozirda ariza qabulida</p>
+          <div className="text-2xl sm:text-3xl font-extrabold text-white mt-2">
+            {openCalls.length} {L.unitTa}
+          </div>
+          <p className="text-xs text-blue-200/85 mt-1">{L.kpiCallsSub}</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase">
-            <span>Tasdiqda Kutilayotgan</span>
+        <div className="neu-card-sm rounded-2xl p-5">
+          <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold uppercase tracking-wider">
+            <span>{L.kpiPending}</span>
             <Clock className="w-4 h-4 text-amber-500" />
           </div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white mt-2">
-            {grants.filter((g) => g.status === 'SUBMITTED_INTERNAL' || g.status === 'PENDING').length} ta
+          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-2">
+            {grants.filter((g) => g.status === 'SUBMITTED_INTERNAL' || g.status === 'PENDING').length} {L.unitTa}
           </div>
-          <p className="text-xs text-slate-400 mt-1">Universitet / Fond ko‘rigida</p>
+          <p className="text-xs text-slate-400 mt-1">{L.kpiPendingSub}</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+      <div className="flex flex-wrap items-center gap-2.5 pb-2">
         <button
           onClick={() => setActiveTab('MY_GRANTS')}
-          className={`px-5 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center gap-2 ${
-            activeTab === 'MY_GRANTS'
-              ? 'bg-slate-900 dark:bg-blue-600 text-white shadow-md'
-              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100'
+          className={`px-5 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'MY_GRANTS' ? 'glass-btn-primary shadow-md' : 'glass-btn text-slate-700 dark:text-slate-200'
           }`}
         >
           <Briefcase className="w-4 h-4" />
-          <span>Mening Grant Loyihalarim ({grants.length})</span>
+          <span>{L.tabMine} ({grants.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('OPEN_CALLS')}
-          className={`px-5 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center gap-2 ${
-            activeTab === 'OPEN_CALLS'
-              ? 'bg-slate-900 dark:bg-blue-600 text-white shadow-md'
-              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100'
+          className={`px-5 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'OPEN_CALLS' ? 'glass-btn-primary shadow-md' : 'glass-btn text-slate-700 dark:text-slate-200'
           }`}
         >
           <Sparkles className="w-4 h-4 text-amber-500" />
-          <span>Ochiq Grant Tanlovlari Katalogi ({openCalls.length})</span>
+          <span>{L.tabCalls} ({openCalls.length})</span>
         </button>
       </div>
 
@@ -499,24 +564,24 @@ export default function GrantsPage() {
       {activeTab === 'MY_GRANTS' && (
         <div className="space-y-4">
           {loading ? (
-            <div className="py-20 text-center text-slate-400 text-sm">Yuklanmoqda...</div>
+            <div className="py-20 text-center text-slate-400 text-sm">{L.loading}</div>
           ) : grants.length === 0 ? (
-            <div className="bg-white dark:bg-slate-900 border border-dashed border-slate-300 dark:border-slate-800 rounded-3xl p-12 text-center space-y-3">
+            <div className="neu-card rounded-3xl p-12 text-center space-y-3">
               <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 flex items-center justify-center mx-auto">
                 <Briefcase className="w-7 h-7" />
               </div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                Hozircha grant loyihalari mavjud emas
+                {L.emptyTitle}
               </h3>
               <p className="text-xs text-slate-500 max-w-md mx-auto">
-                Ochiq grant tanlovlaridan birini tanlang yoki yangi ilmiy grant arizasini tayyorlashni boshlang.
+                {L.emptyDesc}
               </p>
               <button
                 onClick={() => setActiveTab('OPEN_CALLS')}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-md hover:bg-blue-700 transition"
+                className="glass-btn-primary inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs cursor-pointer"
               >
                 <Sparkles className="w-4 h-4" />
-                <span>Ochiq Tanlovlarni Ko‘rish</span>
+                <span>{L.viewCallsBtn}</span>
               </button>
             </div>
           ) : (
@@ -531,7 +596,7 @@ export default function GrantsPage() {
                   <motion.div
                     key={g.id}
                     layout
-                    className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4"
+                    className="neu-card-sm rounded-3xl p-6 transition flex flex-col justify-between space-y-4"
                   >
                     <div>
                       <div className="flex items-center justify-between gap-2 mb-2">
@@ -650,7 +715,7 @@ export default function GrantsPage() {
             {openCalls.map((call) => (
               <div
                 key={call.id}
-                className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4"
+                className="neu-card-sm rounded-3xl p-6 transition flex flex-col justify-between space-y-4"
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2">
@@ -703,7 +768,7 @@ export default function GrantsPage() {
 
                   <button
                     onClick={() => handleOpenNewFromCall(call)}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-md hover:bg-emerald-700 active:scale-95 transition"
+                    className="glass-btn-primary inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-xs cursor-pointer"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Ariza Yozish</span>

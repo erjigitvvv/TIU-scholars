@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLocale } from '@/lib/useLocale';
 import {
   GraduationCap,
   Clock,
@@ -29,7 +30,78 @@ import {
   Eye,
 } from 'lucide-react';
 
+const ADMIN_SUP_DICT = {
+  uz: {
+    loading: 'Moderator boshqaruv paneli yuklanmoqda...',
+    title: 'Ilmiy rahbarlik boshqaruv paneli',
+    subtitle: 'Kafedra va moderator navbati: arizalar, muddatlar, hisobotlar va yuklama nazorati',
+    refresh: 'Yangilash',
+    cardApprovalsTitle: 'Tasdiq kutayotgan arizalar',
+    cardApprovalsSub: 'Kafedra va buyruq kutilmoqda',
+    cardOverdueTitle: 'Muddati o‘tgan izlanishlar',
+    cardOverdueSub: 'Milestone yoki himoya kechikkan',
+    cardReportsTitle: 'Hisobot kutayotganlar',
+    cardReportsSub: 'Attestatsiya monitoringi',
+    cardWorkloadTitle: 'Rahbarlar yuklamasi',
+    cardWorkloadSub: 'Shogirdlar soni taqsimoti',
+    approvalsHeading: 'Ko‘rib chiqishni kutayotgan arizalar navbati',
+    totalPrefix: 'Jami:',
+    appsSuffix: 'ta ariza',
+    approvalsEmpty: 'Tasdiqlashni kutayotgan arizalar mavjud emas.',
+    deptPending: 'Kafedra tasdig‘i kutilmoqda',
+    rectorPending: 'Rektorat buyrug‘i kutilmoqda',
+    workloadLabel: 'Rahbar yuklamasi:',
+    researchersUnit: 'ta izlanuvchi',
+  },
+  ru: {
+    loading: 'Загрузка панели управления научным руководством...',
+    title: 'Панель управления научным руководством',
+    subtitle: 'Очередь кафедры и модератора: заявки, сроки, отчёты и контроль нагрузки',
+    refresh: 'Обновить',
+    cardApprovalsTitle: 'Заявки на утверждении',
+    cardApprovalsSub: 'Ожидается решение кафедры и приказ',
+    cardOverdueTitle: 'Просроченные исследования',
+    cardOverdueSub: 'Задержка этапа или защиты',
+    cardReportsTitle: 'Ожидают проверки отчёта',
+    cardReportsSub: 'Мониторинг аттестации',
+    cardWorkloadTitle: 'Нагрузка руководителей',
+    cardWorkloadSub: 'Распределение числа соискателей',
+    approvalsHeading: 'Очередь заявок на рассмотрение',
+    totalPrefix: 'Всего:',
+    appsSuffix: 'заявок',
+    approvalsEmpty: 'Нет заявок, ожидающих подтверждения.',
+    deptPending: 'Ожидает одобрения кафедры',
+    rectorPending: 'Ожидает приказа ректората',
+    workloadLabel: 'Нагрузка руководителя:',
+    researchersUnit: 'соиск.',
+  },
+  en: {
+    loading: 'Loading supervision control center...',
+    title: 'Academic Supervision Control Panel',
+    subtitle: 'Department & moderator queue: applications, deadlines, reports, and workload monitoring',
+    refresh: 'Refresh',
+    cardApprovalsTitle: 'Pending Approvals',
+    cardApprovalsSub: 'Department & rectorate order queue',
+    cardOverdueTitle: 'Overdue Researchers',
+    cardOverdueSub: 'Milestone or defense delayed',
+    cardReportsTitle: 'Pending Reports',
+    cardReportsSub: 'Attestation monitoring',
+    cardWorkloadTitle: 'Supervisor Workload',
+    cardWorkloadSub: 'Mentee distribution',
+    approvalsHeading: 'Pending Supervision Applications Queue',
+    totalPrefix: 'Total:',
+    appsSuffix: 'applications',
+    approvalsEmpty: 'No applications waiting for approval.',
+    deptPending: 'Awaiting Department Approval',
+    rectorPending: 'Awaiting Rectorate Order',
+    workloadLabel: 'Supervisor workload:',
+    researchersUnit: 'mentees',
+  },
+};
+
 export default function AdminSupervisionsPage() {
+  const locale = useLocale('uz');
+  const tx = ADMIN_SUP_DICT[locale] || ADMIN_SUP_DICT.uz;
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeBlock, setActiveBlock] = useState('approvals'); // 'approvals', 'overdue', 'reports', 'workload'
@@ -167,7 +239,7 @@ export default function AdminSupervisionsPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
         <RefreshCw className="w-8 h-8 animate-spin text-blue-600" />
-        <p className="text-sm font-medium text-slate-500">Moderator boshqaruv paneli yuklanmoqda...</p>
+        <p className="text-sm font-medium text-slate-500">{tx.loading}</p>
       </div>
     );
   }
@@ -182,19 +254,20 @@ export default function AdminSupervisionsPage() {
   return (
     <div className="space-y-6 pb-16">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="neu-card p-6 sm:p-7 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
-            <GraduationCap className="w-7 h-7 text-blue-600" /> Ilmiy rahbarlik boshqaruv paneli
+            <GraduationCap className="w-7 h-7 text-blue-600" /> {tx.title}
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Kafedra va moderator navbati: arizalar, muddatlar, hisobotlar va yuklama nazorati
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+            {tx.subtitle}
           </p>
         </div>
         <button
+          type="button"
           onClick={fetchOverview}
-          className="p-2 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 self-start sm:self-auto transition"
-          title="Yangilash"
+          className="glass-btn p-2.5 rounded-xl text-slate-600 dark:text-slate-300 self-start sm:self-auto cursor-pointer"
+          title={tx.refresh}
         >
           <RefreshCw className="w-4 h-4" />
         </button>
@@ -223,11 +296,12 @@ export default function AdminSupervisionsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Pending approvals */}
         <button
+          type="button"
           onClick={() => setActiveBlock('approvals')}
-          className={`p-5 rounded-2xl border text-left transition-all relative overflow-hidden ${
+          className={`p-5 rounded-2xl text-left transition-all relative overflow-hidden cursor-pointer ${
             activeBlock === 'approvals'
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20 border-blue-600'
-              : 'neu-card bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-blue-400'
+              ? 'glass-btn-primary shadow-lg'
+              : 'neu-card-sm border border-transparent hover:border-blue-400/60'
           }`}
         >
           <div className="flex items-center justify-between mb-3">
@@ -240,19 +314,20 @@ export default function AdminSupervisionsPage() {
               {summary.pendingApprovalsCount}
             </span>
           </div>
-          <p className="text-xs font-bold leading-tight">Tasdiq kutayotgan arizalar</p>
+          <p className="text-xs font-bold leading-tight">{tx.cardApprovalsTitle}</p>
           <p className={`text-[10px] mt-0.5 ${activeBlock === 'approvals' ? 'text-blue-100' : 'text-slate-400'}`}>
-            Kafedra va buyruq kutilmoqda
+            {tx.cardApprovalsSub}
           </p>
         </button>
 
         {/* Card 2: Overdue */}
         <button
+          type="button"
           onClick={() => setActiveBlock('overdue')}
-          className={`p-5 rounded-2xl border text-left transition-all relative overflow-hidden ${
+          className={`p-5 rounded-2xl text-left transition-all relative overflow-hidden cursor-pointer ${
             activeBlock === 'overdue'
-              ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/20 border-rose-600'
-              : 'neu-card bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-rose-400'
+              ? 'glass-btn-primary shadow-lg ring-2 ring-rose-400/50'
+              : 'neu-card-sm border border-transparent hover:border-rose-400/60'
           }`}
         >
           <div className="flex items-center justify-between mb-3">
@@ -265,19 +340,20 @@ export default function AdminSupervisionsPage() {
               {summary.overdueCount}
             </span>
           </div>
-          <p className="text-xs font-bold leading-tight">Muddati o‘tgan izlanishlar</p>
-          <p className={`text-[10px] mt-0.5 ${activeBlock === 'overdue' ? 'text-rose-100' : 'text-slate-400'}`}>
-            Milestone yoki himoya kechikkan
+          <p className="text-xs font-bold leading-tight">{tx.cardOverdueTitle}</p>
+          <p className={`text-[10px] mt-0.5 ${activeBlock === 'overdue' ? 'text-blue-100' : 'text-slate-400'}`}>
+            {tx.cardOverdueSub}
           </p>
         </button>
 
         {/* Card 3: Pending reports */}
         <button
+          type="button"
           onClick={() => setActiveBlock('reports')}
-          className={`p-5 rounded-2xl border text-left transition-all relative overflow-hidden ${
+          className={`p-5 rounded-2xl text-left transition-all relative overflow-hidden cursor-pointer ${
             activeBlock === 'reports'
-              ? 'bg-amber-600 text-white shadow-lg shadow-amber-500/20 border-amber-600'
-              : 'neu-card bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-amber-400'
+              ? 'glass-btn-primary shadow-lg ring-2 ring-amber-400/50'
+              : 'neu-card-sm border border-transparent hover:border-amber-400/60'
           }`}
         >
           <div className="flex items-center justify-between mb-3">
@@ -290,19 +366,20 @@ export default function AdminSupervisionsPage() {
               {summary.pendingReportsCount}
             </span>
           </div>
-          <p className="text-xs font-bold leading-tight">Hisobot kutayotganlar</p>
-          <p className={`text-[10px] mt-0.5 ${activeBlock === 'reports' ? 'text-amber-100' : 'text-slate-400'}`}>
-            Attestatsiya monitoringi
+          <p className="text-xs font-bold leading-tight">{tx.cardReportsTitle}</p>
+          <p className={`text-[10px] mt-0.5 ${activeBlock === 'reports' ? 'text-blue-100' : 'text-slate-400'}`}>
+            {tx.cardReportsSub}
           </p>
         </button>
 
         {/* Card 4: Workload */}
         <button
+          type="button"
           onClick={() => setActiveBlock('workload')}
-          className={`p-5 rounded-2xl border text-left transition-all relative overflow-hidden ${
+          className={`p-5 rounded-2xl text-left transition-all relative overflow-hidden cursor-pointer ${
             activeBlock === 'workload'
-              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 border-indigo-600'
-              : 'neu-card bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-indigo-400'
+              ? 'glass-btn-primary shadow-lg ring-2 ring-indigo-400/50'
+              : 'neu-card-sm border border-transparent hover:border-indigo-400/60'
           }`}
         >
           <div className="flex items-center justify-between mb-3">
@@ -315,9 +392,9 @@ export default function AdminSupervisionsPage() {
               {summary.activeSupervisorsCount}
             </span>
           </div>
-          <p className="text-xs font-bold leading-tight">Rahbarlar yuklamasi</p>
-          <p className={`text-[10px] mt-0.5 ${activeBlock === 'workload' ? 'text-indigo-100' : 'text-slate-400'}`}>
-            Shogirdlar soni taqsimoti
+          <p className="text-xs font-bold leading-tight">{tx.cardWorkloadTitle}</p>
+          <p className={`text-[10px] mt-0.5 ${activeBlock === 'workload' ? 'text-blue-100' : 'text-slate-400'}`}>
+            {tx.cardWorkloadSub}
           </p>
         </button>
       </div>
@@ -329,14 +406,14 @@ export default function AdminSupervisionsPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Clock className="w-5 h-5 text-blue-600" /> Ko‘rib chiqishni kutayotgan arizalar navbati
+              <Clock className="w-5 h-5 text-blue-600" /> {tx.approvalsHeading}
             </h2>
-            <span className="text-xs text-slate-400">Jami: {(data?.pendingApprovals || []).length} ta ariza</span>
+            <span className="text-xs text-slate-400">{tx.totalPrefix} {(data?.pendingApprovals || []).length} {tx.appsSuffix}</span>
           </div>
 
           {(data?.pendingApprovals || []).length === 0 ? (
             <div className="p-12 text-center neu-card rounded-3xl text-slate-500 text-sm">
-              Tasdiqlashni kutayotgan arizalar mavjud emas.
+              {tx.approvalsEmpty}
             </div>
           ) : (
             <div className="space-y-3">
@@ -346,7 +423,7 @@ export default function AdminSupervisionsPage() {
                 return (
                   <div
                     key={sup.id}
-                    className="p-5 rounded-2xl neu-card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4"
+                    className="p-5 rounded-3xl neu-card-sm flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4"
                   >
                     <div className="space-y-1.5 max-w-3xl">
                       <div className="flex flex-wrap items-center gap-2">
@@ -360,7 +437,7 @@ export default function AdminSupervisionsPage() {
                               : 'bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300'
                           }`}
                         >
-                          {isDeptLevel ? 'Kafedra tasdig‘i kutilmoqda' : 'Rektorat buyrug‘i kutilmoqda'}
+                          {isDeptLevel ? tx.deptPending : tx.rectorPending}
                         </span>
                         {/* SUPERVISOR WORKLOAD BADGE */}
                         <span
@@ -370,7 +447,7 @@ export default function AdminSupervisionsPage() {
                               : 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300'
                           }`}
                         >
-                          Rahbar yuklamasi: {currentWorkload} ta izlanuvchi
+                          {tx.workloadLabel} {currentWorkload} {tx.researchersUnit}
                         </span>
                       </div>
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, CheckCheck, ExternalLink } from 'lucide-react';
 
 export default function NotificationBell({ locale = 'uz' }) {
@@ -79,69 +80,77 @@ export default function NotificationBell({ locale = 'uz' }) {
         )}
       </button>
 
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl z-50 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">
-                {labels.title} {unreadCount > 0 ? `(${unreadCount})` : ''}
-              </span>
-              {unreadCount > 0 && (
-                <button
-                  type="button"
-                  onClick={markAllRead}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:underline cursor-pointer"
-                >
-                  <CheckCheck className="w-3.5 h-3.5" />
-                  {labels.markAll}
-                </button>
-              )}
-            </div>
-            <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
-              {notifications.length === 0 ? (
-                <div className="p-6 text-center text-xs text-slate-500">{labels.empty}</div>
-              ) : (
-                notifications.map((n) => (
+      <AnimatePresence>
+        {open && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+            <motion.div
+              initial={{ opacity: 0, y: 8, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 6, scale: 0.95 }}
+              transition={{ type: 'spring', stiffness: 420, damping: 28 }}
+              className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-2xl z-50 overflow-hidden"
+            >
+              <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">
+                  {labels.title} {unreadCount > 0 ? `(${unreadCount})` : ''}
+                </span>
+                {unreadCount > 0 && (
                   <button
-                    key={n.id}
                     type="button"
-                    onClick={() => markAsRead(n)}
-                    className={`w-full text-left px-4 py-3 transition-colors cursor-pointer ${
-                      n.isRead
-                        ? 'bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                        : 'bg-blue-50/70 dark:bg-blue-950/30 hover:bg-blue-50 dark:hover:bg-blue-950/50'
-                    }`}
+                    onClick={markAllRead}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:underline cursor-pointer"
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="text-xs font-bold text-slate-900 dark:text-white">
-                        {n.title}
-                      </span>
-                      {!n.isRead && (
-                        <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0 mt-1" />
-                      )}
-                    </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 line-clamp-2">
-                      {n.message}
-                    </p>
-                    <div className="flex items-center justify-between mt-2 pt-1 border-t border-slate-100 dark:border-slate-800 text-[10px]">
-                      <span className="font-mono text-slate-400">
-                        {new Date(n.createdAt).toLocaleDateString()} {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                      {n.link && (
-                        <span className="font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1 hover:underline">
-                          <span>Ko‘rish</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </span>
-                      )}
-                    </div>
+                    <CheckCheck className="w-3.5 h-3.5" />
+                    {labels.markAll}
                   </button>
-                ))
-              )}
-            </div>
-          </div>
-        </>
-      )}
+                )}
+              </div>
+              <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                {notifications.length === 0 ? (
+                  <div className="p-6 text-center text-xs text-slate-500">{labels.empty}</div>
+                ) : (
+                  notifications.map((n) => (
+                    <button
+                      key={n.id}
+                      type="button"
+                      onClick={() => markAsRead(n)}
+                      className={`w-full text-left px-4 py-3 transition-colors cursor-pointer ${
+                        n.isRead
+                          ? 'bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                          : 'bg-blue-50/70 dark:bg-blue-950/30 hover:bg-blue-50 dark:hover:bg-blue-950/50'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-xs font-bold text-slate-900 dark:text-white">
+                          {n.title}
+                        </span>
+                        {!n.isRead && (
+                          <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0 mt-1" />
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 line-clamp-2">
+                        {n.message}
+                      </p>
+                      <div className="flex items-center justify-between mt-2 pt-1 border-t border-slate-100 dark:border-slate-800 text-[10px]">
+                        <span className="font-mono text-slate-400">
+                          {new Date(n.createdAt).toLocaleDateString()} {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        {n.link && (
+                          <span className="font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1 hover:underline">
+                            <span>Ko‘rish</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -25,6 +25,7 @@ import {
   Sun,
   Moon,
 } from 'lucide-react';
+import LanguageFlagSwitcher from '@/components/shared/LanguageFlagSwitcher';
 
 const LANGUAGES = [
   { code: 'uz', label: "O'zbekcha", short: 'UZ' },
@@ -353,90 +354,14 @@ export default function Navbar({ dict, currentLocale, user }) {
           })}
         </nav>
 
-        {/* Right side: Language Dropdown + Light/Dark Toggle + Logged-in User Actions */}
+        {/* Right side: Language Flag Switcher */}
         <div className="hidden lg:flex items-center gap-2.5">
-          <div className="relative" ref={langRef}>
-            <button
-              type="button"
-              onClick={() => setLangOpen((prev) => !prev)}
-              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border transition-colors ${
-                isTransparent
-                  ? 'text-white bg-white/15 hover:bg-white/25 border-white/25'
-                  : 'text-slate-700 bg-slate-50 hover:bg-slate-100 border-slate-200'
-              }`}
-            >
-              <Globe className={`w-3.5 h-3.5 ${isTransparent ? 'text-blue-200' : 'text-[#0F294A]'}`} />
-              <span>{activeLang.short}</span>
-              <ChevronDown
-                className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                  langOpen ? 'rotate-180' : ''
-                }`}
-              />
-            </button>
-
-            <AnimatePresence>
-              {langOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: 6, scale: 0.97 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 4, scale: 0.97 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute right-0 mt-2 w-40 bg-white/95 backdrop-blur-md rounded-xl border border-slate-200 shadow-lg py-1.5 z-50 text-slate-800"
-                >
-                  {LANGUAGES.map((lang) => (
-                    <button
-                      key={lang.code}
-                      type="button"
-                      onClick={() => handleLocaleChange(lang.code)}
-                      className={`w-full px-3.5 py-2 text-left text-xs flex items-center justify-between transition-colors ${
-                        currentLocale === lang.code
-                          ? 'text-[#0F294A] font-semibold'
-                          : 'text-slate-700 hover:text-[#0F294A]'
-                      }`}
-                    >
-                      <span>{lang.label}</span>
-                      {currentLocale === lang.code && <Check className="w-3.5 h-3.5 text-[#0F294A]" />}
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+          <LanguageFlagSwitcher locale={currentLocale} transparent={isTransparent} />
         </div>
 
         {/* Mobile Controls */}
         <div className="flex lg:hidden items-center gap-2">
-          <details className="relative group">
-            <summary
-              aria-label="Language"
-              className={`list-none cursor-pointer flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg border uppercase outline-none transition-colors ${
-                isTransparent
-                  ? "bg-white/15 border-white/25 text-white hover:bg-white/25"
-                  : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
-              }`}
-            >
-              <Globe className="w-3.5 h-3.5" />
-              <span>{LANGUAGES.find((l) => l.code === currentLocale)?.short || currentLocale}</span>
-              <ChevronDown className="w-3 h-3 transition-transform group-open:rotate-180" />
-            </summary>
-            <div className="absolute right-0 mt-2 w-36 bg-white rounded-xl shadow-lg border border-slate-200/80 py-1.5 z-50">
-              {LANGUAGES.map((l) => (
-                <button
-                  key={l.code}
-                  type="button"
-                  onClick={() => handleLocaleChange(l.code)}
-                  className={`w-full flex items-center justify-between px-3.5 py-2 text-xs font-medium transition-colors ${
-                    currentLocale === l.code
-                      ? "bg-[#0b3d91]/10 text-[#0b3d91] font-semibold"
-                      : "text-slate-700 hover:bg-slate-50"
-                  }`}
-                >
-                  <span>{l.label}</span>
-                  <span className="uppercase text-[10px] text-slate-400">{l.short}</span>
-                </button>
-              ))}
-            </div>
-          </details>
+          <LanguageFlagSwitcher locale={currentLocale} transparent={isTransparent} compact />
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle Menu"

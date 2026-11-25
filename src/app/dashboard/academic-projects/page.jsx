@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLocale } from '@/lib/useLocale';
 import {
   Layers,
   Plus,
@@ -113,7 +114,108 @@ function safeParseArray(raw) {
   }
 }
 
+const PAGE_DICT = {
+  uz: {
+    badge: 'Smart Research Workspace',
+    title: 'Ilmiy Loyihalar & Hammualliflik Ustaxonasi',
+    subtitle: 'Maqola, tezis, dissertatsiya, monografiya va grant arizalarini hammualliflar bilan yozish, DOI iqtiboslarini 1-klikda formatlash hamda Telegram bot orqali tasdiqlash markazi.',
+    newProjectBtn: 'Yangi Ilmiy Loyiha',
+    kpiTotal: 'Jami Loyihalar',
+    kpiTotalSub: 'Barcha ilmiy yo‘nalishlar',
+    kpiArtThesis: 'Maqola & Tezislar',
+    kpiArtThesisSub: 'Scopus, OAK va anjumanlar',
+    kpiMajor: 'Dissertatsiya & Grant',
+    kpiMajorSub: 'Yirik ilmiy asarlar',
+    kpiCollabs: 'Hammualliflar',
+    kpiCollabsSub: 'CRediT jamoasi',
+    unitTa: 'ta',
+    unitPerson: 'kishi',
+    searchPh: 'Loyiha kodi yoki mavzusi...',
+    loading: 'Loyihalar yuklanmoqda...',
+    emptyTitle: 'Ushbu bo‘limda ilmiy loyihalar mavjud emas',
+    emptyDesc: 'Yangi maqola, dissertatsiya yoki grant arizasini oching va hammualliflaringiz bilan birgalikda yozishni boshlang.',
+    createBtn: 'Loyiha yaratish',
+    coauthorSuffix: 'hammuallif',
+    workspaceBtn: 'Ustaxona (Workspace)',
+    types: {
+      ALL: 'Barchasi',
+      ARTICLE: 'Ilmiy Maqola',
+      THESIS: 'Tezis (Konferensiya)',
+      DISSERTATION: 'Dissertatsiya',
+      AUTOREFERAT: 'Avtoreferat',
+      MONOGRAPH: 'Monografiya',
+      GRANT: 'Grant arizasi',
+    },
+  },
+  ru: {
+    badge: 'Smart Research Workspace',
+    title: 'Научные проекты и студия соавторства',
+    subtitle: 'Совместная подготовка статей, тезисов, диссертаций, монографий и грантовых заявок с соавторами, автоформат DOI и согласование через Telegram.',
+    newProjectBtn: 'Новый научный проект',
+    kpiTotal: 'Всего проектов',
+    kpiTotalSub: 'Все научные направления',
+    kpiArtThesis: 'Статьи и тезисы',
+    kpiArtThesisSub: 'Scopus, ВАК и конференции',
+    kpiMajor: 'Диссертации и гранты',
+    kpiMajorSub: 'Крупные научные труды',
+    kpiCollabs: 'Соавторы',
+    kpiCollabsSub: 'Команда CRediT',
+    unitTa: 'шт.',
+    unitPerson: 'чел.',
+    searchPh: 'Код или тема проекта...',
+    loading: 'Загрузка проектов...',
+    emptyTitle: 'В этом разделе пока нет проектов',
+    emptyDesc: 'Создайте новую статью, диссертацию или грантовую заявку и начните совместную работу с соавторами.',
+    createBtn: 'Создать проект',
+    coauthorSuffix: 'соавт.',
+    workspaceBtn: 'Студия (Workspace)',
+    types: {
+      ALL: 'Все',
+      ARTICLE: 'Научная статья',
+      THESIS: 'Тезисы (Конференция)',
+      DISSERTATION: 'Диссертация',
+      AUTOREFERAT: 'Автореферат',
+      MONOGRAPH: 'Монография',
+      GRANT: 'Грантовая заявка',
+    },
+  },
+  en: {
+    badge: 'Smart Research Workspace',
+    title: 'Academic Projects & Co-Authoring Studio',
+    subtitle: 'Collaborate on papers, theses, dissertations, monographs, and grant proposals with 1-click DOI citations and Telegram verification.',
+    newProjectBtn: 'New Academic Project',
+    kpiTotal: 'Total Projects',
+    kpiTotalSub: 'All research tracks',
+    kpiArtThesis: 'Papers & Theses',
+    kpiArtThesisSub: 'Scopus, OAK & conferences',
+    kpiMajor: 'Dissertations & Grants',
+    kpiMajorSub: 'Major academic works',
+    kpiCollabs: 'Collaborators',
+    kpiCollabsSub: 'CRediT team',
+    unitTa: '',
+    unitPerson: '',
+    searchPh: 'Project code or title...',
+    loading: 'Loading projects...',
+    emptyTitle: 'No academic projects in this category',
+    emptyDesc: 'Start a new article, dissertation, or grant proposal and collaborate with your co-authors.',
+    createBtn: 'Create Project',
+    coauthorSuffix: 'co-authors',
+    workspaceBtn: 'Workspace Studio',
+    types: {
+      ALL: 'All',
+      ARTICLE: 'Research Article',
+      THESIS: 'Conference Thesis',
+      DISSERTATION: 'Dissertation',
+      AUTOREFERAT: 'Autoreferat',
+      MONOGRAPH: 'Monograph',
+      GRANT: 'Grant Proposal',
+    },
+  },
+};
+
 export default function AcademicProjectsPage() {
+  const locale = useLocale('uz');
+  const L = PAGE_DICT[locale] || PAGE_DICT.uz;
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('ALL');
@@ -469,96 +571,95 @@ export default function AcademicProjectsPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 rounded-3xl p-7 text-white shadow-xl relative overflow-hidden">
-        <div className="absolute right-0 top-0 bottom-0 w-96 bg-white/5 transform skew-x-12 pointer-events-none" />
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-xs font-semibold tracking-wide uppercase">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>Smart Research Workspace</span>
-            </div>
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
-              Ilmiy Loyihalar & Hammualliflik Ustaxonasi
-            </h1>
-            <p className="text-emerald-100 text-sm max-w-2xl leading-relaxed">
-              Maqola, tezis, dissertatsiya, monografiya va grant arizalarini hammualliflar bilan yozish, DOI iqtiboslarini 1-klikda formatlash hamda Telegram bot orqali tasdiqlash markazi.
-            </p>
+      {/* Unified Neumorphic Header Banner */}
+      <div className="neu-card rounded-3xl p-6 sm:p-7 flex flex-col md:flex-row md:items-center justify-between gap-5">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-sky-950/60 text-blue-700 dark:text-sky-300 border border-blue-200/70 dark:border-sky-800 text-[11px] font-bold tracking-wide uppercase">
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            <span>{L.badge}</span>
           </div>
-
-          <button
-            onClick={() => setCreateModalOpen(true)}
-            className="inline-flex items-center gap-2 px-5 py-3.5 rounded-2xl bg-white text-emerald-800 font-bold text-sm shadow-lg hover:bg-emerald-50 active:scale-95 transition-all self-start md:self-auto"
-          >
-            <Plus className="w-5 h-5 text-emerald-700" />
-            <span>Yangi Ilmiy Loyiha</span>
-          </button>
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            {L.title}
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm max-w-2xl leading-relaxed">
+            {L.subtitle}
+          </p>
         </div>
+
+        <button
+          onClick={() => setCreateModalOpen(true)}
+          className="glass-btn-primary inline-flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm self-start md:self-auto cursor-pointer shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          <span>{L.newProjectBtn}</span>
+        </button>
       </div>
 
-      {/* KPI Stats */}
+      {/* KPI Stats (Unified Neumorphism) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase">
-            <span>Jami Loyihalar</span>
-            <Layers className="w-4 h-4 text-emerald-600" />
+        <div className="neu-card-sm rounded-2xl p-5">
+          <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold uppercase tracking-wider">
+            <span>{L.kpiTotal}</span>
+            <Layers className="w-4 h-4 text-blue-600 dark:text-sky-400" />
           </div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white mt-2">{projects.length} ta</div>
-          <p className="text-xs text-slate-400 mt-1">Barcha ilmiy yo‘nalishlar</p>
+          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-2">
+            {projects.length} {L.unitTa}
+          </div>
+          <p className="text-xs text-slate-400 mt-1">{L.kpiTotalSub}</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase">
-            <span>Maqola & Tezislar</span>
-            <BookOpen className="w-4 h-4 text-blue-600" />
+        <div className="neu-card-sm rounded-2xl p-5">
+          <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold uppercase tracking-wider">
+            <span>{L.kpiArtThesis}</span>
+            <BookOpen className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
           </div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white mt-2">
-            {projects.filter((p) => p.type === 'ARTICLE' || p.type === 'THESIS').length} ta
+          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-2">
+            {projects.filter((p) => p.type === 'ARTICLE' || p.type === 'THESIS').length} {L.unitTa}
           </div>
-          <p className="text-xs text-slate-400 mt-1">Scopus, OAK va anjumanlar</p>
+          <p className="text-xs text-slate-400 mt-1">{L.kpiArtThesisSub}</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase">
-            <span>Dissertatsiya & Grant</span>
-            <GraduationCap className="w-4 h-4 text-indigo-600" />
+        <div className="neu-card-sm rounded-2xl p-5">
+          <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold uppercase tracking-wider">
+            <span>{L.kpiMajor}</span>
+            <GraduationCap className="w-4 h-4 text-purple-600 dark:text-purple-400" />
           </div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white mt-2">
-            {projects.filter((p) => ['DISSERTATION', 'AUTOREFERAT', 'GRANT', 'MONOGRAPH'].includes(p.type)).length} ta
+          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-2">
+            {projects.filter((p) => ['DISSERTATION', 'AUTOREFERAT', 'GRANT', 'MONOGRAPH'].includes(p.type)).length} {L.unitTa}
           </div>
-          <p className="text-xs text-slate-400 mt-1">Yirik ilmiy asarlar</p>
+          <p className="text-xs text-slate-400 mt-1">{L.kpiMajorSub}</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase">
-            <span>Hammualliflar</span>
-            <Users className="w-4 h-4 text-teal-600" />
+        <div className="neu-card-navy rounded-2xl p-5 text-white">
+          <div className="flex items-center justify-between text-blue-200 text-[11px] font-bold uppercase tracking-wider">
+            <span>{L.kpiCollabs}</span>
+            <Users className="w-4 h-4 text-amber-400" />
           </div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white mt-2">
-            {projects.reduce((acc, p) => acc + (p.collaborators?.length || 0), 0)} kishi
+          <div className="text-2xl sm:text-3xl font-extrabold text-white mt-2">
+            {projects.reduce((acc, p) => acc + (p.collaborators?.length || 0), 0)} {L.unitPerson}
           </div>
-          <p className="text-xs text-slate-400 mt-1">CRediT jamoasi</p>
+          <p className="text-xs text-blue-200/85 mt-1">{L.kpiCollabsSub}</p>
         </div>
       </div>
 
       {/* Filter Tabs & Search */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
-          {PROJECT_TYPES.map((t) => {
-            const Icon = t.icon;
-            const isSel = activeTab === t.id;
+          {PROJECT_TYPES.map((pt) => {
+            const Icon = pt.icon;
+            const isSel = activeTab === pt.id;
             return (
               <button
-                key={t.id}
-                onClick={() => setActiveTab(t.id)}
-                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                key={pt.id}
+                onClick={() => setActiveTab(pt.id)}
+                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                   isSel
-                    ? 'bg-slate-900 dark:bg-emerald-600 text-white shadow-md'
-                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 border border-slate-200/70 dark:border-slate-700/60'
+                    ? 'glass-btn-primary shadow-md'
+                    : 'glass-btn text-slate-700 dark:text-slate-200'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
-                <span>{t.label}</span>
+                <span>{L.types[pt.id] || pt.label}</span>
               </button>
             );
           })}
@@ -568,34 +669,34 @@ export default function AcademicProjectsPage() {
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Loyiha kodi yoki mavzusi..."
+            placeholder={L.searchPh}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200/80 dark:border-slate-700 bg-white/85 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
       </div>
 
       {/* Projects List */}
       {loading ? (
-        <div className="py-20 text-center text-slate-400 text-sm">Loyihalar yuklanmoqda...</div>
+        <div className="py-20 text-center text-slate-400 text-sm">{L.loading}</div>
       ) : filteredProjects.length === 0 ? (
-        <div className="bg-white dark:bg-slate-900 border border-dashed border-slate-300 dark:border-slate-800 rounded-3xl p-12 text-center space-y-3">
-          <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center mx-auto">
+        <div className="neu-card rounded-3xl p-12 text-center space-y-3">
+          <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-sky-950/40 text-blue-600 dark:text-sky-400 flex items-center justify-center mx-auto">
             <Layers className="w-7 h-7" />
           </div>
           <h3 className="text-base font-bold text-slate-800 dark:text-white">
-            Ushbu bo‘limda ilmiy loyihalar mavjud emas
+            {L.emptyTitle}
           </h3>
           <p className="text-xs text-slate-500 max-w-md mx-auto">
-            Yangi maqola, dissertatsiya yoki grant arizasini oching va hammualliflaringiz bilan birgalikda yozishni boshlang.
+            {L.emptyDesc}
           </p>
           <button
             onClick={() => setCreateModalOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white font-semibold text-xs shadow-md hover:bg-emerald-700 transition"
+            className="glass-btn-primary inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-xs cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Loyiha yaratish</span>
+            <span>{L.createBtn}</span>
           </button>
         </div>
       ) : (
@@ -604,7 +705,7 @@ export default function AcademicProjectsPage() {
             <motion.div
               key={p.id}
               layout
-              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between group"
+              className="neu-card-sm rounded-3xl p-5 flex flex-col justify-between group hover:shadow-lg transition-all"
             >
               <div>
                 <div className="flex items-center justify-between gap-2 mb-3">
@@ -647,7 +748,7 @@ export default function AcademicProjectsPage() {
                   </div>
 
                   <span className="text-[11px] font-medium text-slate-500">
-                    {p.collaborators?.length || 1} hammuallif
+                    {p.collaborators?.length || 1} {L.coauthorSuffix}
                   </span>
                 </div>
               </div>
@@ -664,7 +765,7 @@ export default function AcademicProjectsPage() {
                       type="button"
                       onClick={() => handleDeleteProject(p.id)}
                       className="p-1.5 rounded-xl text-slate-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
-                      title="Loyihani o‘chirish"
+                      title="Delete"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -672,10 +773,10 @@ export default function AcademicProjectsPage() {
 
                   <button
                     onClick={() => setActiveProject(p)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-semibold text-xs hover:bg-emerald-100 dark:hover:bg-emerald-900 transition cursor-pointer"
+                    className="glass-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-blue-700 dark:text-sky-300 font-semibold text-xs transition cursor-pointer"
                   >
                     <Sparkles className="w-3.5 h-3.5" />
-                    <span>Ustaxona (Workspace)</span>
+                    <span>{L.workspaceBtn}</span>
                   </button>
                 </div>
               </div>
