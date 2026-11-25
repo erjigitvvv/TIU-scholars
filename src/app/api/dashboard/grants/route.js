@@ -115,6 +115,26 @@ export async function POST(request) {
       },
     });
 
+    if (grant.status === 'SUBMITTED_INTERNAL') {
+      const moderators = await prisma.user.findMany({
+        where: { role: { in: ['MODERATOR', 'SUPER_ADMIN'] } },
+        select: { id: true },
+      });
+      for (const m of moderators) {
+        await prisma.notification
+          .create({
+            data: {
+              userId: m.id,
+              type: 'GRANT_SUBMITTED',
+              title: '💼 Yangi Grant Arizasi Topshirildi!',
+              message: `${scholar.fullName} tomonidan [${grant.grantCode}] "${grant.title}" grant arizasi Ilmiy Bo‘lim tasdig‘iga yuborildi.`,
+              link: '/admin/moderation?type=grants',
+            },
+          })
+          .catch(() => {});
+      }
+    }
+
     return Response.json({ success: true, grant });
   } catch (error) {
     console.error('POST /api/dashboard/grants error:', error);

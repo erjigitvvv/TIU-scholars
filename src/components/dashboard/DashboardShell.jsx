@@ -156,7 +156,12 @@ export default function DashboardShell({ user, locale = 'uz', children }) {
 
       {/* Scholar Mini Card */}
       {scholar && (
-        <div className="p-3.5 mx-3 mt-4 neu-card-sm rounded-2xl flex items-center gap-3">
+        <Link
+          href="/dashboard/profile"
+          onClick={() => isMobile && setMobileOpen(false)}
+          className="p-3.5 mx-3 mt-4 neu-card-sm rounded-2xl flex items-center gap-3 hover:border-blue-300 dark:hover:border-blue-700 transition-all cursor-pointer group"
+          title={t.profile}
+        >
           <ScholarAvatar
             fullName={scholar.fullName}
             photoUrl={scholar.photoUrl}
@@ -164,12 +169,14 @@ export default function DashboardShell({ user, locale = 'uz', children }) {
             size="md"
           />
           <div className="min-w-0 flex-1">
-            <p className="text-xs leading-snug truncate">{renderTwoToneName(scholar.fullName)}</p>
+            <p className="text-xs leading-snug truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+              {renderTwoToneName(scholar.fullName)}
+            </p>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
               {scholar.academicDegree} • {scholar.tiuScore?.toFixed ? scholar.tiuScore.toFixed(1) : scholar.tiuScore} ball
             </p>
           </div>
-        </div>
+        </Link>
       )}
 
       {/* Navigation */}

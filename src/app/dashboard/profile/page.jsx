@@ -29,6 +29,7 @@ import {
   X,
   ArrowRight,
   Clock,
+  Send,
 } from 'lucide-react';
 import ScholarAvatar from '@/components/ui/ScholarAvatar';
 import AcademicSyncSection from '@/components/dashboard/AcademicSyncSection';
@@ -256,6 +257,24 @@ function getCookieLocale() {
   return match ? match[1] : 'uz';
 }
 
+function formatInterestsForInput(raw) {
+  if (!raw) return '';
+  if (Array.isArray(raw)) return raw.filter(Boolean).join(', ');
+  const str = String(raw).trim();
+  if (!str) return '';
+  if (str.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(str);
+      if (Array.isArray(parsed)) {
+        return parsed.filter(Boolean).join(', ');
+      }
+    } catch {
+      return str;
+    }
+  }
+  return str;
+}
+
 export default function ProfilePage() {
   const [locale, setLocale] = useState('uz');
   const [activeTab, setActiveTab] = useState('personal'); // personal | bio | links | security
@@ -380,6 +399,7 @@ export default function ProfilePage() {
             setProfile(data.profile);
             setSelectedFacultyId(data.profile.department?.facultyId || '');
             if (data.accountEmail) {
+              setCurrentEmail(data.accountEmail);
               setEmailForm((prev) => ({ ...prev, newEmail: data.accountEmail }));
             }
             if (Array.isArray(data.faculties)) setFaculties(data.faculties);
@@ -459,7 +479,7 @@ export default function ProfilePage() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     setSaving(true);
     try {
       const res = await fetch('/api/dashboard/profile', {
@@ -1381,12 +1401,16 @@ export default function ProfilePage() {
                     {t.interests}
                   </span>
                   <div className="flex flex-wrap gap-1.5 mt-1">
-                    {profile.researchInterests ? (
-                      profile.researchInterests.split(',').map((tag, i) => (
-                        <span key={i} className="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 text-xs font-semibold border border-blue-200/60">
-                          {tag.trim()}
-                        </span>
-                      ))
+                    {formatInterestsForInput(profile.researchInterests) ? (
+                      formatInterestsForInput(profile.researchInterests)
+                        .split(',')
+                        .map((tag) => tag.trim())
+                        .filter(Boolean)
+                        .map((tag, i) => (
+                          <span key={i} className="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 text-xs font-semibold border border-blue-200/60">
+                            {tag}
+                          </span>
+                        ))
                     ) : (
                       <span className="text-xs text-slate-400 italic">Kiritilmagan</span>
                     )}
@@ -1430,7 +1454,7 @@ export default function ProfilePage() {
                   type="text"
                   autoFocus
                   placeholder="AI, Machine Learning, FinTech"
-                  value={profile.researchInterests || ''}
+                  value={formatInterestsForInput(profile.researchInterests)}
                   onChange={(e) => setProfile({ ...profile, researchInterests: e.target.value })}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-semibold outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -1577,102 +1601,143 @@ export default function ProfilePage() {
             </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                {t.orcidId}
-              </label>
-              <input
-                type="text"
-                placeholder="0000-0002-1825-0097"
-                value={profile.orcidId || ''}
-                onChange={(e) => setProfile({ ...profile, orcidId: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-sm font-mono outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                {t.scopusId}
-              </label>
-              <input
-                type="text"
-                placeholder="57198432100"
-                value={profile.scopusId || ''}
-                onChange={(e) => setProfile({ ...profile, scopusId: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-sm font-mono outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                {t.scholarUrl}
-              </label>
-              <input
-                type="url"
-                placeholder="https://scholar.google.com/..."
-                value={profile.googleScholarUrl || ''}
-                onChange={(e) => setProfile({ ...profile, googleScholarUrl: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                {t.linkedin}
-              </label>
-              <input
-                type="url"
-                placeholder="https://linkedin.com/in/..."
-                value={socialLinks.linkedin}
-                onChange={(e) => setSocialLinks({ ...socialLinks, linkedin: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                {t.telegram}
-              </label>
-              <input
-                type="text"
-                placeholder="https://t.me/username"
-                value={socialLinks.telegram}
-                onChange={(e) => setSocialLinks({ ...socialLinks, telegram: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                {t.researchGate}
-              </label>
-              <input
-                type="url"
-                placeholder="https://researchgate.net/profile/..."
-                value={socialLinks.researchGate}
-                onChange={(e) => setSocialLinks({ ...socialLinks, researchGate: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                {t.wos}
-              </label>
-              <input
-                type="url"
-                placeholder="https://webofscience.com/..."
-                value={socialLinks.wos}
-                onChange={(e) => setSocialLinks({ ...socialLinks, wos: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                {t.website}
-              </label>
-              <input
-                type="url"
-                placeholder="https://..."
-                value={socialLinks.website}
-                onChange={(e) => setSocialLinks({ ...socialLinks, website: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+            {[
+              {
+                key: 'orcidId',
+                label: t.orcidId,
+                type: 'text',
+                placeholder: '0000-0002-1825-0097',
+                mono: true,
+                value: profile.orcidId || '',
+                onChange: (val) => setProfile({ ...profile, orcidId: val }),
+              },
+              {
+                key: 'scopusId',
+                label: t.scopusId,
+                type: 'text',
+                placeholder: '57198432100',
+                mono: true,
+                value: profile.scopusId || '',
+                onChange: (val) => setProfile({ ...profile, scopusId: val }),
+              },
+              {
+                key: 'googleScholarUrl',
+                label: t.scholarUrl,
+                type: 'url',
+                placeholder: 'https://scholar.google.com/...',
+                mono: false,
+                value: profile.googleScholarUrl || '',
+                onChange: (val) => setProfile({ ...profile, googleScholarUrl: val }),
+              },
+              {
+                key: 'linkedin',
+                label: t.linkedin,
+                type: 'url',
+                placeholder: 'https://linkedin.com/in/...',
+                mono: false,
+                value: socialLinks.linkedin || '',
+                onChange: (val) => setSocialLinks({ ...socialLinks, linkedin: val }),
+              },
+              {
+                key: 'telegram',
+                label: t.telegram,
+                type: 'text',
+                placeholder: 'https://t.me/username',
+                mono: false,
+                value: socialLinks.telegram || '',
+                onChange: (val) => setSocialLinks({ ...socialLinks, telegram: val }),
+              },
+              {
+                key: 'researchGate',
+                label: t.researchGate,
+                type: 'url',
+                placeholder: 'https://researchgate.net/profile/...',
+                mono: false,
+                value: socialLinks.researchGate || '',
+                onChange: (val) => setSocialLinks({ ...socialLinks, researchGate: val }),
+              },
+              {
+                key: 'wos',
+                label: t.wos,
+                type: 'url',
+                placeholder: 'https://webofscience.com/...',
+                mono: false,
+                value: socialLinks.wos || '',
+                onChange: (val) => setSocialLinks({ ...socialLinks, wos: val }),
+              },
+              {
+                key: 'website',
+                label: t.website,
+                type: 'url',
+                placeholder: 'https://...',
+                mono: false,
+                value: socialLinks.website || '',
+                onChange: (val) => setSocialLinks({ ...socialLinks, website: val }),
+              },
+            ].map((field) => (
+              <div key={field.key}>
+                {!editingFields[field.key] ? (
+                  <div className="p-3.5 rounded-2xl bg-white/80 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2 shadow-2xs hover:border-blue-300 dark:hover:border-blue-700 transition h-full">
+                    <div className="min-w-0 flex-1">
+                      <span className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-0.5 truncate">
+                        {field.label}
+                      </span>
+                      <span
+                        className={`block text-xs font-bold text-slate-900 dark:text-white truncate ${
+                          field.mono ? 'font-mono' : ''
+                        }`}
+                      >
+                        {field.value || <span className="text-slate-400 font-normal italic">Kiritilmagan</span>}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => toggleEditField(field.key)}
+                      className="p-2 rounded-xl text-blue-600 hover:text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition shrink-0"
+                      title={`${field.label}ni o'zgartirish`}
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="p-3.5 rounded-2xl bg-blue-50/50 dark:bg-blue-950/30 border-2 border-blue-500/80 dark:border-blue-500/60 shadow-sm">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider truncate">
+                        {field.label}
+                      </label>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleSaveField(field.key)}
+                          className="p-1 rounded-lg text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 transition"
+                          title="Saqlash"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => closeEditField(field.key)}
+                          className="p-1 rounded-lg text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
+                          title="Bekor qilish"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <input
+                      type={field.type}
+                      autoFocus
+                      placeholder={field.placeholder}
+                      value={field.value}
+                      onChange={(e) => field.onChange(e.target.value)}
+                      className={`w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-semibold outline-none focus:ring-2 focus:ring-blue-500 ${
+                        field.mono ? 'font-mono' : ''
+                      }`}
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
 
           <div className="space-y-2.5 pt-2">
@@ -1787,7 +1852,8 @@ export default function ProfilePage() {
                 type="button"
                 onClick={() => {
                   setPwError('');
-                  setForgotSentMsg('');
+                  setPwForgotMode(false);
+                  setPwOtpCode('');
                   setPwSuccess3s(false);
                   setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
                   setPwModalOpen(true);

@@ -1238,28 +1238,60 @@ export default function GrantsPage() {
                       )}
                     </div>
 
-                    <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-                      <button
-                        type="button"
-                        onClick={() => handleSaveGrant('DRAFT')}
-                        disabled={savingGrant}
-                        className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-50"
-                      >
-                        Qoralama sifatida saqlash
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleSaveGrant('SUBMITTED_INTERNAL')}
-                        disabled={savingGrant || calculateReadinessScore() < 50}
-                        className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition disabled:opacity-50 flex items-center gap-1.5"
-                      >
-                        <Send className="w-4 h-4" />
-                        <span>Universitet Tasdig‘iga Yuborish</span>
-                      </button>
-                    </div>
+                    {!formData.title.trim() && (
+                      <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 text-[11px] font-semibold border border-amber-200 flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
+                        <span>Topshirish uchun avval 1-qadamda loyiha sarlavhasini kiriting.</span>
+                      </div>
+                    )}
                   </div>
                 )}
+              </div>
+
+              {/* Persistent Wizard Navigation Footer */}
+              <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/60 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2">
+                  {activeStep > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveStep((prev) => Math.max(1, prev - 1))}
+                      className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                    >
+                      👈 Oldingi qadam
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => handleSaveGrant('DRAFT')}
+                    disabled={savingGrant || !formData.title.trim()}
+                    className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition disabled:opacity-50 cursor-pointer"
+                  >
+                    Qoralama sifatida saqlash
+                  </button>
+
+                  {activeStep < 5 ? (
+                    <button
+                      type="button"
+                      onClick={() => setActiveStep((prev) => Math.min(5, prev + 1))}
+                      className="px-5 py-2.5 rounded-xl bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 text-white font-bold shadow-md transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>Keyingi qadam 👉</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleSaveGrant('SUBMITTED_INTERNAL')}
+                      disabled={savingGrant || !formData.title.trim()}
+                      className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md transition disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Send className="w-4 h-4" />
+                      <span>{savingGrant ? 'Yuborilmoqda...' : 'Universitet Tasdig‘iga Yuborish 🚀'}</span>
+                    </button>
+                  )}
+                </div>
               </div>
             </motion.div>
           </div>

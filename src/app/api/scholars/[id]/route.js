@@ -53,7 +53,7 @@ export async function GET(request, { params }) {
       .filter((p) => p && p.status === 'APPROVED')
       .sort((a, b) => (b.year || 0) - (a.year || 0));
 
-    const approvedGrants = scholar.grantProjects.filter((g) => g.status === 'APPROVED');
+    const approvedGrants = scholar.grantProjects.filter((g) => ['APPROVED', 'WON', 'COMPLETED'].includes(g.status));
     const approvedSupervisions = scholar.supervisions.filter((s) => s.status === 'APPROVED');
 
     const { hIndex, totalCitations, scopusWosCount, scoreBreakdown, tiuScore } =

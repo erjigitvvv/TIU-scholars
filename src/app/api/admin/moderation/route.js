@@ -15,9 +15,18 @@ export async function GET(request) {
   const statusParam = (searchParams.get('status') || 'PENDING').toUpperCase();
   const statusFilter =
     statusParam === 'ALL'
-      ? { in: ['PENDING', 'APPROVED', 'REJECTED', 'SUBMITTED_INTERNAL'] }
+      ? { in: ['PENDING', 'APPROVED', 'REJECTED', 'SUBMITTED_INTERNAL', 'WON', 'APPROVED_BY_MODERATOR', 'COMPLETED'] }
       : statusParam === 'PENDING'
       ? { in: ['PENDING', 'SUBMITTED_INTERNAL'] }
+      : statusParam;
+
+  const grantStatusFilter =
+    statusParam === 'ALL'
+      ? { in: ['PENDING', 'SUBMITTED_INTERNAL', 'APPROVED', 'WON', 'APPROVED_BY_MODERATOR', 'COMPLETED', 'REJECTED'] }
+      : statusParam === 'PENDING'
+      ? { in: ['PENDING', 'SUBMITTED_INTERNAL'] }
+      : statusParam === 'APPROVED'
+      ? { in: ['APPROVED', 'WON', 'APPROVED_BY_MODERATOR', 'COMPLETED'] }
       : statusParam;
 
   const [pendingPubs, pendingGrants, pendingSupervisions, pendingProjects] = await Promise.all([
@@ -53,7 +62,7 @@ export async function GET(request) {
     });
   } else if (type === 'grants') {
     items = await prisma.grantProject.findMany({
-      where: { status: statusFilter },
+      where: { status: grantStatusFilter },
       include: {
         scholar: {
           include: { department: true },
@@ -77,6 +86,10 @@ export async function GET(request) {
         ? undefined
         : statusParam === 'PENDING'
         ? { in: ['IN_REVIEW', 'SUBMITTED', 'PENDING'] }
+        : statusParam === 'APPROVED'
+        ? { in: ['APPROVED', 'PUBLISHED', 'AWARDED'] }
+        : statusParam === 'REJECTED'
+        ? { in: ['REJECTED', 'REVISION'] }
         : statusParam;
 
     items = await prisma.academicProject.findMany({
@@ -131,6 +144,7 @@ export async function PATCH(request) {
       return NextResponse.json({ error: 'Rejection reason is required' }, { status: 400 });
     }
 
+    const targetUserIds = new Set();
     let updatedItem;
     if (type === 'publications') {
       const updateData = {
@@ -219,7 +233,6 @@ export async function PATCH(request) {
     };
     const itemLabel = labelMap[type] || 'Ilmiy ish';
     const isApproved = status === 'APPROVED';
-    const targetUserIds = new Set();
 
     if (type === 'publications') {
       if (updatedItem.submittedById) targetUserIds.add(updatedItem.submittedById);

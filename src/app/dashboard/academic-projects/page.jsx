@@ -26,6 +26,7 @@ import {
   Percent,
   ShieldCheck,
   Award,
+  Save,
 } from 'lucide-react';
 
 const PROJECT_TYPES = [
@@ -100,6 +101,17 @@ const getProjectSteps = (type) => {
       ];
   }
 };
+
+function safeParseArray(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
 
 export default function AcademicProjectsPage() {
   const [projects, setProjects] = useState([]);
@@ -423,6 +435,22 @@ export default function AcademicProjectsPage() {
     }
   };
 
+  const handleDeleteProject = async (projectId) => {
+    if (!confirm('Ushbu ilmiy loyihani o‘chirmoqchimisiz?')) return;
+    try {
+      const res = await fetch(`/api/academic-projects/${projectId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        if (activeProject?.id === projectId) setActiveProject(null);
+        await fetchProjects();
+      } else {
+        alert(data.error || 'O‘chirishda xatolik yuz berdi');
+      }
+    } catch {
+      alert('O‘chirishda server xatosi');
+    }
+  };
+
   const copyToClipboard = (text, key) => {
     navigator.clipboard.writeText(text);
     setCopiedCitation(key);
@@ -630,13 +658,26 @@ export default function AcademicProjectsPage() {
                   {new Date(p.updatedAt).toLocaleDateString()}
                 </span>
 
-                <button
-                  onClick={() => setActiveProject(p)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-semibold text-xs hover:bg-emerald-100 dark:hover:bg-emerald-900 transition"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Ustaxona (Workspace)</span>
-                </button>
+                <div className="flex items-center gap-1.5">
+                  {(p.status === 'DRAFT' || p.status === 'REVISION') && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteProject(p.id)}
+                      className="p-1.5 rounded-xl text-slate-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
+                      title="Loyihani o‘chirish"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => setActiveProject(p)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-semibold text-xs hover:bg-emerald-100 dark:hover:bg-emerald-900 transition cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Ustaxona (Workspace)</span>
+                  </button>
+                </div>
               </div>
             </motion.div>
           ))}
@@ -1112,10 +1153,10 @@ export default function AcademicProjectsPage() {
                       <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700">
                         <div className="font-bold text-xs text-slate-900 dark:text-white mb-2">
                           Loyihadagi Foydalanilgan Adabiyotlar (
-                          {JSON.parse(activeProject.referencesList || '[]').length} ta):
+                          {safeParseArray(activeProject.referencesList).length} ta):
                         </div>
                         <div className="space-y-1.5 max-h-36 overflow-y-auto">
-                          {JSON.parse(activeProject.referencesList || '[]').map((ref, idx) => (
+                          {safeParseArray(activeProject.referencesList).map((ref, idx) => (
                             <div
                               key={idx}
                               className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 text-[11px] text-slate-700 dark:text-slate-300 flex items-start gap-2"
@@ -1293,7 +1334,7 @@ export default function AcademicProjectsPage() {
                               <Clock className="w-4 h-4 animate-pulse" />
                               <span>Moderatsiya Navbatida (Ko‘rib chiqilmoqda)</span>
                             </span>
-                          ) : activeProject.status === 'PUBLISHED' || activeProject.status === 'AWARDED' ? (
+                          ) : activeProject.status === 'APPROVED' || activeProject.status === 'PUBLISHED' || activeProject.status === 'AWARDED' ? (
                             <span className="text-emerald-600 flex items-center gap-1.5">
                               <CheckCircle2 className="w-4 h-4" />
                               <span>Rasman Tasdiqlangan va Nashr Qilingan ✅</span>
@@ -1334,7 +1375,7 @@ export default function AcademicProjectsPage() {
                             <span>Bibliografiya (DOI):</span>
                           </div>
                           <div className="text-slate-600 dark:text-slate-400 text-[11px]">
-                            {JSON.parse(activeProject.referencesList || '[]').length} ta manba kiritilgan
+                            {safeParseArray(activeProject.referencesList).length} ta manba kiritilgan
                           </div>
                         </div>
 

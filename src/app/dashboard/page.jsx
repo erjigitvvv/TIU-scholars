@@ -200,7 +200,7 @@ export default async function DashboardOverview() {
   const pendingCount = pubs.filter((p) => p.status === 'PENDING').length;
   const scopusWosCount = approvedPubs.filter((p) => p.type === 'SCOPUS' || p.type === 'WOS').length;
 
-  const approvedGrants = scholar.grantProjects.filter((g) => g.status === 'APPROVED').length;
+  const approvedGrants = scholar.grantProjects.filter((g) => ['APPROVED', 'WON', 'COMPLETED'].includes(g.status)).length;
   const approvedSupervisions = scholar.supervisions.filter((s) => s.status === 'APPROVED').length;
 
   const currentYear = new Date().getFullYear();

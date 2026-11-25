@@ -261,7 +261,7 @@ export default function PublicationsPage() {
         throw new Error(data.error || 'Failed to submit publication')
       }
 
-      setSuccessMsg('Publication successfully added/linked!')
+      setSuccessMsg('Nashr muvaffaqiyatli qo‘shildi / bog‘landi!')
       setModalOpen(false)
       setDoiInput('')
       setBibInput('')
@@ -275,10 +275,10 @@ export default function PublicationsPage() {
 
   const handleDelete = async (id, status) => {
     if (status === 'APPROVED') {
-      alert('Forbidden: Cannot delete approved publications.')
+      alert('Taqiqlangan: Tasdiqlangan nashrlarni o‘chirib bo‘lmaydi.')
       return
     }
-    if (!confirm('Are you sure you want to delete this publication?')) return
+    if (!confirm('Ushbu nashrni o‘chirishga ishonchingiz komilmi?')) return
 
     try {
       const res = await fetch(`/api/dashboard/publications/${id}`, {

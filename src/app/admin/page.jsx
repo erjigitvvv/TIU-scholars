@@ -139,6 +139,7 @@ export default function AdminOverviewPage() {
           <div className="text-xs text-slate-500">
             {t.pub}: {counts.pendingPublications} · {t.grant}: {counts.pendingGrants} · {t.sup}:{' '}
             {counts.pendingSupervisions}
+            {counts.pendingAcademicProjects ? ` · Loyiha: ${counts.pendingAcademicProjects}` : ''}
           </div>
         </Link>
 

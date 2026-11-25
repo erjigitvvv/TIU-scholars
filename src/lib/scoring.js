@@ -168,7 +168,7 @@ export async function recalculateScholarMetrics(scholarId) {
         include: { publication: true },
       }),
       prisma.grantProject.findMany({
-        where: { scholarId, status: 'APPROVED' },
+        where: { scholarId, status: { in: ['APPROVED', 'WON', 'COMPLETED'] } },
       }),
       prisma.supervision.findMany({
         where: { scholarId, status: 'APPROVED' },

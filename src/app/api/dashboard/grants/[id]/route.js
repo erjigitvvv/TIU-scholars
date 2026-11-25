@@ -88,6 +88,26 @@ export async function PUT(request, { params }) {
       data: updateData,
     });
 
+    if (body.status === 'SUBMITTED_INTERNAL') {
+      const moderators = await prisma.user.findMany({
+        where: { role: { in: ['MODERATOR', 'SUPER_ADMIN'] } },
+        select: { id: true },
+      });
+      for (const m of moderators) {
+        await prisma.notification
+          .create({
+            data: {
+              userId: m.id,
+              type: 'GRANT_SUBMITTED',
+              title: '💼 Grant Arizasi Ekspertizaga Topshirildi!',
+              message: `${user.scholarProfile.fullName} tomonidan [${updated.grantCode || 'GRANT'}] "${updated.title}" grant loyihasi Ilmiy Bo‘lim ko‘rigiga yuborildi.`,
+              link: '/admin/moderation?type=grants',
+            },
+          })
+          .catch(() => {});
+      }
+    }
+
     return NextResponse.json({ success: true, grant: updated });
   } catch (error) {
     console.error('Update grant error:', error);

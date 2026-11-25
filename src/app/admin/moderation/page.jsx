@@ -1,7 +1,8 @@
 'use client';
 
 import { useLocale } from '@/lib/useLocale';
-import { useState, useEffect, useCallback, startTransition } from 'react';
+import { useState, useEffect, useCallback, startTransition, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   CheckCircle2,
   XCircle,
@@ -14,26 +15,20 @@ import {
   Filter,
 } from 'lucide-react';
 
-const REJECT_TEMPLATES = [
-  'DOI yoki havola tasdiqlanmadi',
-  'PDF nusxa ilova qilinmagan',
-  'Jurnal kvartili / turi noto‘g‘ri ko‘rsatilgan',
-  'Ma’lumotlar to‘liq emas',
-];
-
 const DICT = {
   uz: {
     title: 'Moderatsiya navbati',
-    subtitle: 'Nashrlar, grantlar va ilmiy rahbarliklarni tekshirish, kvartilni aniqlashtirish va tasdiqlash.',
+    subtitle: 'Nashrlar, grantlar, ilmiy loyihalar va ilmiy rahbarliklarni tekshirish, kvartilni aniqlashtirish va tasdiqlash.',
     pending: 'Kutilmoqda',
     approved: 'Tasdiqlangan',
     rejected: 'Rad etilgan',
     publications: 'Nashrlar',
+    academicProjects: 'Ilmiy Loyihalar',
     grants: 'Grantlar',
     supervisions: 'Shogirdlar',
     loading: 'Yuklanmoqda...',
-    emptyTitle: 'Ro?yxat bo?sh!',
-    emptyDesc: 'Tanlangan holat bo?yicha elementlar topilmadi.',
+    emptyTitle: 'Ro‘yxat bo‘sh!',
+    emptyDesc: 'Tanlangan holat bo‘yicha elementlar topilmadi.',
     openPdf: 'PDF faylni ochish',
     link: 'Havola',
     authors: 'Mualliflar:',
@@ -59,58 +54,60 @@ const DICT = {
     rejectTemplates: [
       'DOI yoki bibliografik havola tasdiqlanmadi',
       'PDF fayl sifatsiz yoki mos emas',
-      'Kvartil va jurnal indeksi noto?g?ri ko?rsatilgan',
+      'Kvartil va jurnal indeksi noto‘g‘ri ko‘rsatilgan',
       'Mualliflik ulushi yoki affilatsiya TIU ga mos emas',
     ],
   },
   ru: {
-    title: '??????? ?????????',
-    subtitle: '???????? ??????????, ??????? ? ???????? ???????????, ????????? ???????? ? ?????????????.',
-    pending: '?????????',
-    approved: '??????????',
-    rejected: '???????????',
-    publications: '??????????',
-    grants: '??????',
-    supervisions: '???????',
-    loading: '????????...',
-    emptyTitle: '?????? ????!',
-    emptyDesc: '???????? ?? ?????????? ??????? ?? ???????.',
-    openPdf: '??????? PDF',
-    link: '??????',
-    authors: '??????:',
-    submittedBy: '????????:',
-    type: '???:',
-    quartile: '????????:',
-    citations: '???????????:',
-    grantProject: '????????? ??????',
-    role: '????:',
-    present: '?? ????????? ?????',
-    scholar: '??????:',
-    supervisionSuffix: '???????????',
-    student: '??????:',
-    supervisor: '??????? ????????????:',
-    rejectReasonLabel: '??????? ??????????:',
-    approve: '????????',
-    reject: '?????????',
-    rejectModalTitle: '??????? ??????????',
-    rejectModalDesc: '??????? ?????? ??????? ??? ???????? ??????? ?????? ??? ??????????? ??????.',
-    reasonPlaceholder: '??????? ???????...',
-    cancel: '??????',
-    confirmReject: '??????????? ??????????',
+    title: 'Очередь модерации',
+    subtitle: 'Проверка публикаций, грантов, научных проектов и научного руководства, уточнение квартиля и утверждение.',
+    pending: 'Ожидается',
+    approved: 'Утверждено',
+    rejected: 'Отклонено',
+    publications: 'Публикации',
+    academicProjects: 'Научные проекты',
+    grants: 'Гранты',
+    supervisions: 'Ученики',
+    loading: 'Загрузка...',
+    emptyTitle: 'Список пуст!',
+    emptyDesc: 'Элементы по выбранному статусу не найдены.',
+    openPdf: 'Открыть PDF',
+    link: 'Ссылка',
+    authors: 'Авторы:',
+    submittedBy: 'Отправил:',
+    type: 'Тип:',
+    quartile: 'Квартиль:',
+    citations: 'Цитирования:',
+    grantProject: 'Грантовый проект',
+    role: 'Роль:',
+    present: 'По наст. время',
+    scholar: 'Учёный:',
+    supervisionSuffix: 'Руководство',
+    student: 'Ученик:',
+    supervisor: 'Научный руководитель:',
+    rejectReasonLabel: 'Причина отклонения:',
+    approve: 'Утвердить',
+    reject: 'Отклонить',
+    rejectModalTitle: 'Причина отклонения',
+    rejectModalDesc: 'Укажите точную причину или выберите шаблон для исправления учёным.',
+    reasonPlaceholder: 'Введите причину...',
+    cancel: 'Отмена',
+    confirmReject: 'Подтвердить отклонение',
     rejectTemplates: [
-      'DOI ??? ????????????????? ?????? ?? ????????????',
-      'PDF-???? ??????? ???????? ??? ?? ?????????????',
-      '???????? ? ?????? ??????? ??????? ???????',
-      '?????????? ?? ????????????? TIU',
+      'DOI или библиографическая ссылка не подтверждены',
+      'PDF-файл низкого качества или не соответствует',
+      'Квартиль и индекс журнала указаны неверно',
+      'Аффилиация не соответствует TIU',
     ],
   },
   en: {
     title: 'Moderation Queue',
-    subtitle: 'Review publications, grants, and supervisions, verify quartiles, and approve submissions.',
+    subtitle: 'Review publications, grants, academic projects, and supervisions, verify quartiles, and approve submissions.',
     pending: 'Pending',
     approved: 'Approved',
     rejected: 'Rejected',
     publications: 'Publications',
+    academicProjects: 'Academic Projects',
     grants: 'Grants',
     supervisions: 'Supervisions',
     loading: 'Loading...',
@@ -147,14 +144,40 @@ const DICT = {
   },
 };
 
+function parseProposalSummary(proposalData) {
+  if (!proposalData) return '';
+  if (typeof proposalData !== 'string') {
+    return proposalData.urgency || proposalData.comment || JSON.stringify(proposalData);
+  }
+  const trimmed = proposalData.trim();
+  if (trimmed.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      return parsed.urgency || parsed.objectives || parsed.comment || trimmed;
+    } catch {
+      return trimmed;
+    }
+  }
+  return trimmed;
+}
+
 export default function AdminModerationPage() {
+  return (
+    <Suspense fallback={<div className="p-12 text-center text-slate-500 text-sm">Yuklanmoqda...</div>}>
+      <AdminModerationInner />
+    </Suspense>
+  );
+}
+
+function AdminModerationInner() {
   const locale = useLocale('uz');
   const t = DICT[locale] || DICT.uz;
+  const searchParams = useSearchParams();
 
-  const [tab, setTab] = useState('publications'); // publications | grants | supervisions
+  const [tab, setTab] = useState('publications'); // publications | academic-projects | grants | supervisions
   const [statusFilter, setStatusFilter] = useState('PENDING'); // PENDING | APPROVED | REJECTED
   const [items, setItems] = useState([]);
-  const [counts, setCounts] = useState({ publications: 0, grants: 0, supervisions: 0 });
+  const [counts, setCounts] = useState({ publications: 0, academicProjects: 0, grants: 0, supervisions: 0 });
   const [loading, setLoading] = useState(true);
   const [rejectModalItem, setRejectModalItem] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
@@ -183,12 +206,13 @@ export default function AdminModerationPage() {
   }, []);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const urlType = params.get('type');
-    if (urlType && ['publications', 'grants', 'supervisions'].includes(urlType)) {
-      setTab(urlType);
+    const urlType = searchParams.get('type');
+    if (urlType && ['publications', 'academic-projects', 'grants', 'supervisions'].includes(urlType)) {
+      startTransition(() => {
+        setTab(urlType);
+      });
     }
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     startTransition(() => {
@@ -266,11 +290,48 @@ export default function AdminModerationPage() {
             className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700"
           >
             <option value="publications">{t.publications}</option>
-            <option value="academic-projects">Ilmiy Loyihalar (Maqola, Dissertatsiya, Tezis)</option>
+            <option value="academic-projects">{t.academicProjects}</option>
             <option value="grants">{t.grants}</option>
             <option value="supervisions">{t.supervisions}</option>
           </select>
         </div>
+      </div>
+
+      {/* Interactive Tab Pills with Pending Badge Counts */}
+      <div className="flex flex-wrap items-center gap-2">
+        {[
+          { id: 'publications', label: t.publications, count: counts.publications || 0 },
+          { id: 'academic-projects', label: t.academicProjects, count: counts.academicProjects || 0 },
+          { id: 'grants', label: t.grants, count: counts.grants || 0 },
+          { id: 'supervisions', label: t.supervisions, count: counts.supervisions || 0 },
+        ].map((pill) => {
+          const isSel = tab === pill.id;
+          return (
+            <button
+              key={pill.id}
+              type="button"
+              onClick={() => setTab(pill.id)}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                isSel
+                  ? 'bg-[#0F294A] text-white shadow-sm'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              <span>{pill.label}</span>
+              <span
+                className={`px-2 py-0.5 rounded-full font-mono text-[10px] font-extrabold ${
+                  isSel
+                    ? 'bg-white/20 text-white'
+                    : pill.count > 0
+                    ? 'bg-amber-100 text-amber-800'
+                    : 'bg-slate-100 text-slate-500'
+                }`}
+              >
+                {pill.count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -336,7 +397,7 @@ export default function AdminModerationPage() {
                           <span className="font-semibold text-slate-700">
                             {item.authors?.map((a) => a.scholar?.fullName).join(', ')}
                           </span>
-                          {' ? '}{t.submittedBy} {item.submittedBy?.email}
+                          {' • '}{t.submittedBy} {item.submittedBy?.email}
                         </div>
 
                         {statusFilter === 'PENDING' && (
@@ -426,11 +487,7 @@ export default function AdminModerationPage() {
                           <div className="p-3 bg-slate-50 rounded-xl text-xs text-slate-700 space-y-1 border border-slate-200">
                             <span className="font-bold text-slate-800">Ariza izohi / mazmuni:</span>
                             <p className="whitespace-pre-line text-slate-600 line-clamp-3">
-                              {typeof item.proposalData === 'string'
-                                ? item.proposalData.startsWith('{')
-                                  ? JSON.parse(item.proposalData).urgency || JSON.parse(item.proposalData).comment || item.proposalData
-                                  : item.proposalData
-                                : JSON.stringify(item.proposalData)}
+                              {parseProposalSummary(item.proposalData)}
                             </p>
                           </div>
                         )}
@@ -509,7 +566,7 @@ export default function AdminModerationPage() {
                         )}
                         {item.abstract && (
                           <p className="text-xs text-slate-600 line-clamp-2 italic bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                            "{item.abstract}"
+                            &ldquo;{item.abstract}&rdquo;
                           </p>
                         )}
                         {item.collaborators && item.collaborators.length > 0 && (
