@@ -13,6 +13,15 @@ import {
   History,
   ChevronDown,
   Filter,
+  Eye,
+  Lock,
+  BookOpen,
+  Users,
+  Award,
+  X,
+  Layers,
+  Sparkles,
+  Calendar,
 } from 'lucide-react';
 
 const DICT = {
@@ -57,6 +66,15 @@ const DICT = {
       'Kvartil va jurnal indeksi noto‘g‘ri ko‘rsatilgan',
       'Mualliflik ulushi yoki affilatsiya TIU ga mos emas',
     ],
+    inspect: 'Jarayonni ko‘rish',
+    viewerModeTitle: 'Ko‘ruvchi Rejimi (Viewer Only)',
+    viewerNotice: 'Siz olimning ilmiy ish jarayonini audit qilmoqdasiz. Matn va ilmiy tarkibni to‘g‘ridan-to‘g‘ri tahrirlash huquqi cheklangan. Faqat to‘liq audit qilish, tasdiqlash yoki rad etish vakolatingiz mavjud.',
+    close: 'Yopish',
+    sectionsTitle: 'IMRAD Bo‘limlari & Maqola Matni',
+    collaboratorsTitle: 'Hammualliflar & Hissalar',
+    abstractTitle: 'Annotatsiya & Kalit so‘zlar',
+    noSections: 'Hozircha bo‘limlar kiritilmagan.',
+    noCollaborators: 'Hammualliflar ro‘yxati mavjud emas.',
   },
   ru: {
     title: 'Очередь модерации',
@@ -99,6 +117,15 @@ const DICT = {
       'Квартиль и индекс журнала указаны неверно',
       'Аффилиация не соответствует TIU',
     ],
+    inspect: 'Просмотр процесса',
+    viewerModeTitle: 'Режим наблюдателя (Viewer Only)',
+    viewerNotice: 'Вы проводите аудит научного процесса учёного. Прямое редактирование рукописи ограничено. Вы обладаете правами аудита, утверждения или отклонения.',
+    close: 'Закрыть',
+    sectionsTitle: 'Разделы IMRAD и рукопись статьи',
+    collaboratorsTitle: 'Соавторы и доли участия',
+    abstractTitle: 'Аннотация и ключевые слова',
+    noSections: 'Разделы пока не заполнены.',
+    noCollaborators: 'Соавторы не указаны.',
   },
   en: {
     title: 'Moderation Queue',
@@ -141,6 +168,15 @@ const DICT = {
       'Journal quartile or index is incorrect',
       'Affiliation does not match TIU',
     ],
+    inspect: 'Inspect Process',
+    viewerModeTitle: 'Viewer Only Mode',
+    viewerNotice: 'You are auditing the scholar’s research workflow. Direct modification of manuscripts is restricted. You have authority to audit, approve, or reject submissions.',
+    close: 'Close',
+    sectionsTitle: 'IMRAD Sections & Manuscript',
+    collaboratorsTitle: 'Co-Authors & Contributions',
+    abstractTitle: 'Abstract & Keywords',
+    noSections: 'No content sections provided yet.',
+    noCollaborators: 'No collaborators listed.',
   },
 };
 
@@ -181,6 +217,7 @@ function AdminModerationInner() {
   const [loading, setLoading] = useState(true);
   const [rejectModalItem, setRejectModalItem] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [inspectionItem, setInspectionItem] = useState(null);
   const [edits, setEdits] = useState({}); // { [id]: { pubType, quartile, citationsCount } }
 
   const fetchItems = useCallback(async (currentTab, currentStatus) => {
@@ -586,30 +623,284 @@ function AdminModerationInner() {
                     )}
                   </div>
 
-                  {statusFilter === 'PENDING' && (
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={() => handleAction(item, 'APPROVED')}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors shadow-xs"
-                      >
-                        <CheckCircle2 className="w-4 h-4" />
-                        {t.approve}
-                      </button>
-                      <button
-                        onClick={() => setRejectModalItem(item)}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold border border-red-200 transition-colors"
-                      >
-                        <XCircle className="w-4 h-4" />
-                        {t.reject}
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setInspectionItem(item)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 text-xs font-bold transition border border-slate-200/80 cursor-pointer"
+                      title={t.inspect}
+                    >
+                      <Eye className="w-3.5 h-3.5 text-blue-600" />
+                      <span>{t.inspect}</span>
+                    </button>
+
+                    {statusFilter === 'PENDING' && (
+                      <>
+                        <button
+                          onClick={() => handleAction(item, 'APPROVED')}
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors shadow-xs cursor-pointer"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          {t.approve}
+                        </button>
+                        <button
+                          onClick={() => setRejectModalItem(item)}
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold border border-red-200 transition-colors cursor-pointer"
+                        >
+                          <XCircle className="w-4 h-4" />
+                          {t.reject}
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               );
             })}
           </div>
         )}
       </div>
+
+      {/* Read-Only Research Process Inspection Modal */}
+      {inspectionItem && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between gap-4 shrink-0 bg-slate-50/50 dark:bg-slate-900/50">
+              <div className="space-y-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold uppercase tracking-wider">
+                    {tab === 'academic-projects' ? (inspectionItem.type || 'ILMIY LOYIHA') : tab === 'grants' ? 'GRANT LOYIHASI' : tab === 'publications' ? (inspectionItem.type || 'NASHR') : 'SHOGIRD / RAHBARLIK'}
+                  </span>
+                  {inspectionItem.code && (
+                    <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 font-mono text-[10px] font-bold text-slate-700 dark:text-slate-300">
+                      {inspectionItem.code}
+                    </span>
+                  )}
+                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                    inspectionItem.status === 'APPROVED' || inspectionItem.status === 'PUBLISHED'
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : inspectionItem.status === 'REJECTED'
+                      ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                      : 'bg-amber-50 text-amber-700 border border-amber-200'
+                  }`}>
+                    {inspectionItem.status}
+                  </span>
+                </div>
+                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-snug">
+                  {inspectionItem.title || inspectionItem.dissertationTitle || `${inspectionItem.studentName} dissertatsiyasi`}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setInspectionItem(null)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Read-Only Restriction Banner */}
+            <div className="px-6 py-2.5 bg-amber-50/80 dark:bg-amber-950/40 border-b border-amber-200/60 dark:border-amber-900/40 flex items-center gap-2.5 text-[11px] text-amber-800 dark:text-amber-300 font-bold shrink-0">
+              <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+              <span>{t.viewerNotice}</span>
+            </div>
+
+            {/* Modal Body - Scrollable */}
+            <div className="p-6 overflow-y-auto space-y-6 flex-1 text-xs">
+              {/* Creator / Scholar Summary */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700 flex flex-wrap items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Muallif / Izlanuvchi:</div>
+                  <div className="font-bold text-slate-900 dark:text-white text-sm">
+                    {inspectionItem.creator?.scholarProfile?.fullName || inspectionItem.scholar?.fullName || inspectionItem.studentName || 'TIU Izlanuvchisi'}
+                  </div>
+                  <div className="text-[11px] text-slate-500">
+                    {inspectionItem.creator?.email || inspectionItem.scholar?.department?.nameUz || inspectionItem.studentEmail || ''}
+                  </div>
+                </div>
+                {inspectionItem.budgetRequested && (
+                  <div className="text-right">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">So‘ralgan Byudjet:</div>
+                    <div className="text-sm font-black font-mono text-emerald-600 dark:text-emerald-400">
+                      {inspectionItem.budgetRequested.toLocaleString()} so‘m
+                    </div>
+                  </div>
+                )}
+                {inspectionItem.budgetTotal && (
+                  <div className="text-right">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Loyiha Byudjeti:</div>
+                    <div className="text-sm font-black font-mono text-emerald-600 dark:text-emerald-400">
+                      {inspectionItem.budgetTotal.toLocaleString()} so‘m
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Abstract / Annotatsiya */}
+              {(inspectionItem.abstract || inspectionItem.keywords) && (
+                <div className="space-y-2">
+                  <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-blue-600" />
+                    <span>{t.abstractTitle}</span>
+                  </h4>
+                  {inspectionItem.abstract && (
+                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/60 text-slate-700 dark:text-slate-300 leading-relaxed font-serif">
+                      {inspectionItem.abstract}
+                    </div>
+                  )}
+                  {inspectionItem.keywords && (
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      <span className="font-bold text-slate-500 text-[11px]">Kalit so‘zlar:</span>
+                      {inspectionItem.keywords.split(',').map((kw, i) => (
+                        <span key={i} className="px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-[11px] font-medium border border-blue-100 dark:border-blue-900">
+                          {kw.trim()}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* IMRAD Content Blocks for Academic Projects */}
+              {tab === 'academic-projects' && (
+                <div className="space-y-3">
+                  <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-purple-600" />
+                    <span>{t.sectionsTitle}</span>
+                  </h4>
+                  {(() => {
+                    let blocks = {};
+                    try {
+                      if (inspectionItem.contentBlocks) {
+                        blocks = typeof inspectionItem.contentBlocks === 'string'
+                          ? JSON.parse(inspectionItem.contentBlocks)
+                          : inspectionItem.contentBlocks;
+                      }
+                    } catch {}
+
+                    const blockKeys = Object.keys(blocks).filter(k => blocks[k]);
+                    if (blockKeys.length === 0) {
+                      return (
+                        <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-dashed border-slate-300 dark:border-slate-700 text-center text-slate-400 font-medium">
+                          {t.noSections}
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="space-y-3">
+                        {blockKeys.map((key) => (
+                          <div key={key} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/60 space-y-1.5">
+                            <div className="font-black text-xs text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+                              {key}
+                            </div>
+                            <div className="text-slate-700 dark:text-slate-300 whitespace-pre-line leading-relaxed font-serif">
+                              {blocks[key]}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* Collaborators List */}
+              {tab === 'academic-projects' && inspectionItem.collaborators && inspectionItem.collaborators.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Users className="w-4 h-4 text-emerald-600" />
+                    <span>{t.collaboratorsTitle} ({inspectionItem.collaborators.length})</span>
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {inspectionItem.collaborators.map((c) => (
+                      <div key={c.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700 space-y-1">
+                        <div className="font-bold text-slate-900 dark:text-white">
+                          {c.scholarName || c.scholarEmail}
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-slate-500">
+                          <span className="font-semibold text-blue-600">{c.role}</span>
+                          <span className="font-mono font-bold text-emerald-600">{c.sharePercent}% hissa</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Grant Proposal Content */}
+              {tab === 'grants' && inspectionItem.proposalData && (
+                <div className="space-y-2">
+                  <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Award className="w-4 h-4 text-amber-600" />
+                    <span>Grant Taklifi Mazmuni & Loyiha Rejasi</span>
+                  </h4>
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/60 text-slate-700 dark:text-slate-300 whitespace-pre-line leading-relaxed">
+                    {parseProposalSummary(inspectionItem.proposalData)}
+                  </div>
+                </div>
+              )}
+
+              {/* Attached Document or PDF */}
+              {(inspectionItem.applicationFileUrl || inspectionItem.url || inspectionItem.orderFileUrl) && (
+                <div className="space-y-2 pt-1">
+                  <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    Biriktirilgan Asl Fayl / Havola:
+                  </div>
+                  <a
+                    href={inspectionItem.applicationFileUrl || inspectionItem.url || inspectionItem.orderFileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-bold hover:bg-blue-100 transition shadow-xs"
+                  >
+                    <FileText className="w-4 h-4 text-blue-600" />
+                    <span>Rasmiy Hujjatni Ko‘rish / Yuklab Olish</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer with Actions */}
+            <div className="p-4 sm:p-6 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0 bg-slate-50/50 dark:bg-slate-900/50">
+              <button
+                type="button"
+                onClick={() => setInspectionItem(null)}
+                className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition cursor-pointer"
+              >
+                {t.close}
+              </button>
+
+              {statusFilter === 'PENDING' && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      const item = inspectionItem;
+                      setInspectionItem(null);
+                      setRejectModalItem(item);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold border border-red-200 transition-colors cursor-pointer"
+                  >
+                    <XCircle className="w-4 h-4" />
+                    {t.reject}
+                  </button>
+                  <button
+                    onClick={() => {
+                      const item = inspectionItem;
+                      setInspectionItem(null);
+                      handleAction(item, 'APPROVED');
+                    }}
+                    className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    {t.approve}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Reject Modal */}
       {rejectModalItem && (

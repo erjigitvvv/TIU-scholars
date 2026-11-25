@@ -111,6 +111,7 @@ export async function GET(request) {
           },
         },
         collaborators: true,
+        versions: true,
       },
       orderBy: { updatedAt: 'desc' },
     });
