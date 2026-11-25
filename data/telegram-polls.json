@@ -1,1 +1,30 @@
-[]
+[
+  {
+    "id": "5202144502940177415",
+    "question": "asfasfse",
+    "options": [
+      {
+        "text": "Ha, ma‘qullansinefef",
+        "voter_count": 1
+      },
+      {
+        "text": "Qo‘shimcha tahrir kerak",
+        "voter_count": 0
+      }
+    ],
+    "total_voter_count": 1,
+    "is_closed": false,
+    "createdAt": "2026-11-24T16:21:14.989Z",
+    "updatedAt": "2026-11-24T16:21:17.884Z",
+    "voters": [
+      {
+        "userId": 7649399012,
+        "name": "Pre-CEO  (@erjigitvv)",
+        "option_ids": [
+          0
+        ],
+        "time": "2026-11-24T16:21:17.883Z"
+      }
+    ]
+  }
+]
