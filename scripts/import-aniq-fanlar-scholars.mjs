@@ -790,7 +790,7 @@ async function main() {
       updatedCount++;
     }
 
-    const bioFormatted = `${s.address ? `Yashash manzili: ${s.address}. ` : ''}${s.birthDate ? `Tug‘ilgan sanasi: ${s.birthDate}. ` : ''}Shtat: ${s.staffType}.`;
+    const bioFormatted = `${s.positionUz ? `${s.positionUz}. ` : ''}Kafedrada ${s.staffType.toLowerCase()} shtatda ilmiy-pedagogik faoliyat yuritadi. Aniq fanlar va raqamli texnologiyalar sohasida ilmiy tadqiqotlar va innovatsion loyihalar olib boradi.`;
     const interests = JSON.stringify([
       'Aniq fanlar',
       'Raqamli texnologiyalar',
