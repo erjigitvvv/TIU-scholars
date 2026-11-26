@@ -85,7 +85,7 @@ async function main() {
       where: { id: s.user.id },
       data: {
         passwordHash,
-        accountStatus: 'APPROVED',
+        accountStatus: 'ACTIVE',
       },
     });
 
