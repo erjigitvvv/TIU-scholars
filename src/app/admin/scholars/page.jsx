@@ -10,6 +10,7 @@ import {
   Eye,
   Lock,
   Mail,
+  Phone,
   Calendar,
   ExternalLink,
   Save,
@@ -38,6 +39,7 @@ const DICT = {
     suspend: 'Bloklash',
     activate: 'Faollashtirish',
     loginLabel: 'Login:',
+    phoneLabel: 'Telefon:',
     publicEmailLabel: 'Ommaviy email:',
     protectedTitle: 'Tizim tomonidan himoyalangan (Moderator o‘zgartira olmaydi)',
     tiuScore: 'TIU Ball',
@@ -81,6 +83,7 @@ const DICT = {
     suspend: 'Заблокировать',
     activate: 'Активировать',
     loginLabel: 'Логин:',
+    phoneLabel: 'Телефон:',
     publicEmailLabel: 'Публичный email:',
     protectedTitle: 'Защищено системой (Модератор не может изменить)',
     tiuScore: 'Балл TIU',
@@ -124,6 +127,7 @@ const DICT = {
     suspend: 'Suspend',
     activate: 'Activate',
     loginLabel: 'Login:',
+    phoneLabel: 'Phone:',
     publicEmailLabel: 'Public email:',
     protectedTitle: 'System-protected (Moderator cannot edit)',
     tiuScore: 'TIU Score',
@@ -355,6 +359,9 @@ export default function AdminScholarsPage() {
                     <td className="py-4 px-6">
                       <div className="font-bold text-slate-900 dark:text-white">{s.fullName}</div>
                       <div className="text-xs text-slate-500">{s.user?.email}</div>
+                      {s.phone && (
+                        <div className="text-[11px] text-slate-400 font-mono mt-0.5">{s.phone}</div>
+                      )}
                     </td>
                     <td className="py-4 px-6 text-slate-600 dark:text-slate-300">
                       {getDeptName(s.department)}
@@ -449,6 +456,12 @@ export default function AdminScholarsPage() {
                     <Mail className="w-3.5 h-3.5" /> {t.loginLabel}{' '}
                     <b>{selectedScholar.user?.email}</b>
                   </span>
+                  {selectedScholar.phone && (
+                    <span className="inline-flex items-center gap-1">
+                      <Phone className="w-3.5 h-3.5" /> {t.phoneLabel}{' '}
+                      <b className="font-mono">{selectedScholar.phone}</b>
+                    </span>
+                  )}
                   {selectedScholar.publicEmail && (
                     <span>
                       {t.publicEmailLabel} {selectedScholar.publicEmail}

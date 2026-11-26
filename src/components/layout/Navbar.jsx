@@ -24,6 +24,7 @@ import {
   Trophy,
   Sun,
   Moon,
+  Newspaper,
 } from 'lucide-react';
 import LanguageFlagSwitcher from '@/components/shared/LanguageFlagSwitcher';
 
@@ -49,6 +50,10 @@ const SUBMENU_LABELS = {
     yurFaculty: 'Yurisprudensiya fakulteti',
     topScholars: 'Top Olimlar reytingi',
     topDepts: 'Top Kafedralar reytingi',
+    newsLabel: 'Yangiliklar',
+    allNews: 'Barcha yangiliklar & e‘lonlar',
+    achievements: 'Ilmiy yutuqlar',
+    conferencesGrants: 'Konferensiya & Grantlar',
   },
   ru: {
     allScholars: 'Все ученые',
@@ -65,6 +70,10 @@ const SUBMENU_LABELS = {
     yurFaculty: 'Факультет юриспруденции',
     topScholars: 'Рейтинг лучших ученых',
     topDepts: 'Рейтинг лучших кафедр',
+    newsLabel: 'Новости',
+    allNews: 'Все новости и объявления',
+    achievements: 'Научные достижения',
+    conferencesGrants: 'Конференции и гранты',
   },
   en: {
     allScholars: 'All Scholars',
@@ -81,6 +90,10 @@ const SUBMENU_LABELS = {
     yurFaculty: 'Faculty of Jurisprudence',
     topScholars: 'Top Scholars Leaderboard',
     topDepts: 'Top Departments Leaderboard',
+    newsLabel: 'News',
+    allNews: 'All News & Announcements',
+    achievements: 'Scientific Achievements',
+    conferencesGrants: 'Conferences & Grants',
   },
 };
 
@@ -181,6 +194,16 @@ export default function Navbar({ dict, currentLocale, user }) {
       children: [
         { href: '/rankings', label: sub.topScholars, icon: Trophy },
         { href: '/rankings?tab=departments', label: sub.topDepts, icon: Building2 },
+      ],
+    },
+    {
+      href: '/news',
+      label: sub.newsLabel,
+      icon: Newspaper,
+      children: [
+        { href: '/news', label: sub.allNews, icon: Newspaper },
+        { href: '/news?category=ACHIEVEMENT', label: sub.achievements, icon: Award },
+        { href: '/news?category=CONFERENCE', label: sub.conferencesGrants, icon: BookOpen },
       ],
     },
   ];

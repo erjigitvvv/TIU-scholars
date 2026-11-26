@@ -96,6 +96,9 @@ export default function PublicationsPage() {
 
   // Form states
   const [doiInput, setDoiInput] = useState('')
+  const [titleSearchQuery, setTitleSearchQuery] = useState('')
+  const [titleSearchResults, setTitleSearchResults] = useState([])
+  const [titleSearchLoading, setTitleSearchLoading] = useState(false)
   const [bibInput, setBibInput] = useState('')
   const [manualForm, setManualForm] = useState({
     title: '',
@@ -345,6 +348,57 @@ export default function PublicationsPage() {
       setBibInput('')
       setCoAuthorIds([])
       setCoAuthorSearch('')
+      fetchPublications()
+    } catch (err) {
+      setErrorMsg(err.message)
+    }
+  }
+
+  const handleSearchByTitle = async () => {
+    if (!titleSearchQuery.trim()) return
+    setTitleSearchLoading(true)
+    try {
+      const res = await fetch('/api/academic-projects/literature-search?includePortal=1&q=' + encodeURIComponent(titleSearchQuery.trim()))
+      const data = await res.json()
+      const portal = (data.portalMatches || []).map((item) => ({ ...item, source: 'portal' }))
+      const ext = (data.works || []).map((item) => ({ ...item, source: 'openalex' }))
+      setTitleSearchResults([...portal, ...ext])
+    } catch {
+      setTitleSearchResults([])
+    } finally {
+      setTitleSearchLoading(false)
+    }
+  }
+
+  const handleBindSearchedArticle = async (item) => {
+    setErrorMsg('')
+    try {
+      const payload = item.doi
+        ? { mode: 'doi', doi: item.doi, coAuthorIds }
+        : {
+            mode: 'manual',
+            manualData: {
+              title: item.title,
+              type: item.type || 'INTERNATIONAL_JOURNAL',
+              journalOrPublisher: item.journal || item.journalOrPublisher || 'Scientific Journal',
+              year: item.year || new Date().getFullYear(),
+              doi: '',
+              url: item.url || '',
+              abstract: item.abstract || '',
+            },
+            coAuthorIds,
+          }
+      const res = await fetch('/api/dashboard/publications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to bind publication')
+      setSuccessMsg('Maqola profilingizga muvaffaqiyatli bog?landi!')
+      setModalOpen(false)
+      setTitleSearchQuery('')
+      setTitleSearchResults([])
       fetchPublications()
     } catch (err) {
       setErrorMsg(err.message)
@@ -649,9 +703,65 @@ export default function PublicationsPage() {
               >
                 Manual Entry
               </button>
+              <button
+                type="button"
+                onClick={() => setMode('search')}
+                className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${mode === 'search' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-600 hover:text-neutral-900'}`}
+              >
+                Sarlavha qidirish
+              </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {mode === 'search' && (
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-neutral-700">
+                    Maqola sarlavhasini qidirish (Portal & OpenAlex)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Maqola sarlavhasini kiriting..."
+                      value={titleSearchQuery}
+                      onChange={(e) => setTitleSearchQuery(e.target.value)}
+                      className="flex-1 px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSearchByTitle}
+                      disabled={titleSearchLoading || !titleSearchQuery.trim()}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl disabled:opacity-50"
+                    >
+                      {titleSearchLoading ? 'Qidirilmoqda...' : 'Qidirish'}
+                    </button>
+                  </div>
+                  {titleSearchResults.length > 0 && (
+                    <div className="max-h-56 overflow-y-auto space-y-2 border rounded-xl p-2 bg-neutral-50">
+                      {titleSearchResults.map((item, idx) => (
+                        <div key={idx} className="p-2.5 bg-white border rounded-lg flex items-start justify-between gap-2">
+                          <div className="space-y-0.5">
+                            <div className="text-xs font-bold text-neutral-900">{item.title}</div>
+                            <div className="text-[11px] text-neutral-500">
+                              {item.journal || item.journalOrPublisher} ? {item.year || '-'} {item.doi ? `? DOI: ${item.doi}` : ''}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleBindSearchedArticle(item)}
+                            className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold rounded-lg shrink-0"
+                          >
+                            Bog?lash
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-xs text-neutral-500">
+                    Topilmasa, &ldquo;Manual Entry&rdquo; bo?limi orqali qo?lda kiritib bog?lashingiz mumkin.
+                  </p>
+                </div>
+              )}
+
               {mode === 'doi' && (
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-neutral-700">Digital Object Identifier (DOI)</label>

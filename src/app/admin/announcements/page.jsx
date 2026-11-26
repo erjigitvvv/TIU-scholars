@@ -45,7 +45,7 @@ const DICT = {
     cancel: 'Bekor qilish',
     save: 'Saqlash',
     saving: 'Saqlanmoqda...',
-    categories: { GRANT: 'Grant', CONFERENCE: 'Konferensiya', DEADLINE: 'Muddat / KPI', NEWS: 'Ilmiy yangilik' },
+    categories: { ACHIEVEMENT: 'Ilmiy yutuq', GRANT: 'Grant', CONFERENCE: 'Konferensiya', DEADLINE: 'Muddat / KPI', NEWS: 'Ilmiy yangilik' },
     filters: {
       ALL: 'Barchasi',
       ACTIVE: 'Faol e‘lonlar',

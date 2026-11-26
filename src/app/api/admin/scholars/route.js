@@ -13,7 +13,7 @@ export async function GET(request) {
   const status = searchParams.get('status');
   const includeFaculties = searchParams.get('includeFaculties') === '1';
 
-  const scholars = await prisma.scholarProfile.findMany({
+  const scholarsRaw = await prisma.scholarProfile.findMany({
     where: {
       ...(status ? { user: { accountStatus: status } } : {}),
     },
@@ -32,6 +32,35 @@ export async function GET(request) {
     },
     orderBy: { createdAt: 'desc' },
   });
+
+  // Fallback: hydrate phone from registration AuditLog for older accounts where ScholarProfile.phone was null
+  const missingPhoneUserIds = scholarsRaw
+    .filter((s) => !s.phone && s.user?.id)
+    .map((s) => s.user.id);
+
+  let phoneByUserId = {};
+  if (missingPhoneUserIds.length > 0) {
+    const regLogs = await prisma.auditLog.findMany({
+      where: {
+        action: 'USER_REGISTERED',
+        entityId: { in: missingPhoneUserIds },
+      },
+      select: { entityId: true, details: true },
+    });
+    for (const log of regLogs) {
+      try {
+        const parsed = JSON.parse(log.details || '{}');
+        if (parsed.phone) phoneByUserId[log.entityId] = parsed.phone;
+      } catch {
+        // ignore malformed JSON
+      }
+    }
+  }
+
+  const scholars = scholarsRaw.map((s) => ({
+    ...s,
+    phone: s.phone || phoneByUserId[s.userId] || null,
+  }));
 
   if (includeFaculties) {
     const faculties = await prisma.faculty.findMany({

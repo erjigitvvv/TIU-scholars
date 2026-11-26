@@ -16,7 +16,16 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { email, password, fullName, phone, departmentId, academicDegree, academicTitle } = body;
+    const {
+      email,
+      password,
+      fullName,
+      phone,
+      departmentId,
+      academicDegree,
+      academicTitle,
+      orcidId,
+    } = body;
 
     if (!email || !password || !fullName) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -32,8 +41,16 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Email already registered' }, { status: 409 });
     }
 
-    let resolvedDeptId = departmentId;
-    if (!resolvedDeptId) {
+    let resolvedDeptId = departmentId ? String(departmentId).trim() : '';
+    if (resolvedDeptId) {
+      const dept = await prisma.department.findUnique({
+        where: { id: resolvedDeptId },
+        select: { id: true },
+      });
+      if (!dept) {
+        return NextResponse.json({ error: 'Selected department not found' }, { status: 400 });
+      }
+    } else {
       const firstDept = await prisma.department.findFirst({ select: { id: true } });
       if (!firstDept) {
         return NextResponse.json({ error: 'No departments configured yet' }, { status: 400 });
@@ -41,6 +58,8 @@ export async function POST(request) {
       resolvedDeptId = firstDept.id;
     }
 
+    const cleanPhone = phone ? String(phone).trim() : null;
+    const cleanOrcid = orcidId ? String(orcidId).trim() : null;
     const passwordHash = await bcrypt.hash(password, 10);
 
     const result = await prisma.$transaction(async (tx) => {
@@ -59,6 +78,8 @@ export async function POST(request) {
           departmentId: resolvedDeptId,
           fullName: String(fullName).trim(),
           publicEmail: normalizedEmail,
+          phone: cleanPhone,
+          orcidId: cleanOrcid,
           academicDegree: academicDegree || 'NONE',
           academicTitle: academicTitle || 'NONE',
           researchInterests: JSON.stringify([]),

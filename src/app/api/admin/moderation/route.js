@@ -202,10 +202,107 @@ export async function PATCH(request) {
           creator: {
             include: { scholarProfile: true },
           },
+          collaborators: {
+            where: { inviteStatus: 'ACCEPTED' },
+            include: {
+              user: {
+                include: { scholarProfile: true },
+              },
+            },
+          },
         },
       });
       if (updatedItem.creatorId) {
         targetUserIds.add(updatedItem.creatorId);
+      }
+
+      if (status === 'APPROVED') {
+        const creatorScholarId = updatedItem.creator?.scholarProfile?.id;
+        if (updatedItem.type === 'GRANT') {
+          if (creatorScholarId) {
+            const existingGrant = await prisma.grantProject.findFirst({
+              where: { scholarId: creatorScholarId, title: updatedItem.title },
+            });
+            if (!existingGrant) {
+              await prisma.grantProject.create({
+                data: {
+                  scholarId: creatorScholarId,
+                  title: updatedItem.title,
+                  fundingSource: updatedItem.grantFunder || 'TIU Research Fund',
+                  role: 'PI',
+                  startYear: new Date().getFullYear(),
+                  amount: updatedItem.budgetTotal ? String(updatedItem.budgetTotal) : null,
+                  status: 'APPROVED',
+                },
+              });
+            } else if (existingGrant.status !== 'APPROVED') {
+              await prisma.grantProject.update({
+                where: { id: existingGrant.id },
+                data: { status: 'APPROVED' },
+              });
+            }
+            await recalculateScholarMetrics(creatorScholarId);
+          }
+        } else {
+          const pubTypeMap = {
+            ARTICLE: pubType || 'INTERNATIONAL_JOURNAL',
+            THESIS: 'CONFERENCE',
+            MONOGRAPH: 'MONOGRAPH',
+            DISSERTATION: 'LOCAL_JOURNAL',
+            AUTOREFERAT: 'LOCAL_JOURNAL',
+          };
+          const resolvedPubType = pubTypeMap[updatedItem.type] || 'INTERNATIONAL_JOURNAL';
+          const cleanDoi = updatedItem.doi ? updatedItem.doi.trim() : null;
+
+          let pub = await prisma.publication.findFirst({
+            where: cleanDoi
+              ? { OR: [{ doi: cleanDoi }, { title: updatedItem.title }] }
+              : { title: updatedItem.title },
+            include: { authors: true },
+          });
+
+          if (!pub) {
+            const scholarIdsToLink = new Set();
+            if (creatorScholarId) scholarIdsToLink.add(creatorScholarId);
+            for (const c of updatedItem.collaborators || []) {
+              if (c.user?.scholarProfile?.id) {
+                scholarIdsToLink.add(c.user.scholarProfile.id);
+              }
+            }
+
+            pub = await prisma.publication.create({
+              data: {
+                title: updatedItem.title,
+                type: resolvedPubType,
+                journalOrPublisher:
+                  updatedItem.targetJournal ||
+                  updatedItem.targetConference ||
+                  'TIU Academic Press',
+                year: new Date().getFullYear(),
+                doi: cleanDoi,
+                status: 'APPROVED',
+                submittedById: updatedItem.creatorId,
+                authors: {
+                  create: Array.from(scholarIdsToLink).map((sid, i) => ({
+                    scholarId: sid,
+                    authorOrder: i + 1,
+                  })),
+                },
+              },
+              include: { authors: true },
+            });
+          } else if (pub.status !== 'APPROVED') {
+            pub = await prisma.publication.update({
+              where: { id: pub.id },
+              data: { status: 'APPROVED' },
+              include: { authors: true },
+            });
+          }
+
+          for (const author of pub.authors || []) {
+            await recalculateScholarMetrics(author.scholarId);
+          }
+        }
       }
     }
 
@@ -255,6 +352,44 @@ export async function PATCH(request) {
           : `"${updatedItem.title || itemLabel}" rad etildi. Sabab: ${rejectionReason}`,
         link: linkMap[type] || '/dashboard',
       });
+    }
+
+    // Auto-publish public ACHIEVEMENT news item for high-impact approved publications or grants
+    if (isApproved) {
+      try {
+        const shouldPublishAchievement =
+          (type === 'publications' &&
+            ((['SCOPUS', 'WOS'].includes(updatedItem.type) && ['Q1', 'Q2'].includes(updatedItem.quartile)) ||
+              updatedItem.type === 'MONOGRAPH')) ||
+          type === 'grants' ||
+          (type === 'academic-projects' && updatedItem.type === 'GRANT');
+
+        if (shouldPublishAchievement && updatedItem.title) {
+          const achTitle = `?? Ilmiy yutuq: ${updatedItem.title}`;
+          const existsAch = await prisma.announcement.findFirst({
+            where: { title: achTitle, category: 'ACHIEVEMENT' },
+            select: { id: true },
+          });
+          if (!existsAch) {
+            await prisma.announcement.create({
+              data: {
+                title: achTitle,
+                content:
+                  type === 'publications'
+                    ? `Universitetimiz olimi tomonidan "${updatedItem.title}" nomli ilmiy ish (${updatedItem.type}${updatedItem.quartile && updatedItem.quartile !== 'NONE' ? ' ' + updatedItem.quartile : ''}) muvaffaqiyatli tasdiqlandi va xalqaro ilmiy bazaga kiritildi.`
+                    : `"${updatedItem.title}" ilmiy grant loyihasi muvaffaqiyatli tasdiqlandi va amalga oshirish bosqichiga o?tdi.`,
+                category: 'ACHIEVEMENT',
+                visibility: 'PUBLIC',
+                status: 'PUBLISHED',
+                isPinned: false,
+                authorId: user.id,
+              },
+            });
+          }
+        }
+      } catch (achErr) {
+        console.error('Achievement news auto-create warning:', achErr);
+      }
     }
 
     return NextResponse.json({ success: true, item: updatedItem });

@@ -7,6 +7,7 @@ import {
   Lock,
   User,
   Phone,
+  Building2,
   AlertCircle,
   ArrowRight,
   CheckCircle2,
@@ -24,6 +25,12 @@ const COPY = {
     emailPh: 'ism.familiya@tiu.uz',
     phone: 'Telefon raqam',
     phonePh: '+998 90 123 45 67',
+    department: 'Fakultet / Kafedra',
+    departmentPh: 'Kafedrani tanlang...',
+    degree: 'Ilmiy daraja',
+    academicTitle: 'Ilmiy unvon',
+    orcid: 'ORCID ID (ixtiyoriy)',
+    orcidPh: '0000-0000-0000-0000',
     password: 'Parol yarating',
     passwordPh: 'Masalan: Scholar2026!',
     confirmPassword: 'Parolni qayta kiriting',
@@ -50,6 +57,12 @@ const COPY = {
     emailPh: 'name@tiu.uz',
     phone: 'Номер телефона',
     phonePh: '+998 90 123 45 67',
+    department: 'Факультет / Кафедра',
+    departmentPh: 'Выберите кафедру...',
+    degree: 'Учёная степень',
+    academicTitle: 'Учёное звание',
+    orcid: 'ORCID ID (необязательно)',
+    orcidPh: '0000-0000-0000-0000',
     password: 'Создайте пароль',
     passwordPh: 'Например: Scholar2026!',
     confirmPassword: 'Повторите пароль',
@@ -76,6 +89,12 @@ const COPY = {
     emailPh: 'name@tiu.uz',
     phone: 'Phone Number',
     phonePh: '+998 90 123 45 67',
+    department: 'Faculty / Department',
+    departmentPh: 'Select department...',
+    degree: 'Academic Degree',
+    academicTitle: 'Academic Title',
+    orcid: 'ORCID ID (optional)',
+    orcidPh: '0000-0000-0000-0000',
     password: 'Create Password',
     passwordPh: 'e.g. Scholar2026!',
     confirmPassword: 'Confirm Password',
@@ -103,10 +122,15 @@ function getCookieLocale() {
 
 export default function RegisterPage() {
   const [locale, setLocale] = useState('uz');
+  const [faculties, setFaculties] = useState([]);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     phone: '',
+    departmentId: '',
+    academicDegree: 'NONE',
+    academicTitle: 'NONE',
+    orcidId: '',
     password: '',
     confirmPassword: '',
   });
@@ -121,7 +145,22 @@ export default function RegisterPage() {
     startTransition(() => {
       setLocale(getCookieLocale());
     });
+    fetch('/api/departments')
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data.faculties)) {
+          setFaculties(data.faculties);
+        }
+      })
+      .catch(() => {});
   }, []);
+
+  const getLocalizedName = (item) =>
+    locale === 'ru'
+      ? item?.nameRu || item?.nameUz || item?.nameEn
+      : locale === 'en'
+      ? item?.nameEn || item?.nameUz
+      : item?.nameUz || item?.nameEn;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -145,6 +184,10 @@ export default function RegisterPage() {
           fullName: formData.fullName,
           email: formData.email,
           phone: formData.phone,
+          departmentId: formData.departmentId || undefined,
+          academicDegree: formData.academicDegree,
+          academicTitle: formData.academicTitle,
+          orcidId: formData.orcidId || undefined,
           password: formData.password,
         }),
       });
@@ -280,6 +323,80 @@ export default function RegisterPage() {
                     placeholder={t.phonePh}
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                  {t.department}
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                  <select
+                    required
+                    value={formData.departmentId}
+                    onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })}
+                    className="block w-full pl-10 pr-4 py-2.5 bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">{t.departmentPh}</option>
+                    {faculties.map((f) => (
+                      <optgroup key={f.id} label={getLocalizedName(f)}>
+                        {(f.departments || []).map((d) => (
+                          <option key={d.id} value={d.id}>
+                            {getLocalizedName(d)}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                    {t.degree}
+                  </label>
+                  <select
+                    value={formData.academicDegree}
+                    onChange={(e) => setFormData({ ...formData, academicDegree: e.target.value })}
+                    className="block w-full px-3 py-2.5 bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="NONE">NONE</option>
+                    <option value="PHD">PhD</option>
+                    <option value="DSC">DSc</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                    {t.academicTitle}
+                  </label>
+                  <select
+                    value={formData.academicTitle}
+                    onChange={(e) => setFormData({ ...formData, academicTitle: e.target.value })}
+                    className="block w-full px-3 py-2.5 bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="NONE">NONE</option>
+                    <option value="ASSISTANT">Assistant</option>
+                    <option value="DOCENT">Docent</option>
+                    <option value="PROFESSOR">Professor</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                  {t.orcid}
+                </label>
+                <input
+                  type="text"
+                  value={formData.orcidId}
+                  onChange={(e) => setFormData({ ...formData, orcidId: e.target.value })}
+                  className="block w-full px-3.5 py-2.5 bg-white/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder={t.orcidPh}
+                />
               </div>
 
               <div>

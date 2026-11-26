@@ -538,60 +538,15 @@ export default function ScholarsDirectoryPage() {
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-24 pb-16 space-y-8">
-      {/* Sahifa sarlavhasi va Tab almashtirgich (Olimlar / Ketayotgan grantlar) */}
+      {/* Sahifa sarlavhasi */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200/80 dark:border-slate-800">
         <div className="space-y-1">
           <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0F294A] dark:text-white tracking-tight">
-            {activeSection === 'SCHOLARS' ? t.title : 'Ketayotgan Ilmiy Grantlar'}
+            {t.title}
           </h1>
           <p className="text-slate-600 dark:text-slate-400 text-sm max-w-2xl">
-            {activeSection === 'SCHOLARS'
-              ? t.subtitle
-              : 'Universitet olimlari ishtirokidagi davlat, fundamental, amaliy va xalqaro tadqiqot grantlari.'}
+            {t.subtitle}
           </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="inline-flex p-1 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
-            <button
-              type="button"
-              onClick={() => setActiveSection('SCHOLARS')}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                activeSection === 'SCHOLARS'
-                  ? 'bg-white dark:bg-slate-900 text-[#0F294A] dark:text-white shadow-xs'
-                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <GraduationCap className="w-4 h-4" />
-              <span>Barcha Olimlar ({scholars.length})</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveSection('GRANTS')}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                activeSection === 'GRANTS'
-                  ? 'bg-white dark:bg-slate-900 text-[#0F294A] dark:text-white shadow-xs'
-                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <Briefcase className="w-4 h-4 text-amber-500" />
-              <span>Ketayotgan Grantlar ({grants.length})</span>
-            </button>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              setGrantModalPage(1);
-              setGrantErrorMsg('');
-              setIsGrantModalOpen(true);
-            }}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>+ Yangi Grant Qo‘shish</span>
-          </button>
         </div>
       </div>
 
