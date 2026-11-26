@@ -191,3 +191,60 @@ export async function PATCH(request) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+export async function DELETE(request) {
+  const user = await requireModeratorOrAdmin();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
+    }
+
+    if (userId === user.id) {
+      return NextResponse.json({ error: 'O‘z hisobingizni o‘chira olmaysiz' }, { status: 400 });
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { scholarProfile: true },
+    });
+
+    if (!targetUser) {
+      return NextResponse.json({ error: 'Foydalanuvchi topilmadi' }, { status: 404 });
+    }
+
+    if (targetUser.role === 'SUPER_ADMIN' && user.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ error: 'Bosh administrator profilini o‘chirishga ruxsat yo‘q' }, { status: 403 });
+    }
+
+    // Cascade delete user and associated scholarProfile
+    await prisma.user.delete({
+      where: { id: userId },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        actorId: user.id,
+        action: 'ADMIN_DELETE_SCHOLAR',
+        entityType: 'User',
+        entityId: userId,
+        details: JSON.stringify({
+          deletedEmail: targetUser.email,
+          scholarName: targetUser.scholarProfile?.fullName || 'N/A',
+        }),
+      },
+    });
+
+    return NextResponse.json({ success: true, message: 'Profil muvaffaqiyatli o‘chirildi' });
+  } catch (error) {
+    console.error('Admin scholar delete error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+

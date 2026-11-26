@@ -196,16 +196,6 @@ export default function Navbar({ dict, currentLocale, user }) {
         { href: '/rankings?tab=departments', label: sub.topDepts, icon: Building2 },
       ],
     },
-    {
-      href: '/news',
-      label: sub.newsLabel,
-      icon: Newspaper,
-      children: [
-        { href: '/news', label: sub.allNews, icon: Newspaper },
-        { href: '/news?category=ACHIEVEMENT', label: sub.achievements, icon: Award },
-        { href: '/news?category=CONFERENCE', label: sub.conferencesGrants, icon: BookOpen },
-      ],
-    },
   ];
 
   const isActive = (item) => (item.exact ? pathname === item.href : pathname.startsWith(item.href));

@@ -15,6 +15,7 @@ import {
   ExternalLink,
   Save,
   X,
+  Trash2,
 } from 'lucide-react';
 import { useLocale } from '@/lib/useLocale';
 
@@ -38,6 +39,8 @@ const DICT = {
     reject: 'Rad etish',
     suspend: 'Bloklash',
     activate: 'Faollashtirish',
+    delete: 'O‘chirish',
+    deleteConfirmDesc: 'Haqiqatan ham ushbu olim profilini bazadan butunlay o‘chirmoqchimisiz? Barcha biriktirilgan maʼlumotlar tozalab yuboriladi.',
     loginLabel: 'Login:',
     phoneLabel: 'Telefon:',
     publicEmailLabel: 'Ommaviy email:',
@@ -82,6 +85,8 @@ const DICT = {
     reject: 'Отклонить',
     suspend: 'Заблокировать',
     activate: 'Активировать',
+    delete: 'Удалить',
+    deleteConfirmDesc: 'Вы действительно хотите навсегда удалить этот профиль учёного из базы? Это действие необратимо.',
     loginLabel: 'Логин:',
     phoneLabel: 'Телефон:',
     publicEmailLabel: 'Публичный email:',
@@ -126,6 +131,8 @@ const DICT = {
     reject: 'Reject',
     suspend: 'Suspend',
     activate: 'Activate',
+    delete: 'Delete',
+    deleteConfirmDesc: 'Are you sure you want to permanently delete this scholar profile? This action cannot be undone.',
     loginLabel: 'Login:',
     phoneLabel: 'Phone:',
     publicEmailLabel: 'Public email:',
@@ -224,6 +231,27 @@ export default function AdminScholarsPage() {
       }
     } catch (err) {
       console.error('Failed to update status', err);
+    }
+  };
+
+  const handleDeleteScholar = async (userId, scholarName) => {
+    if (!window.confirm(`${scholarName || 'Ushbu profil'}:\n${t.deleteConfirmDesc}`)) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/admin/scholars?userId=${userId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setSelectedScholar(null);
+        fetchScholars(tab === 'PENDING' ? 'PENDING' : null);
+      } else {
+        const data = await res.json();
+        alert(data.error || 'O‘chirishda xatolik yuz berdi');
+      }
+    } catch (err) {
+      console.error('Failed to delete scholar', err);
+      alert('Tarmoq xatosi');
     }
   };
 
@@ -433,6 +461,15 @@ export default function AdminScholarsPage() {
                           {t.activate}
                         </button>
                       )}
+
+                      <button
+                        onClick={() => handleDeleteScholar(s.user?.id, s.fullName)}
+                        title={t.delete}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 text-xs font-semibold border border-red-200 dark:border-red-800 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        {t.delete}
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -678,6 +715,14 @@ export default function AdminScholarsPage() {
                 </div>
 
                 <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteScholar(selectedScholar.user?.id, selectedScholar.fullName)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-semibold"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    {t.delete}
+                  </button>
                   <button
                     type="button"
                     onClick={() => setSelectedScholar(null)}
