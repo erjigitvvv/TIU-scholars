@@ -112,7 +112,7 @@ const SCHOLARS_DATA = [
     birthDate: "1975-04-19",
     phone: "+998 90 130 79 47",
     education: "1999 y. Urganch davlat universiteti (kunduzgi)\n2019 y. O‘zbekiston Respublikasi Fanlar akademiyasi Fizika-texnika instituti (PhD)",
-    photoUrl: null,
+    photoUrl: "/uploads/avatars/jumaniyozov-ibrohim.png",
     email: "i.jumaniyozov@tiu.uz",
     tiuScore: 34.0,
     hIndex: 4,
